@@ -61,8 +61,8 @@ int main(int argc, const char * argv[]) {
     
     // insert code here...
     
-    if (argc != 12) { //MAKE SURE TO FIX FOR USER TO CLUSTER
-        printf("Usage: fomo <numItems> <numLatentFactors> <numClusters> <numBins> <K> <numClusters to Time> <Weight Directory> <Cluster Directory> <MaxThreads> <SampleSize> <Iters>\n");
+    if (argc != 10) { //MAKE SURE TO FIX FOR USER TO CLUSTER
+        printf("Usage: fomo <numItems> <numLatentFactors> <numClusters> <numBins> <K> <numClusters to Time> <Weight Directory> <Cluster Directory> <MaxThreads>\n");
         exit(1);
     }
     
@@ -80,15 +80,11 @@ int main(int argc, const char * argv[]) {
     std::string clustersToUsersPath;
     std::string centroidsPath;
     std::string userToClustersPath;
-//    std::string outputPath;
-
     
     int numberItems = atoi(argv[1]);
     int numberFeatures = atoi(argv[2]);
     int numberClusters = atoi(argv[3]);
     int maxThreads = atoi(argv[9]);
-    int sampleSize = atoi(argv[10]);
-    int iterations = atoi(argv[11]);
     
     MKL_Set_Num_Threads(maxThreads);
     
@@ -103,14 +99,6 @@ int main(int argc, const char * argv[]) {
         itemWeightPath = allArgs[7] + "/itemWeights.txt";
 
     }
-    
-//    if (((char)allArgs[10].back()) == '/') {
-//        outputPath = allArgs[10];
-//        
-//    }
-//    else{
-//        outputPath = allArgs[10] + "/";
-//    }
     
     if (((char)allArgs[8].back()) == '/') {
         clusterUserCountsPath = allArgs[8] + allArgs[3] + "_user_cluster_ids_counts";
@@ -207,9 +195,9 @@ int main(int argc, const char * argv[]) {
     std::ofstream misc_file;
     std::string misc_out_file;
     misc_out_file = "output_U-" + std::to_string(numberUsers) + "_F-" + std::to_string(numberFeatures) + "_C-" + std::to_string(numberClusters) + "_B-" + std::to_string(numberBins) + ".csv";
- //   misc_file.open (misc_out_file, std::ofstream::out | std::ofstream::app);
+    misc_file.open (misc_out_file, std::ofstream::out | std::ofstream::app);
     
-//    misc_file << "K,Cluster,User,ItemsVisited,ThetaUC" << std::endl;
+    misc_file << "K,Cluster,User,ItemsVisited,ThetaUC" << std::endl;
     
     std::ofstream run_file;
     std::string run_out_file;
@@ -242,10 +230,10 @@ int main(int argc, const char * argv[]) {
     
     std::ofstream myfile;
     std::string outputFile;
-    outputFile = "simdex2_u" + std::to_string(numberUsers) + "_f" + std::to_string(numFeatures) + "_k" + std::to_string(k) + "_c" + std::to_string(numClusters) +  ".csv";
+    outputFile = "simdex2_u" + std::to_string(numberUsers) + "_f" + std::to_string(numFeatures) + "_c" + std::to_string(numClusters) + "_k" + std::to_string(k) + ".csv";
     myfile.open (outputFile, std::ofstream::out | std::ofstream::app);
-//    myfile << "Users,Clusters,Features,K,NumBins,ClusterLoadTime,UserLoadTime,CompTime,UpperBoundCreationTime,UpperBoundSortTime,WalkTime,SampleSize,Iters" << std::endl;
-    myfile << numberUsers << "," << numClusters << "," << numFeatures << "," << k << "," << numberBins << "," << time_diff3 << "," << time_diff1 << "," << time_diff2 << "," << creationTime << "," << sortTime << "," << computeKTime << "," << sampleSize << "," << iterations << std::endl;
+    myfile << "Users,Clusters,Features,K,NumBins,ClusterLoadTime,UserLoadTime,CompTime,UpperBoundCreationTime,UpperBoundSortTime,WalkTime" << std::endl;
+    myfile << numberUsers << "," << numClusters << "," << numFeatures << "," << k << "," << numberBins << "," << time_diff3 << "," << time_diff1 << "," << time_diff2 << "," << creationTime << "," << sortTime << "," << computeKTime << std::endl;
     
 //    myfile << "Users: " << numberUsers << " Clusters: " << numClusters << " Features: " << numFeatures << " K: " << k << " NumBins: " << numberBins << "  " << " Cluster Load Time: " << time_diff3 << " User Load Time: " << time_diff1 << " Comp Time: " << time_diff2 << " UpperBoundCreationTime: " << creationTime << " UpperBoundSortTime: " << sortTime << " WalkTime: " << computeKTime << "\n";
     myfile.close();

@@ -481,7 +481,7 @@ void clusterPrep(fullCluster_t *fullClusterData, int clusterID, float *fullUserD
     //        printf("Cluster: %d \t UserID: %d \t ItemsVisited: %d\n", clusterID, currentUser, itemsVisited);
     //        printf("%d,%d,%d,%f\n", clusterID, currentUser, itemsVisited, vectorized_Acos_output_uc[i]);
             
-//            misc_file << k << "," << clusterID << "," << currentUser << "," << itemsVisited << "," << vectorized_Acos_output_uc[i] << "\n";
+            misc_file << k << "," << clusterID << "," << currentUser << "," << itemsVisited << "," << vectorized_Acos_output_uc[i] << "\n";
 
             
     //        if (clusterID == 2) {
