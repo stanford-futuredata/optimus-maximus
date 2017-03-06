@@ -27,7 +27,7 @@ do
                     weightspath=/mnt/ramdisk/datasets/netflix/f_${f}/
                     clusterpath=/mnt/ramdisk/datasets/netflix/f_${f}/${sample}/${iteration}/
                     echo -e "Starting Netflix F=" ${f} " K=" ${k} " Bins=" ${bins}
-                    ../fomo 17770 ${f} ${cluster} ${bins} ${k} ${cluster} ${weightspath} ${clusterpath} 1 ${sample} ${iteration} &
+                    ../simdex 17770 ${f} ${cluster} ${bins} ${k} ${cluster} ${weightspath} ${clusterpath} 1 ${sample} ${iteration} &
                 done
             done
         done

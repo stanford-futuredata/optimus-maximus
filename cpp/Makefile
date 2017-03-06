@@ -9,7 +9,7 @@ SRCS = main.cpp mz_special.cpp arith.cpp parser.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 # define the executable file 
-MAIN = fomo
+MAIN = simdex
 
 #
 # The following part of the makefile is generic; it can be used to 
