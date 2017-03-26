@@ -1,11 +1,21 @@
 
-CC = icc
-CFLAGS = -O3 -std=c++11 -mkl -ipp
-INCLUDES =
-LIBS =
-#LFLAGS = linker flags (if necessary)
+ifeq ($(DEBUG), 1)
+  CXX_FLAGS := -g -O0
+else
+  CXX_FLAGS := -O3
+endif
 
-SRCS = main.cpp mz_special.cpp arith.cpp parser.cpp
+CXX := icc
+CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp
+INCLUDE_DIRS := /usr/include/boost
+LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
+LIBS := boost_system
+
+INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
+L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
+                $(foreach library,$(LIBS),-l$(library))
+
+SRCS = main.cpp algo.cpp arith.cpp parser.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 # define the executable file 
@@ -22,14 +32,14 @@ MAIN = simdex
 all: $(MAIN)
 
 $(MAIN): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $(MAIN) 
+	$(CXX) $(CXX_FLAGS) $(OBJS) $(L_FLAGS) -o $(MAIN)
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
 .cpp.o:
-	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
 	$(RM) *.o *~ $(MAIN)

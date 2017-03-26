@@ -1,3 +1,19 @@
+*.sw*
+*.csv
+*.txt
+# ctags
+tags
+# C++ binary files
 *.o
 simdex
+# C++ formatting
 .vscode
+.clang-format
+# Python binary files
+__pycache__/
+# workspace dirs
+lemp-icc-no-simd/
+lemp-icc-simd/
+lemp-no-icc-no-simd/
+lemp-no-icc-simd/
+exp/
