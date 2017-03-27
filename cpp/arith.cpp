@@ -17,149 +17,35 @@
 #include <stdlib.h>
 #include <mkl.h>
 
-extern int numberUsers;
-extern int numFeatures;
-extern int numItems;
-extern int numClusters;
+float *computeAllItemNorms(float *item_weights, const size_t num_items,
+                           const size_t num_latent_factors) {
+  float *allItemNorms = (float *)malloc(sizeof(float) * num_items);
 
-float *computeAllItemNorms(float *allItemWeights) {
-  float *allItemNorms = (float *)malloc(sizeof(float) * numItems);
-
-  for (int i = 0; i < numItems; i++) {
-    allItemNorms[i] =
-        cblas_snrm2(numFeatures, &allItemWeights[i * numFeatures], 1);
+  for (size_t i = 0; i < num_items; i++) {
+    allItemNorms[i] = cblas_snrm2(num_latent_factors,
+                                  &item_weights[i * num_latent_factors], 1);
   }
 
   return allItemNorms;
 }
 
-float *computeAllItemNormsForMM(float *allItemWeights) {
-  float *allItemNorms =
-      (float *)_malloc(sizeof(float) * numItems * numFeatures);
-  for (int i = 0; i < numItems; i++) {
-    allItemNorms[i * numFeatures] =
-        cblas_snrm2(numFeatures, &allItemWeights[i * numFeatures], 1);
-    for (int j = 0; j < numFeatures; j++) {
-      allItemNorms[(i * numFeatures) + j] = allItemNorms[i * numFeatures];
-    }
-  }
-
-  return allItemNorms;
-}
-
-float *computeAllCentroidNorms(float *clusterCentroids) {
-  float *allCentroidNorms =
-      (float *)_malloc(sizeof(float) * (numClusters * numFeatures));
-  for (int i = 0; i < numClusters; i++) {
-    allCentroidNorms[i * numFeatures] =
-        cblas_snrm2(numFeatures, &clusterCentroids[i * numFeatures], 1);
-    for (int j = 0; j < numFeatures; j++) {
-      allCentroidNorms[(i * numFeatures) + j] =
-          allCentroidNorms[i * numFeatures];
-    }
-  }
-
-  return allCentroidNorms;
-}
-
-float *computeCosineSimilarityItemsCentroids(float *allItems,
-                                             float *allCentroids) {
-
-  int m, n, k, i;
-  m = numClusters;
-  k = numFeatures;
-  n = numItems;
-  float alpha = 1.0;
-  float beta = 0.0;
-
-  float *itemDOTcentroid =
-      (float *)_malloc(sizeof(float) * numClusters * numItems);
-  float *allItemsNew = (float *)_malloc(sizeof(float) * numItems * numFeatures);
-  float *allCentroidsNew =
-      (float *)_malloc(sizeof(float) * numClusters * numFeatures);
-
-  float *allItemNorms = computeAllItemNormsForMM(allItems);
-  float *allCentroidNorms = computeAllCentroidNorms(allCentroids);
-
-  vsInv(numClusters * numFeatures, allCentroidNorms, allCentroidNorms);
-  vsInv(numItems * numFeatures, allItemNorms, allItemNorms);
-
-  for (i = 0; i < numItems; i++) {
-    vsMul(numFeatures, &allItems[i * numFeatures],
-          &allItemNorms[i * numFeatures], &allItemsNew[i * numFeatures]);
-  }
-  for (i = 0; i < numClusters; i++) {
-    vsMul(numFeatures, &allCentroids[i * numFeatures],
-          &allCentroidNorms[i * numFeatures],
-          &allCentroidsNew[i * numFeatures]);
-  }
-
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
-              allCentroidsNew, k, allItemsNew, k, beta, itemDOTcentroid, n);
-
-  MKL_free(allCentroidsNew);
-  MKL_free(allItemsNew);
-  MKL_free(allItemNorms);
-  MKL_free(allCentroidNorms);
-
-  return itemDOTcentroid;
-}
-
-float *computeClusterUserNorms(float *allUserWeights, int numUsers,
+float *computeClusterUserNorms(float *user_weights, const size_t num_users,
+                               const size_t num_latent_factors,
                                userNormTuple_t *userNormTuple_array) {
-  float *allUserNorms =
-      (float *)_malloc(sizeof(float) * (numUsers * numFeatures));
+  float *user_norms =
+      (float *)_malloc(sizeof(float) * (num_users * num_latent_factors));
 
-  for (int i = 0; i < numUsers; i++) {
-    allUserNorms[i * numFeatures] =
-        cblas_snrm2(numFeatures, &allUserWeights[i * numFeatures], 1);
-    userNormTuple_array[i].userNorm = allUserNorms[i * numFeatures];
-    for (int j = 0; j < numFeatures; j++) {
-      allUserNorms[(i * numFeatures) + j] = allUserNorms[i * numFeatures];
+  for (size_t i = 0; i < num_users; i++) {
+    user_norms[i * num_latent_factors] = cblas_snrm2(
+        num_latent_factors, &user_weights[i * num_latent_factors], 1);
+    userNormTuple_array[i].userNorm = user_norms[i * num_latent_factors];
+    for (size_t j = 0; j < num_latent_factors; j++) {
+      user_norms[(i * num_latent_factors) + j] =
+          user_norms[i * num_latent_factors];
     }
   }
 
-  return allUserNorms;
-}
-
-float *computeCosineSimilarityUserCluster(
-    float *users, float *centroid, int numUsers,
-    userNormTuple_t *userNormTuple_array) {
-  int m, k, i;
-  m = numUsers;
-  k = numFeatures;
-
-  float alpha = 1.0;
-  float beta = 0.0;
-  int stride = 1;
-
-  float *usersDOTcentroid = (float *)_malloc(sizeof(float) * numUsers);
-  float *centroidNorm = (float *)_malloc(sizeof(float) * numFeatures);
-
-  centroidNorm[0] = cblas_snrm2(numFeatures, centroid, 1);
-  for (i = 1; i < numFeatures; i++) {
-    centroidNorm[i] = centroidNorm[0];
-  }
-
-  float *userNorms =
-      computeClusterUserNorms(users, numUsers, userNormTuple_array);
-
-  vsInv(numFeatures, centroidNorm, centroidNorm);
-  vsInv((numUsers) * numFeatures, userNorms, userNorms);
-
-  vsMul(numFeatures, centroid, centroidNorm, centroidNorm);
-  for (i = 0; i < numUsers; i++) {
-    vsMul(numFeatures, &users[i * numFeatures], &userNorms[i * numFeatures],
-          &userNorms[i * numFeatures]);
-  }
-
-  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, userNorms, k,
-              centroidNorm, stride, beta, usersDOTcentroid, stride);
-
-  MKL_free(userNorms);
-  MKL_free(centroidNorm);
-
-  return usersDOTcentroid;
+  return user_norms;
 }
 
 /**
@@ -174,58 +60,93 @@ inline void remove_nans(float *arr, size_t num_elems) {
   }
 }
 
-// TODO: Combine compute_theta_ics and compute_theta_ucs into a single function
+/**
+ * Compute L2 norm per row for a given matrix. This preserves the dimensions
+ * of the input matrix_weights which is num_rows x num_cols;
+ * output matrix_norms[i, :] = norm(matrix_weights[i, :]) _for the entire row_
+ * (Entire row contains the same value in matrix_norms.)
+ **/
+float *compute_norms_matrix(float *matrix_weights, const size_t num_rows,
+                            const size_t num_cols) {
+  float *matrix_norms = (float *)_malloc(sizeof(float) * num_rows * num_cols);
+  for (size_t i = 0; i < num_rows; i++) {
+    matrix_norms[i * num_cols] =
+        cblas_snrm2(num_cols, &matrix_weights[i * num_cols], 1);
+    for (size_t j = 1; j < num_cols; j++) {
+      matrix_norms[(i * num_cols) + j] = matrix_norms[i * num_cols];
+    }
+  }
+
+  return matrix_norms;
+}
 
 /**
  * Compute theta_ics: the angle between every centroid and every item in the
  * dataset
  **/
-float *compute_theta_ics(float *all_items, float *all_centroids,
-                         const size_t num_items, const size_t num_clusters,
-                         const size_t num_latent_factors) {
+float *compute_theta_ics(float *item_weights, float *centroids,
+                         const size_t num_items,
+                         const size_t num_latent_factors,
+                         const size_t num_clusters) {
   const int m = num_clusters;
   const int k = num_latent_factors;
   const int n = num_items;
   const float alpha = 1.0;
   const float beta = 0.0;
 
-  float *itemDOTcentroid =
+  float *cos_theta_ics =
       (float *)_malloc(sizeof(float) * num_clusters * num_items);
-  float *allItemsNew =
+  float *normalized_item_weights =
       (float *)_malloc(sizeof(float) * num_items * num_latent_factors);
-  float *allCentroidsNew =
+  float *normalized_centroids =
       (float *)_malloc(sizeof(float) * num_clusters * num_latent_factors);
 
-  float *allItemNorms = computeAllItemNormsForMM(all_items);
-  float *allCentroidNorms = computeAllCentroidNorms(all_centroids);
+  // item_norms_matrix: a num_items x num_latent_factors matrix.
+  // item_norms_matrix[i, :] = ||i|| across entire row
+  float *item_norms_matrix =
+      compute_norms_matrix(item_weights, num_items, num_latent_factors);
+  // centroid_norms_matrix: a num_clusters x num_latent_factors matrix.
+  // centroid_norms_matrix[c, 0] = ||c|| across entire row
+  float *centroid_norms_matrix =
+      compute_norms_matrix(centroids, num_clusters, num_latent_factors);
+  // centroid_norms_matrix now has 1/||c||
 
-  vsInv(num_clusters * num_latent_factors, allCentroidNorms, allCentroidNorms);
-  vsInv(num_items * num_latent_factors, allItemNorms, allItemNorms);
+  vsInv(num_clusters * num_latent_factors, centroid_norms_matrix,
+        centroid_norms_matrix);
+  vsInv(num_items * num_latent_factors, item_norms_matrix, item_norms_matrix);
+  // item_norms_matrix now has 1/||i||
 
   size_t i = 0;
   for (; i < num_items; i++) {
-    vsMul(num_latent_factors, &all_items[i * num_latent_factors],
-          &allItemNorms[i * num_latent_factors],
-          &allItemsNew[i * num_latent_factors]);
+    vsMul(num_latent_factors, &item_weights[i * num_latent_factors],
+          &item_norms_matrix[i * num_latent_factors],
+          &normalized_item_weights[i * num_latent_factors]);
   }
+  // normalized_item_weights[i, j] = item_weights[i, j]/||i||
   for (i = 0; i < num_clusters; i++) {
-    vsMul(num_latent_factors, &all_centroids[i * num_latent_factors],
-          &allCentroidNorms[i * num_latent_factors],
-          &allCentroidsNew[i * num_latent_factors]);
+    vsMul(num_latent_factors, &centroids[i * num_latent_factors],
+          &centroid_norms_matrix[i * num_latent_factors],
+          &normalized_centroids[i * num_latent_factors]);
   }
+  // normalized_centroids[i, j] = centroids[i, j]/||i||
 
   cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
-              allCentroidsNew, k, allItemsNew, k, beta, itemDOTcentroid, n);
+              normalized_centroids, k, normalized_item_weights, k, beta,
+              cos_theta_ics, n);
+  // cos_theta_ics =
+  // normalized_centroids^T (num_clusters x  num_latent_factors)
+  // * normalized_item_weights (num_latent_factors * num_items)
+  // cos_theta_ics[i, j] = item_weights[i, j] * centroids[i, j] / ||i|| ||c||
 
   float *theta_ics = (float *)_malloc(sizeof(float) * num_clusters * num_items);
-  vsAcos(num_clusters * num_items, itemDOTcentroid, theta_ics);
+  vsAcos(num_clusters * num_items, cos_theta_ics, theta_ics);
   remove_nans(theta_ics, num_clusters * num_items);
 
-  MKL_free(allCentroidsNew);
-  MKL_free(allItemsNew);
-  MKL_free(allItemNorms);
-  MKL_free(allCentroidNorms);
-  MKL_free(itemDOTcentroid);
+  MKL_free(normalized_centroids);
+  MKL_free(normalized_item_weights);
+  MKL_free(item_norms_matrix);
+  MKL_free(centroid_norms_matrix);
+  MKL_free(cos_theta_ics);
 
   return theta_ics;
 }
@@ -245,7 +166,7 @@ float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
   const float beta = 0.0;
   const int stride = 1;
 
-  float *usersDOTcentroid = (float *)_malloc(sizeof(float) * num_users);
+  float *users_dot_centroid = (float *)_malloc(sizeof(float) * num_users);
   float *centroidNorm = (float *)_malloc(sizeof(float) * num_latent_factors);
 
   // TODO: inefficient
@@ -255,8 +176,8 @@ float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
     centroidNorm[i] = centroidNorm[0];
   }
 
-  float *userNorms =
-      computeClusterUserNorms(user_weights, num_users, userNormTuple_array);
+  float *userNorms = computeClusterUserNorms(
+      user_weights, num_users, num_latent_factors, userNormTuple_array);
 
   vsInv(num_latent_factors, centroidNorm, centroidNorm);
   vsInv((num_users) * num_latent_factors, userNorms, userNorms);
@@ -269,14 +190,14 @@ float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
   }
 
   cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, userNorms, k,
-              centroidNorm, stride, beta, usersDOTcentroid, stride);
+              centroidNorm, stride, beta, users_dot_centroid, stride);
 
   // now compute theta_uc's by taking arccosine
   float *theta_ucs = (float *)_malloc(sizeof(float) * num_users);
-  vsAcos(num_users, usersDOTcentroid, theta_ucs);
+  vsAcos(num_users, users_dot_centroid, theta_ucs);
   remove_nans(theta_ucs, num_users);
   MKL_free(userNorms);
   MKL_free(centroidNorm);
-  MKL_free(usersDOTcentroid);
+  MKL_free(users_dot_centroid);
   return theta_ucs;
 }

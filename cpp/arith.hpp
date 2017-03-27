@@ -13,18 +13,14 @@
 #include <stdio.h>
 
 float *compute_theta_ics(float *all_items, float *all_centroids,
-                        const size_t num_items, const size_t num_clusters,
-                        const size_t num_latent_factors);
-float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
-                         const size_t num_users,
+                         const size_t num_items,
                          const size_t num_latent_factors,
-                         userNormTuple_t *userNormTuple_array);
-
-float *computeAllItemNorms(float *allItemWeights);
-float *computeCosineSimilarityItemsCentroids(float *allItems,
-                                             float *allCentroids);
-float *computeCosineSimilarityUserCluster(float *users, float *centroid,
-                                          int numUsers,
-                                          userNormTuple_t *userNormTuple_array);
+                         const size_t num_clusters);
+float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
+                                      const size_t num_users,
+                                      const size_t num_latent_factors,
+                                      userNormTuple_t *userNormTuple_array);
+float *computeAllItemNorms(float *item_weights, const size_t num_items,
+                           const size_t num_latent_factors);
 
 #endif /* arith_hpp */

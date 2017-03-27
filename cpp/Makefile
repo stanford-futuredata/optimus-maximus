@@ -9,11 +9,11 @@ CXX := icc
 CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp
 INCLUDE_DIRS := /usr/include/boost
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
-LIBS := boost_system
+LIBRARIES := boost_system boost_program_options
 
 INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
-                $(foreach library,$(LIBS),-l$(library))
+                $(foreach library,$(LIBRARIES),-l$(library))
 
 SRCS = main.cpp algo.cpp arith.cpp parser.cpp
 OBJS = $(SRCS:.cpp=.o)

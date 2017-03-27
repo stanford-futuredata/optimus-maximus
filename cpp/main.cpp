@@ -27,14 +27,12 @@
 #include <math.h>
 
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 
 #include <mkl.h>
 #include <mkl_scalapack.h>
 
-extern int numberUsers;
-extern int numFeatures;
-extern int numItems;
-extern int numClusters;
+namespace opt = boost::program_options;
 
 double creationTime;
 double sortTime;
@@ -45,19 +43,19 @@ double computeKTime;
  * Output: array of vectors: cluster_id -> vector of user ids, user weights
  * resorted in cluster order (same pointer as before)
  **/
-std::vector<size_t> *build_cluster_index(const int *user_id_cluster_id,
-                                         float *&user_weights,
+std::vector<size_t>* build_cluster_index(const int* user_id_cluster_id,
+                                         float*& user_weights,
                                          const size_t num_users,
                                          const size_t num_latent_factors,
                                          const size_t num_clusters) {
 
-  std::vector<size_t> *cluster_index = new std::vector<size_t>[num_clusters];
+  std::vector<size_t>* cluster_index = new std::vector<size_t>[num_clusters];
   for (size_t user_id = 0; user_id < num_users; ++user_id) {
     cluster_index[user_id_cluster_id[user_id]].push_back(user_id);
   }
 
-  float *user_weights_new =
-      (float *)_malloc(sizeof(float) * num_users * num_latent_factors);
+  float* user_weights_new =
+      (float*)_malloc(sizeof(float) * num_users * num_latent_factors);
 
   size_t new_user_ind = 0;
   for (size_t i = 0; i < num_clusters; ++i) {
@@ -77,93 +75,114 @@ std::vector<size_t> *build_cluster_index(const int *user_id_cluster_id,
   return cluster_index;
 }
 
-int main(int argc, const char *argv[]) {
-  if (argc != 13) {
-    printf(
-        "Usage: Simdex <numItems> <num_latent_factors> <numClusters> <numBins> "
-        "<K> "
-        "<numClusters to Time> <Weight Directory> <Cluster Directory> "
-        "<MaxThreads> <sample_size> <Iters> <num_users>\n");
-    exit(1);
+int main(int argc, const char* argv[]) {
+  opt::options_description description("SimDex");
+  description.add_options()("help,h", "Show help")(
+      "weights-dir,w", opt::value<std::string>()->required(),
+      "weights directory; must contain user_weights.csv and item_weights.csv")(
+      "clusters-dir,d", opt::value<std::string>()->required(),
+      "clusters directory; must contain "
+      "[sample_percentage]/[num_iters]/[num_clusters]_centroids.csv and "
+      "[sample_percentage]/[num_iters]/[num_clusters]_user_cluster_ids")(
+      "top-k,k", opt::value<size_t>()->required(),
+      "Top K items to return per user")(
+      "num-users,m", opt::value<size_t>()->required(), "Number of users")(
+      "num-items,n", opt::value<size_t>()->required(), "Number of items")(
+      "num-latent-factors,f", opt::value<size_t>()->required(),
+      "Nubmer of latent factors")(
+      "num-clusters,c", opt::value<size_t>()->required(), "Number of clusters")(
+      "sample-percentage,s", opt::value<size_t>()->default_value(20),
+      "Ratio of users to sample during clustering, between 0. and 1.")(
+      "num-iters,i", opt::value<size_t>()->default_value(10),
+      "Number of iterations to run clustering, default: 10")(
+      "num-bins,b", opt::value<size_t>()->default_value(1),
+      "Number of bins, default: 1")("num-threads,t",
+                                    opt::value<size_t>()->default_value(1),
+                                    "Number of threads, default: 1")(
+      "base-name", opt::value<std::string>()->required(),
+      "Base name for file output to record stats");
+
+  opt::variables_map args;
+  opt::store(opt::command_line_parser(argc, argv).options(description).run(),
+             args);
+
+  if (args.count("help")) {
+    std::cout << description << std::endl;
+    exit(0);
   }
 
-  std::vector<std::string> allArgs(argv, argv + argc);
+  opt::notify(args);
 
-  const size_t num_users = atoi(argv[12]);
-  const size_t num_items = atoi(argv[1]);
-  const size_t num_latent_factors = atoi(argv[2]);
-  const size_t num_clusters = atoi(argv[3]);
-  const size_t num_bins = atoi(argv[4]);
-  const size_t K = atoi(argv[5]);
-  const size_t sample_size = atoi(argv[10]);
-  const size_t num_iters = atoi(argv[11]);
+  const std::string weights_dir = args["weights-dir"].as<std::string>();
+  const std::string user_weights_filepath = weights_dir + "/user_weights.csv";
+  const std::string item_weights_filepath = weights_dir + "/item_weights.csv";
 
-  int maxThreads = atoi(argv[9]);
-  MKL_Set_Num_Threads(maxThreads);
+  const size_t K = args["top-k"].as<size_t>();
+  const size_t num_users = args["num-users"].as<size_t>();
+  const size_t num_items = args["num-items"].as<size_t>();
+  const size_t num_latent_factors = args["num-latent-factors"].as<size_t>();
+  const size_t num_clusters = args["num-clusters"].as<size_t>();
+  const size_t sample_percentage = args["sample-percentage"].as<size_t>();
+  const size_t num_iters = args["num-iters"].as<size_t>();
+  const size_t num_bins = args["num-bins"].as<size_t>();
+  const size_t num_threads = args["num-threads"].as<size_t>();
 
-  const std::string user_weights_path = allArgs[7] + "/user_weights.csv";
-  const std::string item_weights_path = allArgs[7] + "/item_weights.csv";
+  const std::string clusters_dir = args["clusters-dir"].as<std::string>();
+  const std::string centroids_filepath =
+      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
+      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
+      "_centroids.csv";
+  const std::string user_id_cluster_id_filepath =
+      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
+      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
+      "_user_cluster_ids";
+  const std::string base_name = args["base-name"].as<std::string>();
 
-  const std::string centroids_path = allArgs[8] + "/" + allArgs[10] + "/" +
-                                     allArgs[11] + "/" + allArgs[3] +
-                                     "_centroids.csv";
-  const std::string userToClustersPath = allArgs[8] + "/" + allArgs[10] + "/" +
-                                         allArgs[11] + "/" + allArgs[3] +
-                                         "_user_cluster_ids";
+  MKL_Set_Num_Threads(num_threads);
 
-  setNumFeatures(num_latent_factors);
-  setNumItems(num_items);
-  setNumClusters(num_clusters);
-
-  double time_start, time_end, time_diff1, time_diff2, time_diff3;
+  double time_start, time_end;
 
   time_start = dsecnd();
   time_start = dsecnd();
-  int *user_id_cluster_id = parse_ids_csv(userToClustersPath, num_users);
-  float *centroids =
-      parse_weights_csv(centroids_path, numClusters, numFeatures);
-  float *user_weights =
-      parse_weights_csv(user_weights_path, num_users, numFeatures);
-  std::vector<size_t> *cluster_index =
-      build_cluster_index(user_id_cluster_id, user_weights, num_users,
-                          num_latent_factors, num_clusters);
+  int* user_id_cluster_id =
+      parse_ids_csv(user_id_cluster_id_filepath, num_users);
+  float* centroids =
+      parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
+  float* item_weights =
+      parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
+  float* user_weights =
+      parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
   // user_weights is correct--sorted correctly, matches cluster_index
 
   time_end = dsecnd();
-  time_diff3 = (time_end - time_start);
+  const double parse_time = (time_end - time_start);
 
   time_start = dsecnd();
   time_start = dsecnd();
 
-  time_end = dsecnd();
-  time_diff1 = (time_end - time_start);
-
-  float *item_weights =
-      parse_weights_csv(item_weights_path, numItems, numFeatures);
-
-  unsigned long long call_start, call_stop, call_run_time = 0;
-  call_start = _rdtsc2();
-
-  float *theta_ics = compute_theta_ics(item_weights, centroids, num_items,
-                                       num_clusters, num_latent_factors);
+  std::vector<size_t>* cluster_index =
+      build_cluster_index(user_id_cluster_id, user_weights, num_users,
+                          num_latent_factors, num_clusters);
+  // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
+  // between centroid i and item j
+  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
+                                       num_latent_factors, num_clusters);
   // theta_ics are correct
-  float *item_norms = computeAllItemNorms(item_weights);
+  float* item_norms =
+      computeAllItemNorms(item_weights, num_items, num_latent_factors);
   // item_norms are correct
 
-  call_stop = _rdtsc2();
-  call_run_time = call_stop - call_start;
+  time_end = dsecnd();
+  const double index_time = (time_end - time_start);
 
   std::ofstream user_stats_file;
-  std::string base_name = "test";
   const std::string fname =
       (boost::format("%1%_bins-%2%_K-%3%_sample-%4%_iters-%5%.csv") %
-       base_name % num_bins % K % sample_size % num_iters).str();
+       base_name % num_bins % K % sample_percentage % num_iters).str();
   user_stats_file.open(fname);
 
   user_stats_file << "user_id,cluster_id,theta_uc,num_items_visited"
                   << std::endl;
-
-  call_start = _rdtsc2();
 
   creationTime = 0;
   sortTime = 0;
@@ -181,27 +200,14 @@ int main(int argc, const char *argv[]) {
     num_users_so_far += cluster_index[i].size();
   }
   time_end = dsecnd();
-  time_diff2 = (time_end - time_start);
+  const double compute_time = (time_end - time_start);
 
-  call_stop = _rdtsc2();
-  call_run_time = call_stop - call_start;
-  printf("comp time: %f secs \n", time_diff2);
-
-  std::ofstream myfile;
-  std::string outputFile;
-  outputFile = "simdex2_u" + std::to_string(numberUsers) + "_f" +
-               std::to_string(num_latent_factors) + "_k" + std::to_string(K) +
-               "_c" + std::to_string(numClusters) + ".csv";
-  myfile.open(outputFile, std::ofstream::out | std::ofstream::app);
-  myfile << numberUsers << "," << numClusters << "," << num_latent_factors
-         << "," << K << "," << num_bins << "," << time_diff3 << ","
-         << time_diff1 << "," << time_diff2 << "," << creationTime << ","
-         << sortTime << "," << computeKTime << "," << sample_size << ","
-         << num_iters << std::endl;
+  printf("parse time: %f secs \n", parse_time);
+  printf("index time: %f secs \n", index_time);
+  printf("comp time: %f secs \n", compute_time);
 
   delete[] cluster_index;
   user_stats_file.close();
-  myfile.close();
 
   return 0;
 }
