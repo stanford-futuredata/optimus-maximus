@@ -1,8 +1,8 @@
 
 ifeq ($(DEBUG), 1)
-  CXX_FLAGS := -g -O0
+  CXX_FLAGS := -g -O0 -D DEBUG
 else
-  CXX_FLAGS := -O3
+  CXX_FLAGS := -g -O3
 endif
 
 CXX := icc

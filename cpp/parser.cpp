@@ -25,8 +25,8 @@
 
 #include <boost/tokenizer.hpp>
 
-float *parse_weights_csv(const std::string filename, const size_t num_rows,
-                         const size_t num_cols) {
+float *parse_weights_csv(const std::string filename, const int num_rows,
+                         const int num_cols) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream in(filename.c_str());
   if (!in.is_open()) {
@@ -51,7 +51,7 @@ float *parse_weights_csv(const std::string filename, const size_t num_rows,
 }
 
 // Assume user ids are consecutively numbered, with no gaps
-int *parse_ids_csv(const std::string filename, const size_t num_rows) {
+int *parse_ids_csv(const std::string filename, const int num_rows) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream in(filename.c_str());
   if (!in.is_open()) {

@@ -10,17 +10,16 @@
 #define arith_hpp
 
 #include "types.hpp"
-#include <stdio.h>
 
 float *compute_theta_ics(float *all_items, float *all_centroids,
-                         const size_t num_items,
-                         const size_t num_latent_factors,
-                         const size_t num_clusters);
-float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
-                                      const size_t num_users,
-                                      const size_t num_latent_factors,
+                         const int num_items, const int num_latent_factors,
+                         const int num_clusters);
+float *compute_theta_ucs_for_centroid(const float *user_weights,
+                                      const float *centroid,
+                                      const int num_users,
+                                      const int num_latent_factors,
                                       userNormTuple_t *userNormTuple_array);
-float *computeAllItemNorms(float *item_weights, const size_t num_items,
-                           const size_t num_latent_factors);
+float *computeAllItemNorms(float *item_weights, const int num_items,
+                           const int num_latent_factors);
 
 #endif /* arith_hpp */

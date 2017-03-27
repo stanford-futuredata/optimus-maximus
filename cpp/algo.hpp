@@ -7,16 +7,16 @@
 #ifndef algo_hpp
 #define algo_hpp
 
-#include <stdio.h>
+#include "types.hpp"
 #include <iostream>
 #include <vector>
-#include "types.hpp"
 
-void computeTopKForCluster(
-    std::vector<size_t> *cluster_index, const size_t clusterID,
-    const size_t user_offset, float *user_weights, float *centroids,
-    float *allItemWeights, float *allItemNorms, size_t numBins, const size_t K,
-    float *vectorized_Acos_output_ic, const size_t num_items,
-    const size_t num_latent_factors, std::ofstream &user_stats_file);
+void computeTopKForCluster(const int cluster_id, const float *centroid,
+                           const std::vector<int> &user_ids_in_cluster,
+                           const float *user_weights, const float *item_weights,
+                           const float *item_norms, const float *theta_ics,
+                           const int num_items, const int num_latent_factors,
+                           const int num_bins, const int K,
+                           std::ofstream &user_stats_file);
 
 #endif /* algo_hpp */

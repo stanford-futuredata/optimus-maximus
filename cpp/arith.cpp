@@ -17,11 +17,11 @@
 #include <stdlib.h>
 #include <mkl.h>
 
-float *computeAllItemNorms(float *item_weights, const size_t num_items,
-                           const size_t num_latent_factors) {
+float *computeAllItemNorms(float *item_weights, const int num_items,
+                           const int num_latent_factors) {
   float *allItemNorms = (float *)malloc(sizeof(float) * num_items);
 
-  for (size_t i = 0; i < num_items; i++) {
+  for (int i = 0; i < num_items; i++) {
     allItemNorms[i] = cblas_snrm2(num_latent_factors,
                                   &item_weights[i * num_latent_factors], 1);
   }
@@ -29,17 +29,17 @@ float *computeAllItemNorms(float *item_weights, const size_t num_items,
   return allItemNorms;
 }
 
-float *computeClusterUserNorms(float *user_weights, const size_t num_users,
-                               const size_t num_latent_factors,
+float *computeClusterUserNorms(const float *user_weights, const int num_users,
+                               const int num_latent_factors,
                                userNormTuple_t *userNormTuple_array) {
   float *user_norms =
       (float *)_malloc(sizeof(float) * (num_users * num_latent_factors));
 
-  for (size_t i = 0; i < num_users; i++) {
+  for (int i = 0; i < num_users; i++) {
     user_norms[i * num_latent_factors] = cblas_snrm2(
         num_latent_factors, &user_weights[i * num_latent_factors], 1);
     userNormTuple_array[i].userNorm = user_norms[i * num_latent_factors];
-    for (size_t j = 0; j < num_latent_factors; j++) {
+    for (int j = 1; j < num_latent_factors; j++) {
       user_norms[(i * num_latent_factors) + j] =
           user_norms[i * num_latent_factors];
     }
@@ -51,9 +51,9 @@ float *computeClusterUserNorms(float *user_weights, const size_t num_users,
 /**
  * Replace all NaNs in the array with zeroes
  **/
-inline void remove_nans(float *arr, size_t num_elems) {
+inline void remove_nans(float *arr, int num_elems) {
   // TODO: more efficient
-  for (size_t i = 0; i < num_elems; ++i) {
+  for (int i = 0; i < num_elems; ++i) {
     if (isnan(arr[i])) {
       arr[i] = 0.F;
     }
@@ -66,13 +66,13 @@ inline void remove_nans(float *arr, size_t num_elems) {
  * output matrix_norms[i, :] = norm(matrix_weights[i, :]) _for the entire row_
  * (Entire row contains the same value in matrix_norms.)
  **/
-float *compute_norms_matrix(float *matrix_weights, const size_t num_rows,
-                            const size_t num_cols) {
+float *compute_norms_matrix(float *matrix_weights, const int num_rows,
+                            const int num_cols) {
   float *matrix_norms = (float *)_malloc(sizeof(float) * num_rows * num_cols);
-  for (size_t i = 0; i < num_rows; i++) {
+  for (int i = 0; i < num_rows; i++) {
     matrix_norms[i * num_cols] =
         cblas_snrm2(num_cols, &matrix_weights[i * num_cols], 1);
-    for (size_t j = 1; j < num_cols; j++) {
+    for (int j = 1; j < num_cols; j++) {
       matrix_norms[(i * num_cols) + j] = matrix_norms[i * num_cols];
     }
   }
@@ -85,9 +85,8 @@ float *compute_norms_matrix(float *matrix_weights, const size_t num_rows,
  * dataset
  **/
 float *compute_theta_ics(float *item_weights, float *centroids,
-                         const size_t num_items,
-                         const size_t num_latent_factors,
-                         const size_t num_clusters) {
+                         const int num_items, const int num_latent_factors,
+                         const int num_clusters) {
   const int m = num_clusters;
   const int k = num_latent_factors;
   const int n = num_items;
@@ -116,7 +115,7 @@ float *compute_theta_ics(float *item_weights, float *centroids,
   vsInv(num_items * num_latent_factors, item_norms_matrix, item_norms_matrix);
   // item_norms_matrix now has 1/||i||
 
-  size_t i = 0;
+  int i = 0;
   for (; i < num_items; i++) {
     vsMul(num_latent_factors, &item_weights[i * num_latent_factors],
           &item_norms_matrix[i * num_latent_factors],
@@ -155,49 +154,49 @@ float *compute_theta_ics(float *item_weights, float *centroids,
  * Compute theta_ucs: angle between _single_ centroid and every user in the
  * dataset
  **/
-float *compute_theta_ucs_for_centroid(float *user_weights, float *centroid,
-                                      const size_t num_users,
-                                      const size_t num_latent_factors,
+float *compute_theta_ucs_for_centroid(const float *user_weights,
+                                      const float *centroid,
+                                      const int num_users,
+                                      const int num_latent_factors,
                                       userNormTuple_t *userNormTuple_array) {
-  const size_t m = num_users;
-  const size_t k = num_latent_factors;
+  const int m = num_users;
+  const int k = num_latent_factors;
 
   const float alpha = 1.0;
   const float beta = 0.0;
   const int stride = 1;
 
   float *users_dot_centroid = (float *)_malloc(sizeof(float) * num_users);
-  float *centroidNorm = (float *)_malloc(sizeof(float) * num_latent_factors);
+  float centroid_norm[num_latent_factors];
 
+  centroid_norm[0] = cblas_snrm2(num_latent_factors, centroid, 1);
+  int i = 1;
   // TODO: inefficient
-  centroidNorm[0] = cblas_snrm2(num_latent_factors, centroid, 1);
-  size_t i = 1;
-  for (i = 1; i < num_latent_factors; i++) {
-    centroidNorm[i] = centroidNorm[0];
+  for (; i < num_latent_factors; i++) {
+    centroid_norm[i] = centroid_norm[0];
   }
 
-  float *userNorms = computeClusterUserNorms(
+  float *user_norms = computeClusterUserNorms(
       user_weights, num_users, num_latent_factors, userNormTuple_array);
 
-  vsInv(num_latent_factors, centroidNorm, centroidNorm);
-  vsInv((num_users) * num_latent_factors, userNorms, userNorms);
+  vsInv(num_latent_factors, centroid_norm, centroid_norm);
+  vsInv((num_users) * num_latent_factors, user_norms, user_norms);
 
-  vsMul(num_latent_factors, centroid, centroidNorm, centroidNorm);
+  vsMul(num_latent_factors, centroid, centroid_norm, centroid_norm);
   for (i = 0; i < num_users; i++) {
     vsMul(num_latent_factors, &user_weights[i * num_latent_factors],
-          &userNorms[i * num_latent_factors],
-          &userNorms[i * num_latent_factors]);
+          &user_norms[i * num_latent_factors],
+          &user_norms[i * num_latent_factors]);
   }
 
-  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, userNorms, k,
-              centroidNorm, stride, beta, users_dot_centroid, stride);
+  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, user_norms, k,
+              centroid_norm, stride, beta, users_dot_centroid, stride);
 
   // now compute theta_uc's by taking arccosine
   float *theta_ucs = (float *)_malloc(sizeof(float) * num_users);
   vsAcos(num_users, users_dot_centroid, theta_ucs);
   remove_nans(theta_ucs, num_users);
-  MKL_free(userNorms);
-  MKL_free(centroidNorm);
+  MKL_free(user_norms);
   MKL_free(users_dot_centroid);
   return theta_ucs;
 }

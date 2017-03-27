@@ -22,15 +22,15 @@ def read_all_weights(weights_dir):
             read_weight_csv(os.path.join(weights_dir, 'item_weights.csv')))
 
 
-def read_centroids_and_assignments(clusters_dir, num_clusters, sample_size,
-                                   num_iters):
+def read_centroids_and_assignments(clusters_dir, num_clusters,
+                                   sample_percentage, num_iters):
     return (read_weight_csv(
         os.path.join(clusters_dir,
-                     str(sample_size),
+                     str(sample_percentage),
                      str(num_iters), '%d_centroids.csv' % num_clusters)),
             np.loadtxt(
                 os.path.join(clusters_dir,
-                             str(sample_size),
+                             str(sample_percentage),
                              str(num_iters),
                              '%d_user_cluster_ids' % num_clusters),
                 dtype='int'))
@@ -114,9 +114,10 @@ def main():
     parser.add_argument('--clusters_dir', required=True)
     parser.add_argument('--num_clusters', required=True, type=int)
     parser.add_argument('--num_iters', type=int, required=True)
-    parser.add_argument('--sample_size', type=int, required=True)
+    parser.add_argument('--sample_percentage', type=int, required=True)
     parser.add_argument('--num_bins', type=int, required=True)
-    parser.add_argument('--K', type=int, required=True, choices=[1, 5, 10, 50])
+    parser.add_argument(
+        '--K', type=int, required=True, choices=[1, 5, 10, 25, 50])
     parser.add_argument('--base_name', required=True)
     args = parser.parse_args()
 
@@ -124,7 +125,7 @@ def main():
     clusters_dir = args.clusters_dir
     num_clusters = args.num_clusters
     num_iters = args.num_iters
-    sample_size = args.sample_size
+    sample_percentage = args.sample_percentage
     num_bins = args.num_bins
     K = args.K
     #headers = [
@@ -136,7 +137,7 @@ def main():
 
     user_weights, item_weights = read_all_weights(weights_dir)
     centroids, assignments = read_centroids_and_assignments(
-        clusters_dir, num_clusters, sample_size, num_iters)
+        clusters_dir, num_clusters, sample_percentage, num_iters)
     cluster_id_user_ids = invert_cluster_assignments(assignments)
     item_norms = np.array(
         [np.linalg.norm(item_weight) for item_weight in item_weights])
@@ -221,8 +222,8 @@ def main():
 
     df = pd.DataFrame(vals, columns=headers)
     df.to_csv(
-        '%s_bins-%d_K-%d_sample-%d_iters-%d.csv' % (args.base_name, num_bins,
-                                                    K, sample_size, num_iters),
+        '%s_bins-%d_K-%d_sample-%d_iters-%d.csv' %
+        (args.base_name, num_bins, K, sample_percentage, num_iters),
         index=False)
 
 
