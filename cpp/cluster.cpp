@@ -44,18 +44,18 @@ float *computeCentroids(float* sample_users, int num_clusters, int num_iters, in
     
     services::SharedPtr<NumericTable> endCentroids = algorithm.getResult()->get(kmeans::centroids);
     size_t nRows = endCentroids->getNumberOfRows();
-    if (nRows != nClusters) {
+    if (nRows != num_clusters) {
         printf("ERROR!! first round of kmeans centroids rows dont match num clusters.\n");
     }
     BlockDescriptor<float> cent_block;
     endCentroids->getBlockOfRows(0, nRows, readOnly, cent_block);
     float *centArray = cent_block.getBlockPtr();
-    float *returnArray = (float*)MKL_malloc(sizeof(float)*nCols*nClusters, 64);
-    cblas_scopy(nCols*nClusters, centArray, 1, returnArray, 1);
+    float *returnArray = (float*)MKL_malloc(sizeof(float)*num_cols*num_clusters, 64);
+    cblas_scopy(num_cols*num_clusters, centArray, 1, returnArray, 1);
     return returnArray;
 }
 
-double* assignment(float* input_weights, float* centroids, int num_clusters, int num_cols, int num_rows){
+int* assignment(float* input_weights, float* centroids, int num_clusters, int num_cols, int num_rows){
     double time_st, time_end, time_avg;
 
     
@@ -90,13 +90,15 @@ double* assignment(float* input_weights, float* centroids, int num_clusters, int
     
     BlockDescriptor<int> assign_block;
     assignments->getBlockOfRows(0, numUsers, readOnly, assign_block);
-    int *assignArray = assign_block.getBlockPtr();
+    int* assignArray = assign_block.getBlockPtr();
+    int* returnArray = (int*)MKL_malloc(sizeof(int)*numUsers, 64);
+    cblas_scopy(numUsers, (float*)assignArray, 1, (float*)returnArray, 1);
     
     for (int i = 0; i < 50; i++) {
-        cout << "user: " << i << " assignment: " << assignArray[i] << std::endl;
+        cout << "user: " << i << " assignment: " << returnArray[i] << std::endl;
     }
     
-    return assignArray;
+    return returnArray;
     
 }
 
