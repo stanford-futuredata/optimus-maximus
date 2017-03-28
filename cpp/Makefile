@@ -6,7 +6,7 @@ else
 endif
 
 CXX := icc
-CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp -qopenmp
+CXX_FLAGS += -std=c++11 -D ICC -mkl -daal -ipp -qopenmp
 INCLUDE_DIRS := /usr/include/boost
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
 LIBRARIES := boost_system boost_program_options
