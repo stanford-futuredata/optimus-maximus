@@ -241,8 +241,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                         top_K_scores, K);
 #endif
 
-    user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
-                    << theta_ucs[i] << "," << num_items_visited << std::endl;
+    // user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
+                    // << theta_ucs[i] << "," << num_items_visited << std::endl;
   }
 
   time_end = dsecnd();
