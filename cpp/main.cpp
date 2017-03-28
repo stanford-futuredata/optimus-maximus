@@ -10,6 +10,7 @@
 #include "parser.hpp"
 #include "arith.hpp"
 #include "utils.hpp"
+#include "cluster.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,6 +158,17 @@ int main(int argc, const char* argv[]) {
 
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
+
+  float** centroids_ptr = &centroids;
+  int** user_id_cluster_id_ptr = &user_id_cluster_id;
+
+  kmeans_clustering(num_clusters, num_iters, sample_percentage, user_weights, 
+        num_latent_factors, num_users, centroids_ptr, user_id_cluster_id_ptr, num_threads);
+
+  exit(0);
+
+
+
 
   time_start = dsecnd();
   time_start = dsecnd();

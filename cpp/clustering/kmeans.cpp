@@ -154,15 +154,18 @@ void assignment(float *inputArray, float *centroids, size_t nCols, size_t nRows)
     printNumericTable(algorithm2.getResult()->get(kmeans::centroids  ), "First 10 dimensions of centroids:", 20, 10);
     printNumericTable(algorithm2.getResult()->get(kmeans::goalFunction), "Goal function value:");
     
-    services::SharedPtr<NumericTable> endCentroids = algorithm2.getResult()->get(kmeans::centroids);
-    size_t nRows2 = endCentroids->getNumberOfRows();
-    if (nRows2 != nClusters) {
-        printf("ERROR!! first round of kmeans centroids rows dont match num clusters.\n");
+    services::SharedPtr<NumericTable> assignments = algorithm2.getResult()->get(kmeans::assignments);
+    size_t numUsers = assignments->getNumberOfRows();
+    size_t cols = assignments->getNumberOfColumns();
+    cout << "Num Assignments: " << numUsers << "\t" << cols << std::endl;
+    
+    BlockDescriptor<int> assign_block;
+    assignments->getBlockOfRows(0, numUsers, readOnly, assign_block);
+    int *assignArray = assign_block.getBlockPtr();
+    
+    for (int i = 0; i < 50; i++) {
+        cout << "user: " << i << " assignment: " << assignArray[i] << std::endl;
     }
-    //    size_t nCols = dataTable->getNumberOfColumns();
-    BlockDescriptor<float> cent_block;
-    endCentroids->getBlockOfRows(0, nRows2, readOnly, cent_block);
-    float *centArray = cent_block.getBlockPtr();
     
     //testing
     
