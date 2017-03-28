@@ -69,8 +69,7 @@ def main():
     parser.set_defaults(icc=False)
     args = parser.parse_args()
 
-    #TOP_K = [1, 5, 10, 50]
-    TOP_K = [5]
+    TOP_K = [1, 5, 10, 50]
     output_suffix = 'lemp-%s-%s/' % (('icc' if args.icc else 'no-icc'),
                                      ('simd' if args.simd else 'no-simd'))
     output_dir_base = OUTPUT_DIR_BASE + output_suffix
@@ -79,7 +78,7 @@ def main():
     #run_args = []
     for (model_dir, (num_factors, num_users, num_items)) in TO_RUN:
         for K in TOP_K:
-            for num_threads in [1, 2, 4, 8]:
+            for num_threads in [8, 4, 2, 1]:
                 #run_args.append(
                 result = fn((num_factors, num_users, num_items, K, num_threads,
                              MODEL_DIR_BASE + model_dir + 'user_weights.csv',

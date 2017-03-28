@@ -1,197 +1,121 @@
 #!/usr/bin/env python
 
 from daal.data_management import (
-    CSRNumericTable,
-    NumericTableIface,
     readOnly,
-    readWrite,
     BlockDescriptor,
-    packed_mask,
-    HomogenNumericTable,
-    KeyValueDataCollection,
     DataSourceIface,
-    FileDataSource,
-    TensorIface,
-    HomogenTensor,
-    SubtensorDescriptor,
-    HomogenNumericTable_Float32, )
-
-from daal.services import Collection
-
-import sys
-import numpy as np
-import random as rand
-
-if sys.version[0] == '2':
-    import Queue as Queue
-else:
-    import queue as Queue
+    FileDataSource, )
 
 import daal.algorithms.kmeans as kmeans
 from daal.algorithms.kmeans import init
-import time
-from daal.services import Environment
 
 from daal_utils import printNumericTable
+from kmeans_sample import set_num_threads
+import os
+import argparse
+import time
 
-if len(sys.argv) != 5:
-    print("args: NumClusters NumIterations OutputDir SampleSize%")
-    sys.exit(0)
 
-# nClusters = 1024
-# nIterations = 25
-# nThreads = 1
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights_dir', required=True)
+    parser.add_argument('--num_clusters', required=True, type=int)
+    parser.add_argument('--num_iters', type=int, required=True)
+    parser.add_argument(
+        '--sample_size',
+        type=int,
+        choices=range(1, 100),
+        metavar='INT[1,100]',
+        required=True)
+    parser.add_argument('--num_threads', type=int, default=1)
+    parser.add_argument('--output_dir_base', required=True)
+    args = parser.parse_args()
 
-nClusters = int(sys.argv[1])
-nIterations = int(sys.argv[2])
-nThreads = 1
-input_dir = sys.argv[3]
-sampleSize = int(sys.argv[4])
+    weights_dir = args.weights_dir
+    num_clusters = args.num_clusters
+    num_iters = args.num_iters
+    sample_size = args.sample_size
+    set_num_threads(args.num_threads)
+    clusters_dir = os.path.join(args.output_dir_base,
+                                str(sample_size), str(num_iters))
+    if not os.path.exists(clusters_dir): os.makedirs(clusters_dir)
 
-# Get the number of threads that is used by the library by default
-nThreadsInit = Environment.getInstance().getNumberOfThreads()
-print(nThreadsInit)
+    datasetFileName = os.path.join(weights_dir, 'user_weights.csv')
 
-# Set the maximum number of threads to be used by the library
-Environment.getInstance().setNumberOfThreads(nThreads)
+    centroidsFileName = os.path.join(clusters_dir,
+                                     '%d_centroids.csv' % num_clusters)
 
-# Get the number of threads that is used by the library after changing
-nThreadsNew = Environment.getInstance().getNumberOfThreads()
-print("max number of threads: %d" % nThreadsNew)
+    centroidSource = FileDataSource(centroidsFileName,
+                                    DataSourceIface.doAllocateNumericTable,
+                                    DataSourceIface.doDictionaryFromContext)
+    centroidSource.loadDataBlock()
 
-datasetFileName = input_dir + "/s2_userWeights.csv"
+    print(weights_dir)
 
-cluster_dir = input_dir + '/' + str(sampleSize) + '/' + str(nIterations)
-
-centroidsFileName = cluster_dir + "/" + str(nClusters) + "_centroids.csv"
-
-centroidSource = FileDataSource(centroidsFileName,
+    t0 = time.time()
+    dataSource = FileDataSource(datasetFileName,
                                 DataSourceIface.doAllocateNumericTable,
                                 DataSourceIface.doDictionaryFromContext)
-centroidSource.loadDataBlock()
 
-print(input_dir)
+    dataSource.loadDataBlock()
 
-t0 = time.time()
-dataSource = FileDataSource(datasetFileName,
-                            DataSourceIface.doAllocateNumericTable,
-                            DataSourceIface.doDictionaryFromContext)
+    initAlg = init.Batch_Float32DeterministicDense(num_clusters)
+    initAlg.input.set(init.data, centroidSource.getNumericTable())
 
-dataSource.loadDataBlock()
+    t1 = time.time()
+    init_time = t1 - t0
+    print('init time: %f' % init_time)
 
-initAlg = init.Batch_Float32DeterministicDense(nClusters)
-initAlg.input.set(init.data, centroidSource.getNumericTable())
+    t0 = time.time()
+    res = initAlg.compute()
+    t1 = time.time()
+    centroid_time = t1 - t0
+    print('centroid time: %f' % centroid_time)
 
-t1 = time.time()
-init_time = t1 - t0
-print("init time: %f" % init_time)
+    centroidsResult = res.get(init.centroids)
 
-t0 = time.time()
-res = initAlg.compute()
-t1 = time.time()
-centroid_time = t1 - t0
-print("centroid time: %f" % centroid_time)
+    algorithm = kmeans.Batch_Float32LloydDense(num_clusters, 0)
+    algorithm.input.set(kmeans.data, dataSource.getNumericTable())
+    algorithm.input.set(kmeans.inputCentroids, centroidsResult)
 
-centroidsResult = res.get(init.centroids)
+    t0 = time.time()
+    res2 = algorithm.compute()
+    t1 = time.time()
+    cluster_time = t1 - t0
+    print('cluster time: %f' % cluster_time)
 
-algorithm = kmeans.Batch_Float32LloydDense(nClusters, 0)
-algorithm.input.set(kmeans.data, dataSource.getNumericTable())
-algorithm.input.set(kmeans.inputCentroids, centroidsResult)
+    printNumericTable(
+        res2.get(kmeans.centroids), 'First 10 dimensions of centroids:', 20,
+        10)
 
-t0 = time.time()
-res2 = algorithm.compute()
-t1 = time.time()
-cluster_time = t1 - t0
-print("cluster time: %f" % cluster_time)
+    assignments_table = res2.get(kmeans.assignments)
+    assignment_num_rows = assignments_table.getNumberOfRows()
 
-printNumericTable(
-    res2.get(kmeans.centroids), "First 10 dimensions of centroids:", 20, 10)
+    assignments_block = BlockDescriptor()
+    assignments_table.getBlockOfRows(0, assignment_num_rows, readOnly,
+                                     assignments_block)
+    # assignments numpy array
+    assignments_array = assignments_block.getArray()
 
-assignments_table = res2.get(kmeans.assignments)
-assignment_num_rows = assignments_table.getNumberOfRows()
-assignment_num_cols = assignments_table.getNumberOfColumns()
+    centroids_table = res2.get(kmeans.centroids)
+    centroids_num_rows = centroids_table.getNumberOfRows()
 
-assignments_block = BlockDescriptor()
-assignments_table.getBlockOfRows(0, assignment_num_rows, readOnly,
-                                 assignments_block)
-# assignments numpy array
-assignments_array = assignments_block.getArray()
+    centroids_block = BlockDescriptor()
+    centroids_table.getBlockOfRows(0, centroids_num_rows, readOnly,
+                                   centroids_block)
 
-centroids_table = res2.get(kmeans.centroids)
-centroids_num_rows = centroids_table.getNumberOfRows()
-centroids_num_cols = centroids_table.getNumberOfColumns()
+    t0 = time.time()
 
-centroids_block = BlockDescriptor()
-centroids_table.getBlockOfRows(0, centroids_num_rows, readOnly,
-                               centroids_block)
-# centroids numpy array
-centroids_array = centroids_block.getArray()
+    user_to_clusters_fname = os.path.join(clusters_dir,
+                                          '%d_user_cluster_ids' % num_clusters)
+    with open(user_to_clusters_fname, 'w') as f:
+        for i in range(assignments_array.shape[0]):
+            print('%d' % int(assignments_array[i][0]), file=f)
 
-# create user_cluster_ids file
-# user_ids = np.loadtxt("/Users/geetsethi/Library/Developer/Xcode/DerivedData/fomo_preproc-fuujyptqvyyskicvhnldhaqelavt/Build/Products/Release/ids_userWeight.txt", dtype=int)
-pathnm = input_dir + "/ids_userWeight.txt"
-# pathnm = sys.argv[5]
-
-user_ids = np.loadtxt(pathnm, dtype=int)
-
-# user_ids_sampled = user_ids[random_indices]
-
-if user_ids.shape[0] != assignments_array.shape[0]:
-    print("user_ids - assignments array mismatch")
-
-t0 = time.time()
-
-user_to_clusters_filename = cluster_dir + '/' + str(
-    nClusters) + "_user_cluster_ids"
-with open(user_to_clusters_filename, 'w') as f:
-    for i in range(user_ids.shape[0]):
-        print("%d: %d" % (user_ids[i], int(assignments_array[i][0])), file=f)
-
-clusters_filename = cluster_dir + '/' + str(nClusters) + "_user_clusters"
-with open(clusters_filename, 'w') as f2:
-    for i in range(centroids_array.shape[0]):
-        factor_str = ','.join(str(factor) for factor in centroids_array[i])
-        f2.write('(%d,%s)\n' % (i, factor_str))
-
-import re
-from collections import defaultdict
-
-CLUSTER_ID_REGEX = r'(\d+): (\d+)'
+    t1 = time.time()
+    output_time = t1 - t0
+    print('output time: %f' % output_time)
 
 
-def invert_cluster_id_file(filename):
-    with open(filename) as r:
-        cluster_id_user_id_dict = defaultdict(list)
-        for line in r:
-            m = re.match(CLUSTER_ID_REGEX, line)
-            user_id, cluster_id = int(m.group(1)), int(m.group(2))
-            cluster_id_user_id_dict[cluster_id].append(user_id)
-    with open(filename + '_inverted', 'w') as inverted_outfile, \
-            open(filename + '_counts', 'w') as counts_outfile:
-        for cluster_id, user_ids in cluster_id_user_id_dict.items():
-            # print >> inverted_outfile, '%d: [%s]' % (cluster_id, ', '.join(str(u) for u in user_ids))
-            inverted_outfile.write('%d: [%s]\n' %
-                                   (cluster_id,
-                                    ', '.join(str(u) for u in user_ids)))
-            # print >> counts_outfile, '%d,%d' % (cluster_id, len(user_ids))
-            counts_outfile.write('%d,%d\n' % (cluster_id, len(user_ids)))
-
-
-invert_cluster_id_file(user_to_clusters_filename)
-
-t1 = time.time()
-output_time = t1 - t0
-print("output time: %f" % output_time)
-
-cluster_time_filename = "cluster_time_u" + str(user_ids.shape[0]) + "_f" + str(
-    centroids_array.shape[1]) + "_c" + str(nClusters) + ".txt"
-with open(cluster_time_filename, 'a') as f:
-    output = "Second pass cluster time: " + str(
-        cluster_time)[:5] + " Total time: " + str(
-            centroid_time + cluster_time)[:5] + " Output Time: " + str(
-                output_time)[:5] + "\n"
-    f.write(output)
-
-    # from daal.data_management import NumericTable
-#
-# NumericTable.
+if __name__ == '__main__':
+    main()

@@ -93,29 +93,21 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
   const int num_users_in_cluster = user_ids_in_cluster.size();
 
-  userNormTuple_t userNormTuple_array[num_users_in_cluster];
-  // initialize userNormTuple_array with user ids that are assigned to this
-  // cluster
-
   time_start = dsecnd();
   time_start = dsecnd();
 
-  // compute theta_ucs for ever user assigned to this cluster,
-  // and also initialize userNormTuple_array with the norms of every user
-  // NOTE: theta_ucs are now already in the right order, i.e., you can access
+  // compute user_norms and theta_ucs for every user assigned to this cluster
+  float *user_norms = compute_norms_vector(user_weights, num_users_in_cluster,
+                                           num_latent_factors);
+  float *theta_ucs =
+      compute_theta_ucs_for_centroid(user_weights, user_norms, centroid,
+                                     num_users_in_cluster, num_latent_factors);
+  // NOTE: both are now already in the right order, i.e., you can access
   // them sequentially. This is because we reordered the user weights to be
-  // in cluster order
-  float *theta_ucs = compute_theta_ucs_for_centroid(
-      user_weights, centroid, num_users_in_cluster, num_latent_factors,
-      userNormTuple_array);
+  // in cluster order in main.cpp (see build_cluster_index)
 
-  float theta_max = theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
-  // if (isnan(theta_max) != 0) {
-  //   theta_max = 0;
-  //   num_bins = 1;
-  //   std::cout << "NaN detected." << std::endl;
-  // }
-
+  const float theta_max =
+      theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
   const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
   // theta_bins is correct
   float temp_upper_bounds[num_items];
@@ -149,13 +141,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   time_start = dsecnd();
   time_start = dsecnd();
 
-  // upperBoundItem_t **sorted_upper_bounds =
-  //     (upperBoundItem_t **)_malloc(num_bins * sizeof(upperBoundItem_t *));
   upperBoundItem_t sorted_upper_bounds[num_bins][num_items];
   for (i = 0; i < num_bins; i++) {
-    // sorted_upper_bounds[i] =
-    //     (upperBoundItem_t *)_malloc(num_items * sizeof(struct
-    // upperBoundItem));
     for (j = 0; j < num_items; j++) {
       sorted_upper_bounds[i][j].upperBound = upper_bounds[i][j];
       sorted_upper_bounds[i][j].itemID = j;
@@ -206,8 +193,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     int num_items_visited = K;
 
     for (j = K; j < num_items; j++) {
-      if (q.top().first > (userNormTuple_array[i].userNorm *
-                           sorted_upper_bounds[bin_index][j].upperBound)) {
+      if (q.top().first >
+          (user_norms[i] * sorted_upper_bounds[bin_index][j].upperBound)) {
         break;
       }
       itemID = sorted_upper_bounds[bin_index][j].itemID;
@@ -239,10 +226,10 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     check_against_naive(&user_weights[i * num_latent_factors], item_weights,
                         num_items, num_latent_factors, top_K_items[i],
                         top_K_scores, K);
-#endif
 
-    // user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
-                    // << theta_ucs[i] << "," << num_items_visited << std::endl;
+    user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
+    << theta_ucs[i] << "," << num_items_visited << std::endl;
+#endif
   }
 
   time_end = dsecnd();
@@ -250,7 +237,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
   // ----------Free Allocated Memory Below-------
 
-  MKL_free(theta_ucs);
+  _free(user_norms);
+  _free(theta_ucs);
   MKL_Free_Buffers();
 
   // printf("upper bound time: %f secs \n", upperBoundCreation_time);

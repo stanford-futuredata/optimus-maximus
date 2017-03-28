@@ -1,21 +1,10 @@
 #!/usr/bin/env python
 
 from daal.data_management import (
-    CSRNumericTable,
-    NumericTableIface,
     readOnly,
-    readWrite,
     BlockDescriptor,
-    packed_mask,
-    HomogenNumericTable,
-    KeyValueDataCollection,
-    DataSourceIface,
-    FileDataSource,
-    TensorIface,
-    HomogenTensor,
-    SubtensorDescriptor,
     HomogenNumericTable_Float32, )
-from daal.services import Collection, Environment
+from daal.services import Environment
 from daal.algorithms.kmeans import init
 from daal.algorithms import kmeans
 
@@ -54,8 +43,10 @@ def main():
     num_iters = args.num_iters
     sample_size = args.sample_size
     set_num_threads(args.num_threads)
-    output_dir = os.path.join(args.output_dir_base, str(sample_size), str(num_iters))
-    if not os.path.exists(output_dir): os.makedirs(output_dir)
+    output_dir = os.path.join(args.output_dir_base,
+                              str(sample_size), str(num_iters))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     input_data = np.loadtxt(
         os.path.join(input_dir, 'user_weights.csv'),
@@ -98,7 +89,6 @@ def main():
 
     centroids_table = res2.get(kmeans.centroids)
     centroids_num_rows = centroids_table.getNumberOfRows()
-    centroids_num_cols = centroids_table.getNumberOfColumns()
 
     centroids_block = BlockDescriptor()
     centroids_table.getBlockOfRows(0, centroids_num_rows, readOnly,
@@ -109,7 +99,6 @@ def main():
 
     assignments_table = res2.get(kmeans.assignments)
     assignment_num_rows = assignments_table.getNumberOfRows()
-    assignment_num_cols = assignments_table.getNumberOfColumns()
 
     assignments_block = BlockDescriptor()
     assignments_table.getBlockOfRows(0, assignment_num_rows, readOnly,
@@ -117,21 +106,16 @@ def main():
     assignments = assignments_block.getArray()
 
     np.savetxt(
-        os.path.join(
-            output_dir,
-            '%d_centroids.csv' % num_clusters),
-            centroids,
-            delimiter=',')
+        os.path.join(output_dir, '%d_centroids.csv' % num_clusters),
+        centroids,
+        delimiter=',')
     np.savetxt(
-        os.path.join(
-            output_dir,
-            '%d_user_cluster_ids' % num_clusters),
-            assignments,
-            fmt='%d',
-            delimiter='\n')
+        os.path.join(output_dir, '%d_user_cluster_ids' % num_clusters),
+        assignments,
+        fmt='%d',
+        delimiter='\n')
     cluster_time_fname = os.path.join(
-        output_dir,
-        'cluster_time_u%d_f%d_c%d.csv' %
+        output_dir, 'cluster_time_u%d_f%d_c%d.csv' %
         (input_data.shape[0], input_data.shape[1], num_clusters))
 
     with open(cluster_time_fname, 'w') as f:

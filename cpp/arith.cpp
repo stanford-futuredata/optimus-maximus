@@ -17,37 +17,6 @@
 #include <stdlib.h>
 #include <mkl.h>
 
-float *computeAllItemNorms(float *item_weights, const int num_items,
-                           const int num_latent_factors) {
-  float *allItemNorms = (float *)malloc(sizeof(float) * num_items);
-
-  for (int i = 0; i < num_items; i++) {
-    allItemNorms[i] = cblas_snrm2(num_latent_factors,
-                                  &item_weights[i * num_latent_factors], 1);
-  }
-
-  return allItemNorms;
-}
-
-float *computeClusterUserNorms(const float *user_weights, const int num_users,
-                               const int num_latent_factors,
-                               userNormTuple_t *userNormTuple_array) {
-  float *user_norms =
-      (float *)_malloc(sizeof(float) * (num_users * num_latent_factors));
-
-  for (int i = 0; i < num_users; i++) {
-    user_norms[i * num_latent_factors] = cblas_snrm2(
-        num_latent_factors, &user_weights[i * num_latent_factors], 1);
-    userNormTuple_array[i].userNorm = user_norms[i * num_latent_factors];
-    for (int j = 1; j < num_latent_factors; j++) {
-      user_norms[(i * num_latent_factors) + j] =
-          user_norms[i * num_latent_factors];
-    }
-  }
-
-  return user_norms;
-}
-
 /**
  * Replace all NaNs in the array with zeroes
  **/
@@ -66,7 +35,7 @@ inline void remove_nans(float *arr, int num_elems) {
  * output matrix_norms[i, :] = norm(matrix_weights[i, :]) _for the entire row_
  * (Entire row contains the same value in matrix_norms.)
  **/
-float *compute_norms_matrix(float *matrix_weights, const int num_rows,
+float *compute_norms_matrix(const float *matrix_weights, const int num_rows,
                             const int num_cols) {
   float *matrix_norms = (float *)_malloc(sizeof(float) * num_rows * num_cols);
   for (int i = 0; i < num_rows; i++) {
@@ -81,10 +50,24 @@ float *compute_norms_matrix(float *matrix_weights, const int num_rows,
 }
 
 /**
+ * Compute L2 norm per row for a given matrix. If the input matrix_weights is
+ * num_rows x num_cols, the output will be a num_rows x 1 vector
+ **/
+float *compute_norms_vector(const float *matrix_weights, const int num_rows,
+                            const int num_cols) {
+  float *norms = (float *)_malloc(sizeof(float) * num_rows);
+
+  for (int i = 0; i < num_rows; i++) {
+    norms[i] = cblas_snrm2(num_cols, &matrix_weights[i * num_cols], 1);
+  }
+  return norms;
+}
+
+/**
  * Compute theta_ics: the angle between every centroid and every item in the
  * dataset
  **/
-float *compute_theta_ics(float *item_weights, float *centroids,
+float *compute_theta_ics(const float *item_weights, const float *centroids,
                          const int num_items, const int num_latent_factors,
                          const int num_clusters) {
   const int m = num_clusters;
@@ -108,10 +91,10 @@ float *compute_theta_ics(float *item_weights, float *centroids,
   // centroid_norms_matrix[c, 0] = ||c|| across entire row
   float *centroid_norms_matrix =
       compute_norms_matrix(centroids, num_clusters, num_latent_factors);
-  // centroid_norms_matrix now has 1/||c||
 
   vsInv(num_clusters * num_latent_factors, centroid_norms_matrix,
         centroid_norms_matrix);
+  // centroid_norms_matrix now has 1/||c||
   vsInv(num_items * num_latent_factors, item_norms_matrix, item_norms_matrix);
   // item_norms_matrix now has 1/||i||
 
@@ -141,11 +124,11 @@ float *compute_theta_ics(float *item_weights, float *centroids,
   vsAcos(num_clusters * num_items, cos_theta_ics, theta_ics);
   remove_nans(theta_ics, num_clusters * num_items);
 
-  MKL_free(normalized_centroids);
-  MKL_free(normalized_item_weights);
-  MKL_free(item_norms_matrix);
-  MKL_free(centroid_norms_matrix);
-  MKL_free(cos_theta_ics);
+  _free(normalized_centroids);
+  _free(normalized_item_weights);
+  _free(item_norms_matrix);
+  _free(centroid_norms_matrix);
+  _free(cos_theta_ics);
 
   return theta_ics;
 }
@@ -155,10 +138,10 @@ float *compute_theta_ics(float *item_weights, float *centroids,
  * dataset
  **/
 float *compute_theta_ucs_for_centroid(const float *user_weights,
+                                      const float *user_norms,
                                       const float *centroid,
                                       const int num_users,
-                                      const int num_latent_factors,
-                                      userNormTuple_t *userNormTuple_array) {
+                                      const int num_latent_factors) {
   const int m = num_users;
   const int k = num_latent_factors;
 
@@ -176,27 +159,32 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
     centroid_norm[i] = centroid_norm[0];
   }
 
-  float *user_norms = computeClusterUserNorms(
-      user_weights, num_users, num_latent_factors, userNormTuple_array);
+  float *user_norms_matrix =
+      (float *)_malloc(sizeof(float) * num_users * num_latent_factors);
+  for (int i = 0; i < num_users; i++) {
+    for (int j = 0; j < num_latent_factors; j++) {
+      user_norms_matrix[(i * num_latent_factors) + j] = user_norms[i];
+    }
+  }
 
   vsInv(num_latent_factors, centroid_norm, centroid_norm);
-  vsInv((num_users) * num_latent_factors, user_norms, user_norms);
+  vsInv(num_users * num_latent_factors, user_norms_matrix, user_norms_matrix);
 
   vsMul(num_latent_factors, centroid, centroid_norm, centroid_norm);
   for (i = 0; i < num_users; i++) {
     vsMul(num_latent_factors, &user_weights[i * num_latent_factors],
-          &user_norms[i * num_latent_factors],
-          &user_norms[i * num_latent_factors]);
+          &user_norms_matrix[i * num_latent_factors],
+          &user_norms_matrix[i * num_latent_factors]);
   }
 
-  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, user_norms, k,
+  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, user_norms_matrix, k,
               centroid_norm, stride, beta, users_dot_centroid, stride);
 
   // now compute theta_uc's by taking arccosine
   float *theta_ucs = (float *)_malloc(sizeof(float) * num_users);
   vsAcos(num_users, users_dot_centroid, theta_ucs);
   remove_nans(theta_ucs, num_users);
-  MKL_free(user_norms);
-  MKL_free(users_dot_centroid);
+  _free(user_norms_matrix);
+  _free(users_dot_centroid);
   return theta_ucs;
 }
