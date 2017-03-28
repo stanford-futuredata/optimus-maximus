@@ -1,26 +1,28 @@
 /* file: service.h */
 /*******************************************************************************
-* Copyright 2014-2016 Intel Corporation All Rights Reserved.
-*
-* The source code,  information  and material  ("Material") contained  herein is
-* owned by Intel Corporation or its  suppliers or licensors,  and  title to such
-* Material remains with Intel  Corporation or its  suppliers or  licensors.  The
-* Material  contains  proprietary  information  of  Intel or  its suppliers  and
-* licensors.  The Material is protected by  worldwide copyright  laws and treaty
-* provisions.  No part  of  the  Material   may  be  used,  copied,  reproduced,
-* modified, published,  uploaded, posted, transmitted,  distributed or disclosed
-* in any way without Intel's prior express written permission.  No license under
-* any patent,  copyright or other  intellectual property rights  in the Material
-* is granted to  or  conferred  upon  you,  either   expressly,  by implication,
-* inducement,  estoppel  or  otherwise.  Any  license   under such  intellectual
-* property rights must be express and approved by Intel in writing.
-*
-* Unless otherwise agreed by Intel in writing,  you may not remove or alter this
-* notice or  any  other  notice   embedded  in  Materials  by  Intel  or Intel's
-* suppliers or licensors in any way.
-*******************************************************************************/
-
-/*
+!  Copyright(C) 2014-2015 Intel Corporation. All Rights Reserved.
+!
+!  The source code, information  and  material ("Material") contained herein is
+!  owned  by Intel Corporation or its suppliers or licensors, and title to such
+!  Material remains  with Intel Corporation  or its suppliers or licensors. The
+!  Material  contains proprietary information  of  Intel or  its  suppliers and
+!  licensors. The  Material is protected by worldwide copyright laws and treaty
+!  provisions. No  part  of  the  Material  may  be  used,  copied, reproduced,
+!  modified, published, uploaded, posted, transmitted, distributed or disclosed
+!  in any way  without Intel's  prior  express written  permission. No  license
+!  under  any patent, copyright  or  other intellectual property rights  in the
+!  Material  is  granted  to  or  conferred  upon  you,  either  expressly,  by
+!  implication, inducement,  estoppel or  otherwise.  Any  license  under  such
+!  intellectual  property  rights must  be express  and  approved  by  Intel in
+!  writing.
+!
+!  *Third Party trademarks are the property of their respective owners.
+!
+!  Unless otherwise  agreed  by Intel  in writing, you may not remove  or alter
+!  this  notice or  any other notice embedded  in Materials by Intel or Intel's
+!  suppliers or licensors in any way.
+!
+!*******************************************************************************
 !  Content:
 !    Auxiliary functions used in C++ examples
 !******************************************************************************/
@@ -102,7 +104,7 @@ void readRowUnknownLength(std::string &line, item_type **data, size_t &nCols)
 }
 
 template <typename item_type>
-CSRNumericTable *createSparseTable(std::string datasetFileName)
+daal::data_management::CSRNumericTable *createSparseTable(std::string datasetFileName)
 {
     size_t *rowOffsets, *colIndices;
     item_type *data;
@@ -154,7 +156,7 @@ CSRNumericTable *createSparseTable(std::string datasetFileName)
     CSRNumericTable *numericTable = new CSRNumericTable(resultData, resultColIndices, resultRowOffsets, nFeatures, nVectors);
     numericTable->allocateDataMemory(nNonZeros);
 
-    numericTable->getArrays<item_type>(&resultData, &resultColIndices, &resultRowOffsets);
+    numericTable->getArrays((void**)&resultData, &resultColIndices, &resultRowOffsets);
     for (size_t i = 0; i < nNonZeros; i++)
     {
         resultData[i] = data[i];
@@ -171,15 +173,25 @@ CSRNumericTable *createSparseTable(std::string datasetFileName)
     return numericTable;
 }
 
-void printAprioriItemsets(NumericTablePtr largeItemsetsTable,
-                          NumericTablePtr largeItemsetsSupportTable,
+void deleteSparseTable(daal::data_management::CSRNumericTable *nt)
+{
+    size_t *values, *colIndices, *rowOffsets;
+    nt->getArrays((void **)&values, &colIndices, &rowOffsets);
+    delete [] values;
+    delete [] colIndices;
+    delete [] rowOffsets;
+    delete nt;
+}
+
+void printAprioriItemsets(daal::services::SharedPtr<daal::data_management::NumericTable> largeItemsetsTable,
+                          daal::services::SharedPtr<daal::data_management::NumericTable> largeItemsetsSupportTable,
                           size_t nItemsetToPrint = 20)
 {
     size_t largeItemsetCount = largeItemsetsSupportTable->getNumberOfRows();
     size_t nItemsInLargeItemsets = largeItemsetsTable->getNumberOfRows();
-    const size_t *largeItemsets = ((HomogenNumericTable<size_t> *)
+    const size_t *largeItemsets = ((daal::data_management::HomogenNumericTable<size_t> *)
                                    largeItemsetsTable.get())->getArray();
-    const size_t *largeItemsetsSupportData = ((HomogenNumericTable<size_t> *)
+    const size_t *largeItemsetsSupportData = ((daal::data_management::HomogenNumericTable<size_t> *)
                                               largeItemsetsSupportTable.get())->getArray();
 
     std::vector<std::vector<size_t> > largeItemsetsVector;
@@ -218,17 +230,17 @@ void printAprioriItemsets(NumericTablePtr largeItemsetsTable,
     }
 }
 
-void printAprioriRules(NumericTablePtr leftItemsTable,
-                       NumericTablePtr rightItemsTable,
-                       NumericTablePtr confidenceTable,
+void printAprioriRules(daal::services::SharedPtr<daal::data_management::NumericTable> leftItemsTable,
+                       daal::services::SharedPtr<daal::data_management::NumericTable> rightItemsTable,
+                       daal::services::SharedPtr<daal::data_management::NumericTable> confidenceTable,
                        size_t nRulesToPrint = 20)
 {
     size_t nRules = confidenceTable->getNumberOfRows();
     size_t nLeftItems  = leftItemsTable->getNumberOfRows();
     size_t nRightItems = rightItemsTable->getNumberOfRows();
-    size_t *leftItems = ((HomogenNumericTable<size_t> *)leftItemsTable.get())->getArray();
-    size_t *rightItems = ((HomogenNumericTable<size_t> *)rightItemsTable.get())->getArray();
-    double *confidence = ((HomogenNumericTable<double> *)confidenceTable.get())->getArray();
+    size_t *leftItems = ((daal::data_management::HomogenNumericTable<size_t> *)leftItemsTable.get())->getArray();
+    size_t *rightItems = ((daal::data_management::HomogenNumericTable<size_t> *)rightItemsTable.get())->getArray();
+    double *confidence = ((daal::data_management::HomogenNumericTable<double> *)confidenceTable.get())->getArray();
 
     std::vector<std::vector<size_t> > leftItemsVector;
     leftItemsVector.resize(nRules);
@@ -283,30 +295,30 @@ void printAprioriRules(NumericTablePtr leftItemsTable,
     }
 }
 
-bool isFull(NumericTableIface::StorageLayout layout)
+bool isFull(daal::data_management::NumericTableIface::StorageLayout layout)
 {
     int layoutInt = (int) layout;
-    if (packed_mask & layoutInt)
+    if (daal::data_management::packed_mask & layoutInt)
     {
         return false;
     }
     return true;
 }
 
-bool isUpper(NumericTableIface::StorageLayout layout)
+bool isUpper(daal::data_management::NumericTableIface::StorageLayout layout)
 {
-    if (layout == NumericTableIface::upperPackedSymmetricMatrix  ||
-        layout == NumericTableIface::upperPackedTriangularMatrix)
+    if (layout == daal::data_management::NumericTableIface::upperPackedSymmetricMatrix  ||
+        layout == daal::data_management::NumericTableIface::upperPackedTriangularMatrix)
     {
         return true;
     }
     return false;
 }
 
-bool isLower(NumericTableIface::StorageLayout layout)
+bool isLower(daal::data_management::NumericTableIface::StorageLayout layout)
 {
-    if (layout == NumericTableIface::lowerPackedSymmetricMatrix  ||
-        layout == NumericTableIface::lowerPackedTriangularMatrix)
+    if (layout == daal::data_management::NumericTableIface::lowerPackedSymmetricMatrix  ||
+        layout == daal::data_management::NumericTableIface::lowerPackedTriangularMatrix)
     {
         return true;
     }
@@ -382,12 +394,12 @@ void printUpperArray(T *array, const size_t nPrintedCols, const size_t nPrintedR
     std::cout << std::endl;
 }
 
-void printNumericTable(NumericTable *dataTable, const char *message = "",
+void printNumericTable(daal::data_management::NumericTable *dataTable, char *message = "",
                        size_t nPrintedRows = 0, size_t nPrintedCols = 0, size_t interval = 10)
 {
     size_t nRows = dataTable->getNumberOfRows();
     size_t nCols = dataTable->getNumberOfColumns();
-    NumericTableIface::StorageLayout layout = dataTable->getDataLayout();
+    daal::data_management::NumericTableIface::StorageLayout layout = dataTable->getDataLayout();
 
     if(nPrintedRows != 0)
     {
@@ -408,7 +420,7 @@ void printNumericTable(NumericTable *dataTable, const char *message = "",
     }
 
     BlockDescriptor<double> block;
-    if(isFull(layout) || layout == NumericTableIface::csrArray)
+    if(isFull(layout) || layout == daal::data_management::NumericTableIface::csrArray)
     {
         dataTable->getBlockOfRows(0, nRows, readOnly, block);
         printArray<double>(block.getBlockPtr(), nPrintedCols, nPrintedRows, nCols, message, interval);
@@ -416,8 +428,8 @@ void printNumericTable(NumericTable *dataTable, const char *message = "",
     }
     else
     {
-        PackedArrayNumericTableIface *packedTable =
-            dynamic_cast<PackedArrayNumericTableIface *>(dataTable);
+        daal::data_management::PackedArrayNumericTableIface *packedTable =
+            dynamic_cast<daal::data_management::PackedArrayNumericTableIface *>(dataTable);
         packedTable->getPackedArray(readOnly, block);
         if(isLower(layout))
         {
@@ -432,19 +444,19 @@ void printNumericTable(NumericTable *dataTable, const char *message = "",
 }
 
 
-void printNumericTable(NumericTable &dataTable, const char *message = "",
+void printNumericTable(daal::data_management::NumericTable &dataTable, char *message = "",
                        size_t nPrintedRows = 0, size_t nPrintedCols = 0, size_t interval = 10)
 {
     printNumericTable(&dataTable, message, nPrintedRows, nPrintedCols, interval);
 }
 
-void printNumericTable(const NumericTablePtr &dataTable, const char *message = "",
+void printNumericTable(const daal::services::SharedPtr<daal::data_management::NumericTable> &dataTable, char *message = "",
                        size_t nPrintedRows = 0, size_t nPrintedCols = 0, size_t interval = 10)
 {
     printNumericTable(dataTable.get(), message, nPrintedRows, nPrintedCols, interval);
 }
 
-void printPackedNumericTable(NumericTable *dataTable, size_t nFeatures, const char *message = "", size_t interval = 10)
+void printPackedNumericTable(daal::data_management::NumericTable *dataTable, size_t nFeatures, char *message = "", size_t interval = 10)
 {
     BlockDescriptor<double> block;
 
@@ -469,15 +481,15 @@ void printPackedNumericTable(NumericTable *dataTable, size_t nFeatures, const ch
     dataTable->releaseBlockOfRows(block);
 }
 
-void printPackedNumericTable(NumericTable &dataTable, size_t nFeatures, const char *message = "", size_t interval = 10)
+void printPackedNumericTable(daal::data_management::NumericTable &dataTable, size_t nFeatures, char *message = "", size_t interval = 10)
 {
     printPackedNumericTable(&dataTable, nFeatures, message);
 }
 
 template<typename type1, typename type2>
-void printNumericTables(NumericTable *dataTable1,
-                        NumericTable *dataTable2,
-                        const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 15)
+void printNumericTables(daal::data_management::NumericTable *dataTable1,
+                        daal::data_management::NumericTable *dataTable2,
+                        char *title1 = "", char *title2 = "", char *message = "", size_t nPrintedRows = 0, size_t interval = 15)
 {
     size_t nRows1 = dataTable1->getNumberOfRows();
     size_t nRows2 = dataTable2->getNumberOfRows();
@@ -523,16 +535,16 @@ void printNumericTables(NumericTable *dataTable1,
 }
 
 template<typename type1, typename type2>
-void printNumericTables(NumericTable *dataTable1,
-                        NumericTable &dataTable2,
-                        const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
+void printNumericTables(daal::data_management::NumericTable *dataTable1,
+                        daal::data_management::NumericTable &dataTable2,
+                        char *title1 = "", char *title2 = "", char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
 {
     printNumericTables<type1, type2>(dataTable1, &dataTable2, title1, title2, message, nPrintedRows, interval);
 }
 
-void printNumericTables(NumericTable *dataTable1,
-                        NumericTable *dataTable2,
-                        const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
+void printNumericTables(daal::data_management::NumericTable *dataTable1,
+                        daal::data_management::NumericTable *dataTable2,
+                        char *title1 = "", char *title2 = "", char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
 {
     size_t nRows1 = dataTable1->getNumberOfRows();
     size_t nRows2 = dataTable2->getNumberOfRows();
@@ -577,17 +589,17 @@ void printNumericTables(NumericTable *dataTable1,
     dataTable2->releaseBlockOfRows(block2);
 }
 
-void printNumericTables(NumericTable *dataTable1,
-                        NumericTable &dataTable2,
-                        const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
+void printNumericTables(daal::data_management::NumericTable *dataTable1,
+                        daal::data_management::NumericTable &dataTable2,
+                        char *title1 = "", char *title2 = "", char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
 {
     printNumericTables(dataTable1, &dataTable2, title1, title2, message, nPrintedRows, interval);
 }
 
 template<typename type1, typename type2>
-void printNumericTables(NumericTablePtr dataTable1,
-                        NumericTablePtr dataTable2,
-                        const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
+void printNumericTables(daal::services::SharedPtr<daal::data_management::NumericTable> dataTable1,
+                        daal::services::SharedPtr<daal::data_management::NumericTable> dataTable2,
+                        char *title1 = "", char *title2 = "", char *message = "", size_t nPrintedRows = 0, size_t interval = 10)
 {
     printNumericTables<type1, type2>(dataTable1.get(), dataTable2.get(), title1, title2, message, nPrintedRows, interval);
 }
@@ -752,29 +764,26 @@ unsigned int getCRC32( daal::byte *input, unsigned int prevRes, size_t len)
     return res;
 }
 
-KeyValueDataCollectionPtr computeOutBlocks(size_t nBlocks,
+daal::services::SharedPtr<KeyValueDataCollection> computeOutBlocks(size_t nBlocks,
                                                                    daal::services::SharedPtr<CSRNumericTable> dataBlock,
                                                                    size_t *dataBlockPartition)
 {
     size_t nRows = dataBlock->getNumberOfRows();
     char *blockIdFlags = new char[nRows * nBlocks];
-    for (size_t i = 0; i < nRows * nBlocks; i++)
-    {
-        blockIdFlags[i] = '\0';
-    }
+    memset(blockIdFlags, 0, nRows * nBlocks);
 
     size_t *colIndices, *rowOffsets;
-    dataBlock->getArrays<double>(NULL, &colIndices, &rowOffsets); //template parameter doesn't matter
+    dataBlock->getArrays(NULL, &colIndices, &rowOffsets);
 
     for (size_t i = 0; i < nRows; i++)
     {
-        for (size_t j = rowOffsets[i] - 1; j < rowOffsets[i + 1] - 1; j++)
+        for (size_t j = rowOffsets[i] - 1; j < rowOffsets[i+1] - 1; j++)
         {
             for (size_t k = 1; k < nBlocks + 1; k++)
             {
-                if (dataBlockPartition[k - 1] <= colIndices[j] - 1 && colIndices[j] - 1 < dataBlockPartition[k])
+                if (dataBlockPartition[k-1] <= colIndices[j] - 1 && colIndices[j] - 1 < dataBlockPartition[k])
                 {
-                    blockIdFlags[(k - 1) * nRows + i] = 1;
+                    blockIdFlags[(k-1) * nRows + i] = 1;
                 }
             }
         }
@@ -790,12 +799,12 @@ KeyValueDataCollectionPtr computeOutBlocks(size_t nBlocks,
         }
     }
 
-    KeyValueDataCollectionPtr result(new KeyValueDataCollection());
+    daal::services::SharedPtr<KeyValueDataCollection> result(new KeyValueDataCollection());
 
     for (size_t i = 0; i < nBlocks; i++)
     {
-        HomogenNumericTable<int> *indicesTable = new HomogenNumericTable<int>(1, nNotNull[i], NumericTableIface::doAllocate);
-        SerializationIfacePtr indicesTableShPtr(indicesTable);
+        HomogenNumericTable<int> * indicesTable = new HomogenNumericTable<int>(1, nNotNull[i], NumericTableIface::doAllocate);
+        daal::services::SharedPtr<SerializationIface> indicesTableShPtr(indicesTable);
         int *indices = indicesTable->getArray();
         size_t indexId = 0;
 
@@ -818,8 +827,8 @@ void computePartialModelBlocksToNode(size_t nBlocks,
                                      daal::services::SharedPtr<CSRNumericTable> *dataTable,
                                      daal::services::SharedPtr<CSRNumericTable> *transposedDataTable,
                                      size_t *usersPartition, size_t *itemsPartition,
-                                     KeyValueDataCollectionPtr *usersOutBlocks,
-                                     KeyValueDataCollectionPtr *itemsOutBlocks)
+                                     daal::services::SharedPtr<KeyValueDataCollection> *usersOutBlocks,
+                                     daal::services::SharedPtr<KeyValueDataCollection> *itemsOutBlocks)
 {
     usersPartition[0] = 0;
     itemsPartition[0] = 0;
@@ -837,7 +846,7 @@ void computePartialModelBlocksToNode(size_t nBlocks,
 }
 
 void printALSRatings(size_t usersOffset, size_t itemsOffset,
-                     NumericTablePtr ratings)
+                     daal::services::SharedPtr<NumericTable> ratings)
 {
     size_t nUsers = ratings->getNumberOfRows();
     size_t nItems = ratings->getNumberOfColumns();
@@ -851,164 +860,6 @@ void printALSRatings(size_t usersOffset, size_t itemsOffset,
             std::cout << i + usersOffset << ", " << j + itemsOffset << ", " << ratingsData[i * nItems + j] << std::endl;
         }
     }
-}
-
-void printTensor(daal::services::SharedPtr<Tensor> dataTable, const char *message = "",
-                 size_t nPrintedRows = 0, size_t nPrintedCols = 0, size_t interval = 10)
-{
-    const daal::services::Collection<size_t> &dims = dataTable->getDimensions();
-    size_t nRows = dims[0];
-
-    if(nPrintedRows != 0)
-    {
-        nPrintedRows = std::min(nRows, nPrintedRows);
-    }
-    else
-    {
-        nPrintedRows = nRows;
-    }
-
-    SubtensorDescriptor<float> block;
-
-    dataTable->getSubtensor(0, 0, 0, nPrintedRows, readOnly, block);
-
-    size_t nCols = block.getSize() / nPrintedRows;
-
-    if(nPrintedCols != 0)
-    {
-        nPrintedCols = std::min(nCols, nPrintedCols);
-    }
-    else
-    {
-        nPrintedCols = nCols;
-    }
-
-    printArray<float>(block.getPtr(), nPrintedCols, nPrintedRows, nCols, message, interval);
-
-    dataTable->releaseSubtensor(block);
-}
-
-template<typename type1, typename type2>
-void printTensors(daal::services::SharedPtr<Tensor> dataTable1,
-                  daal::services::SharedPtr<Tensor> dataTable2,
-                  const char *title1 = "", const char *title2 = "", const char *message = "", size_t nPrintedRows = 0, size_t interval = 15)
-{
-    const daal::services::Collection<size_t> &dims1 = dataTable1->getDimensions();
-    size_t nRows1 = dims1[0];
-
-    if(nPrintedRows != 0) { nPrintedRows = std::min(nRows1, nPrintedRows); }
-    else { nPrintedRows = nRows1; }
-
-    SubtensorDescriptor<type1> block1;
-    dataTable1->getSubtensor(0, 0, 0, nPrintedRows, readOnly, block1);
-    size_t nCols1 = block1.getSize() / nPrintedRows;
-
-    const daal::services::Collection<size_t> &dims2 = dataTable2->getDimensions();
-    size_t nRows2 = dims2[0];
-
-    if(nPrintedRows != 0) { nPrintedRows = std::min(nRows2, nPrintedRows); }
-    else { nPrintedRows = nRows2; }
-
-    SubtensorDescriptor<type2> block2;
-    dataTable2->getSubtensor(0, 0, 0, nPrintedRows, readOnly, block2);
-    size_t nCols2 = block2.getSize() / nPrintedRows;
-
-    type1 *dataType1 = block1.getPtr();
-    type2 *dataType2 = block2.getPtr();
-
-    std::cout << std::setiosflags(std::ios::left);
-    std::cout << message << std::endl;
-    std::cout << std::setw(interval * nCols1) << title1;
-    std::cout << std::setw(interval * nCols2) << title2 << std::endl;
-    for (size_t i = 0; i < nPrintedRows; i++)
-    {
-        for (size_t j = 0; j < nCols1; j++)
-        {
-            std::cout << std::setw(interval) << std::setiosflags(std::ios::fixed) << std::setprecision(3);
-            std::cout << dataType1[i * nCols1 + j];
-        }
-        for (size_t j = 0; j < nCols2; j++)
-        {
-            std::cout << std::setprecision(3) << std::setw(interval / 2) << dataType2[i * nCols2 + j];
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
-    dataTable1->releaseSubtensor(block1);
-    dataTable2->releaseSubtensor(block2);
-}
-
-void printTensor3d(daal::services::SharedPtr<Tensor> dataTable, const char *message = "",
-                   size_t nFirstDim = 0, size_t nSecondDim = 0, size_t interval = 10)
-{
-    const daal::services::Collection<size_t> &dims = dataTable->getDimensions();
-    size_t nRows = dims[0];
-    size_t nCols = dims[1];
-
-    if(nFirstDim != 0)
-    {
-        nFirstDim = std::min(nRows, nFirstDim);
-    }
-    else
-    {
-        nFirstDim = nRows;
-    }
-
-    if(nSecondDim != 0)
-    {
-        nSecondDim = std::min(nCols, nSecondDim);
-    }
-    else
-    {
-        nSecondDim = nCols;
-    }
-
-    SubtensorDescriptor<float> block;
-
-    std::cout << message << std::endl;
-    for (size_t i = 0; i < nFirstDim; i++)
-    {
-        dataTable->getSubtensor(1, &i, 0, nSecondDim, readOnly, block);
-
-        size_t nThirdDim = block.getSize() / nSecondDim;
-
-        printArray<float>(block.getPtr(), nThirdDim, nSecondDim, nThirdDim, "", interval);
-
-        dataTable->releaseSubtensor(block);
-        fflush(0);
-    }
-}
-
-daal::services::SharedPtr<Tensor> readTensorFromCSV(const std::string &datasetFileName)
-{
-    FileDataSource<CSVFeatureManager> dataSource(datasetFileName, DataSource::doAllocateNumericTable, DataSource::doDictionaryFromContext);
-    dataSource.loadDataBlock();
-
-    daal::services::SharedPtr<HomogenNumericTable<double> > ntPtr =
-        daal::services::staticPointerCast<HomogenNumericTable<double>, NumericTable>(dataSource.getNumericTable());
-
-    daal::services::Collection<size_t> dims;
-    dims.push_back(ntPtr->getNumberOfRows());
-    size_t size = dims[0];
-    if (ntPtr->getNumberOfColumns() > 1)
-    {
-        dims.push_back(ntPtr->getNumberOfColumns());
-        size *= dims[1];
-    }
-
-    HomogenTensor<float> *tensor = new HomogenTensor<float>( dims, Tensor::doAllocate );
-    float *tensorData = tensor->getArray();
-    double *ntData = ntPtr->getArray();
-
-    for(size_t i = 0; i < size; i++)
-    {
-        tensorData[i] = (float)ntData[i];
-    }
-
-    daal::services::SharedPtr<Tensor> tensorPtr(tensor);
-
-    return tensorPtr;
 }
 
 #endif
