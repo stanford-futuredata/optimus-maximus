@@ -15,7 +15,7 @@ INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
                 $(foreach library,$(LIBRARIES),-l$(library))
 
-SRCS = main.cpp algo.cpp arith.cpp parser.cpp cluster.cpp
+SRCS = main.cpp algo.cpp arith.cpp parser.cpp clustering/cluster.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 # define the executable file 
@@ -42,4 +42,4 @@ $(MAIN): $(OBJS)
 	$(CXX) $(CXX_FLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN)
+	$(RM) *.o clustering/*.o *~ $(MAIN)

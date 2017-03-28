@@ -1,22 +1,49 @@
-#include <daal.h>
+
+#include "../utils.hpp"
 #include "service.h"
+
+#include <random>
+
+#include <daal.h>
 #include <mkl.h>
 
-using namespace std;
 using namespace daal;
 using namespace daal::algorithms;
 using namespace data_management;
 
-float* computeCentroids(float* sample_users, const int num_clusters,
-                        const int num_iters, const int num_cols,
-                        const int sample_size) {
+float* get_random_samples(float* input_weights, const int num_rows,
+                          const int num_cols, const int sample_percentage,
+                          int* num_samples) {
+  std::random_device rd;
+  std::mt19937 g(rd());
+
+  std::vector<int> v(num_rows);
+  std::iota(v.begin(), v.end(), 0);
+  std::shuffle(v.begin(), v.end(), g);
+
+  const int _num_samples = (sample_percentage / 100.0) * num_rows;
+  *num_samples = _num_samples;
+
+  float* sample_input_weights =
+      (float*)_malloc(sizeof(float) * (_num_samples * num_cols));
+  for (int i = 0; i < _num_samples; ++i) {
+    std::memcpy(&sample_input_weights[i], &input_weights[v[i]],
+                sizeof(float) * num_cols);
+  }
+
+  return sample_input_weights;
+}
+
+float* computeCentroids(float* sample_users, const int num_cols,
+                        const int num_clusters, const int num_iters,
+                        const int num_samples) {
   double time_st, time_end, time_avg;
 
   kmeans::init::Batch<float, kmeans::init::randomDense> init(num_clusters);
 
   services::SharedPtr<NumericTable> sampleTablePtr =
       services::SharedPtr<NumericTable>(
-          new HomogenNumericTable<float>(sample_users, num_cols, sample_size));
+          new HomogenNumericTable<float>(sample_users, num_cols, num_samples));
 
   init.input.set(kmeans::init::data, sampleTablePtr);
 
@@ -65,8 +92,7 @@ float* computeCentroids(float* sample_users, const int num_clusters,
   BlockDescriptor<float> cent_block;
   endCentroids->getBlockOfRows(0, nRows, readOnly, cent_block);
   float* centArray = cent_block.getBlockPtr();
-  float* returnArray =
-      (float*)MKL_malloc(sizeof(float) * num_cols * num_clusters, 64);
+  float* returnArray = (float*)_malloc(sizeof(float) * num_cols * num_clusters);
   cblas_scopy(num_cols * num_clusters, centArray, 1, returnArray, 1);
   return returnArray;
 }
@@ -114,18 +140,19 @@ int* assignment(float* input_weights, float* centroids, int num_clusters,
 
 #ifdef DEBUG
   size_t cols = assignments->getNumberOfColumns();
-  cout << "Num Assignments: " << numUsers << "\t" << cols << std::endl;
+  std::cout << "Num Assignments: " << numUsers << "\t" << cols << std::endl;
 #endif
 
   BlockDescriptor<int> assign_block;
   assignments->getBlockOfRows(0, numUsers, readOnly, assign_block);
   int* assignArray = assign_block.getBlockPtr();
-  int* returnArray = (int*)MKL_malloc(sizeof(int) * numUsers, 64);
+  int* returnArray = (int*)_malloc(sizeof(int) * numUsers);
   cblas_scopy(numUsers, (float*)assignArray, 1, (float*)returnArray, 1);
 
 #ifdef DEBUG
   for (int i = 0; i < 50; i++) {
-    cout << "user: " << i << " assignment: " << returnArray[i] << std::endl;
+    std::cout << "user: " << i << " assignment: " << returnArray[i]
+              << std::endl;
   }
 #endif
 
@@ -141,15 +168,18 @@ void kmeans_clustering(float* input_weights, const int num_rows,
   services::Environment::getInstance()->setNumberOfThreads(num_threads);
   daal::services::interface1::LibraryVersionInfo info_obj;
 #ifdef DEBUG
-  cout << info_obj.majorVersion << "\t" << info_obj.minorVersion << "\t"
-       << info_obj.build << std::endl;
+  std::cout << info_obj.majorVersion << "\t" << info_obj.minorVersion << "\t"
+            << info_obj.build << std::endl;
 #endif
 
   // not sampling at the moment
-  int sample_size = num_rows;
+  int num_samples = 0;
+  float* sampled_input_weights = get_random_samples(
+      input_weights, num_rows, num_cols, sample_percentage, &num_samples);
 
-  centroids = computeCentroids(input_weights, num_clusters, num_iters, num_cols,
-                               sample_size);
+  centroids = computeCentroids(sampled_input_weights, num_cols, num_clusters,
+                               num_iters, num_samples);
   user_id_cluster_ids =
       assignment(input_weights, centroids, num_clusters, num_cols, num_rows);
+  _free(sampled_input_weights);
 }

@@ -169,7 +169,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
 #ifdef DEBUG
   const int num_users_to_compute =
-      num_users_in_cluster < 10 ? num_users_in_cluster : 10;
+      num_users_in_cluster < 15 ? num_users_in_cluster : 15;
 #else
   const int num_users_to_compute = num_users_in_cluster;
 #endif

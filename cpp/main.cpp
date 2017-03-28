@@ -10,7 +10,7 @@
 #include "parser.hpp"
 #include "arith.hpp"
 #include "utils.hpp"
-#include "cluster.hpp"
+#include "clustering/cluster.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,7 +151,7 @@ int main(int argc, const char* argv[]) {
   MKL_Set_Num_Threads(1);
   omp_set_num_threads(1);
 #else
-  MKL_Set_Num_Threads(1);
+  MKL_Set_Num_Threads(num_threads);
   omp_set_num_threads(num_threads);
 #endif
 
@@ -225,7 +225,6 @@ int main(int argc, const char* argv[]) {
   time_start = dsecnd();
   time_start = dsecnd();
 
-  int num_users_so_far = 0;
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
@@ -234,7 +233,7 @@ int main(int argc, const char* argv[]) {
 #ifdef DEBUG
     std::cout << "Cluster ID " << cluster_id << std::endl;
 #endif
-    num_users_so_far = num_users_so_far_arr[cluster_id];
+    const int num_users_so_far = num_users_so_far_arr[cluster_id];
     computeTopKForCluster(
         cluster_id, &centroids[cluster_id * num_latent_factors],
         cluster_index[cluster_id],
