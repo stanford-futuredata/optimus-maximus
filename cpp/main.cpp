@@ -33,6 +33,8 @@
 #include <mkl.h>
 #include <mkl_scalapack.h>
 
+#include <omp.h>
+
 namespace opt = boost::program_options;
 
 double creationTime;
@@ -44,26 +46,27 @@ double computeKTime;
  * Output: array of vectors: cluster_id -> vector of user ids, user weights
  * resorted in cluster order (same pointer as before)
  **/
-std::vector<int>* build_cluster_index(const int* user_id_cluster_id,
+std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
                                       float*& user_weights, const int num_users,
                                       const int num_latent_factors,
-                                      const int num_clusters, int* num_users_so_far_array) {
+                                      const int num_clusters,
+                                      int* num_users_so_far_array) {
 
   std::vector<int>* cluster_index = new std::vector<int>[num_clusters];
   for (int user_id = 0; user_id < num_users; ++user_id) {
-    cluster_index[user_id_cluster_id[user_id]].push_back(user_id);
+    cluster_index[user_id_cluster_ids[user_id]].push_back(user_id);
   }
 
   float* user_weights_new =
       (float*)_malloc(sizeof(float) * num_users * num_latent_factors);
 
   int new_user_ind = 0;
-    int num_users_so_far_counter = 0;
+  int num_users_so_far_counter = 0;
   for (int i = 0; i < num_clusters; ++i) {
     const std::vector<int> user_ids_for_cluster = cluster_index[i];
     const int num_users_in_cluster = user_ids_for_cluster.size();
-      num_users_so_far_array[i] = num_users_so_far_counter;
-      num_users_so_far_counter += num_users_in_cluster;
+    num_users_so_far_array[i] = num_users_so_far_counter;
+    num_users_so_far_counter += num_users_in_cluster;
     for (int j = 0; j < num_users_in_cluster; ++j) {
       const int user_id = user_ids_for_cluster[j];
       std::memcpy(&user_weights_new[new_user_ind * num_latent_factors],
@@ -78,14 +81,10 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_id,
 }
 
 int main(int argc, const char* argv[]) {
-  opt::options_description description("SimDex");
+  opt::options_description description("Simdex");
   description.add_options()("help,h", "Show help")(
       "weights-dir,w", opt::value<std::string>()->required(),
       "weights directory; must contain user_weights.csv and item_weights.csv")(
-      "clusters-dir,d", opt::value<std::string>()->required(),
-      "clusters directory; must contain "
-      "[sample_percentage]/[num_iters]/[num_clusters]_centroids.csv and "
-      "[sample_percentage]/[num_iters]/[num_clusters]_user_cluster_ids")(
       "top-k,k", opt::value<int>()->required(),
       "Top K items to return per user")(
       "num-users,m", opt::value<int>()->required(), "Number of users")(
@@ -128,59 +127,48 @@ int main(int argc, const char* argv[]) {
   const int num_iters = args["num-iters"].as<int>();
   const int num_bins = args["num-bins"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
-
-  const std::string clusters_dir = args["clusters-dir"].as<std::string>();
-  const std::string centroids_filepath =
-      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
-      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
-      "_centroids.csv";
-  const std::string user_id_cluster_id_filepath =
-      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
-      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
-      "_user_cluster_ids";
   const std::string base_name = args["base-name"].as<std::string>();
 
-  MKL_Set_Num_Threads(num_threads);
+#ifdef DEBUG
+  MKL_Set_Num_Threads(1);
+  omp_set_num_threads(1);
+#else
+  MKL_Set_Num_Threads(1);
+  omp_set_num_threads(num_threads);
+#endif
 
   double time_start, time_end;
 
   time_start = dsecnd();
   time_start = dsecnd();
-  // int* user_id_cluster_id =
-  //     parse_ids_csv(user_id_cluster_id_filepath, num_users);
-  // float* centroids =
-  //     parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
   float* item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
   float* user_weights =
       parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
-  // user_weights is correct--sorted correctly, matches cluster_index
 
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
 
+  time_start = dsecnd();
+  time_start = dsecnd();
   float* centroids;
-  int* user_id_cluster_id;
-  float** centroids_ptr = &centroids;
-  int** user_id_cluster_id_ptr = &user_id_cluster_id;
-
-  time_start = dsecnd();
-  time_start = dsecnd();
-
-  kmeans_clustering(num_clusters, num_iters, sample_percentage, user_weights, 
-        num_latent_factors, num_users, centroids_ptr, user_id_cluster_id_ptr, num_threads);
-
+  int* user_id_cluster_ids;
+  kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
+                    num_iters, sample_percentage, num_threads, centroids,
+                    user_id_cluster_ids);
   time_end = dsecnd();
   const double cluster_time = (time_end - time_start);
 
   time_start = dsecnd();
   time_start = dsecnd();
-    
-    int* num_users_so_far_array = (int*)_malloc(sizeof(int)*num_clusters);
 
-  std::vector<int>* cluster_index =
-      build_cluster_index(user_id_cluster_id, user_weights, num_users,
-                          num_latent_factors, num_clusters, num_users_so_far_array);
+  int* num_users_so_far_array = (int*)_malloc(sizeof(int) * num_clusters);
+
+  std::vector<int>* cluster_index = build_cluster_index(
+      user_id_cluster_ids, user_weights, num_users, num_latent_factors,
+      num_clusters, num_users_so_far_array);
+  // user_weights is correct--sorted correctly, matches cluster_index
+  //
   // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
   float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
@@ -212,7 +200,7 @@ int main(int argc, const char* argv[]) {
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     std::cout << "Cluster ID " << cluster_id << std::endl;
-      num_users_so_far = num_users_so_far_array[cluster_id];
+    num_users_so_far = num_users_so_far_array[cluster_id];
     computeTopKForCluster(
         cluster_id, &centroids[cluster_id * num_latent_factors],
         cluster_index[cluster_id],

@@ -1,7 +1,10 @@
 #ifndef cluster_hpp
 #define cluster_hpp
 
-void kmeans_clustering(int num_clusters, int num_iters, int sample_percentage, float* input_weights, 
-        int num_cols, int num_rows, float** centroids_ptr, int** user_id_cluster_id_ptr, int num_threads);
+void kmeans_clustering(float* input_weights, const int num_rows,
+                       const int num_cols, const int num_clusters,
+                       const int num_iters, const int sample_percentage,
+                       const int num_threads, float*& centroids,
+                       int*& user_id_cluster_ids);
 
 #endif /* cluster_hpp */
