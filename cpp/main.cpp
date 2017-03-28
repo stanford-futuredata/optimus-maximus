@@ -46,7 +46,7 @@ double computeKTime;
 std::vector<int>* build_cluster_index(const int* user_id_cluster_id,
                                       float*& user_weights, const int num_users,
                                       const int num_latent_factors,
-                                      const int num_clusters) {
+                                      const int num_clusters, int* num_users_so_far_array) {
 
   std::vector<int>* cluster_index = new std::vector<int>[num_clusters];
   for (int user_id = 0; user_id < num_users; ++user_id) {
@@ -57,10 +57,12 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_id,
       (float*)_malloc(sizeof(float) * num_users * num_latent_factors);
 
   int new_user_ind = 0;
+    int num_users_so_far_counter = 0;
   for (int i = 0; i < num_clusters; ++i) {
     const std::vector<int> user_ids_for_cluster = cluster_index[i];
     const int num_users_in_cluster = user_ids_for_cluster.size();
-
+      num_users_so_far_array[i] = num_users_so_far_counter;
+      num_users_so_far_counter += num_users_in_cluster;
     for (int j = 0; j < num_users_in_cluster; ++j) {
       const int user_id = user_ids_for_cluster[j];
       std::memcpy(&user_weights_new[new_user_ind * num_latent_factors],
@@ -158,10 +160,12 @@ int main(int argc, const char* argv[]) {
 
   time_start = dsecnd();
   time_start = dsecnd();
+    
+    int* num_users_so_far_array = (int*)_malloc(sizeof(int)*num_clusters);
 
   std::vector<int>* cluster_index =
       build_cluster_index(user_id_cluster_id, user_weights, num_users,
-                          num_latent_factors, num_clusters);
+                          num_latent_factors, num_clusters, num_users_so_far_array);
   // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
   float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
@@ -190,15 +194,16 @@ int main(int argc, const char* argv[]) {
   time_start = dsecnd();
   time_start = dsecnd();
   int num_users_so_far = 0;
+#pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     std::cout << "Cluster ID " << cluster_id << std::endl;
+      num_users_so_far = num_users_so_far_array[cluster_id];
     computeTopKForCluster(
         cluster_id, &centroids[cluster_id * num_latent_factors],
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items], num_items,
         num_latent_factors, num_bins, K, user_stats_file);
-    num_users_so_far += cluster_index[cluster_id].size();
   }
   time_end = dsecnd();
   const double compute_time = (time_end - time_start);
