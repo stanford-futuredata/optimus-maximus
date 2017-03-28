@@ -22,7 +22,10 @@ float *computeCentroids(float* sample_users, int num_clusters, int num_iters, in
     init.compute();
     time_end = dsecnd();
     time_avg = (time_end - time_st);
+
+#ifdef DEBUG
     printf("time taken to compute initial centroids: %f secs \n", time_avg);
+#endif
     
     services::SharedPtr<NumericTable> centroids = init.getResult()->get(kmeans::init::centroids);
     
@@ -36,12 +39,16 @@ float *computeCentroids(float* sample_users, int num_clusters, int num_iters, in
     algorithm.compute();
     time_end = dsecnd();
     time_avg = (time_end - time_st);
+
+#ifdef DEBUG
     printf("time taken to compute clusters: %f secs \n", time_avg);
+#endif
     
-    /* Print the clusterization results */
+#ifdef DEBUG
     printNumericTable(algorithm.getResult()->get(kmeans::assignments), "First 10 cluster assignments:", 10);
     printNumericTable(algorithm.getResult()->get(kmeans::centroids  ), "First 10 dimensions of centroids:", 20, 10);
-    
+#endif    
+
     services::SharedPtr<NumericTable> endCentroids = algorithm.getResult()->get(kmeans::centroids);
     size_t nRows = endCentroids->getNumberOfRows();
     if (nRows != num_clusters) {
@@ -66,8 +73,9 @@ int* assignment(float* input_weights, float* centroids, int num_clusters, int nu
     services::SharedPtr<NumericTable> dataTablePtr = 
         services::SharedPtr<NumericTable>(new HomogenNumericTable<float>(input_weights, num_cols, num_rows));
     
-    
-        printNumericTable(centroidTablePtr, "Input Centroids:", 20, 10);
+#ifdef DEBUG
+    printNumericTable(centroidTablePtr, "Input Centroids:", 20, 10);
+#endif
     
     kmeans::Batch<> algorithm2(num_clusters, 0);
     algorithm2.input.set(kmeans::data, dataTablePtr);
@@ -78,15 +86,23 @@ int* assignment(float* input_weights, float* centroids, int num_clusters, int nu
     algorithm2.compute();
     time_end = dsecnd();
     time_avg = (time_end - time_st);
+
+#ifdef DEBUG
     printf("time taken to assign clusters: %f secs \n", time_avg);
+#endif
     
+#ifdef DEBUG
     printNumericTable(algorithm2.getResult()->get(kmeans::assignments), "First 10 cluster assignments:", 10);
     printNumericTable(algorithm2.getResult()->get(kmeans::centroids  ), "First 10 dimensions of centroids:", 20, 10);
-    
+#endif
+
     services::SharedPtr<NumericTable> assignments = algorithm2.getResult()->get(kmeans::assignments);
     size_t numUsers = assignments->getNumberOfRows();
     size_t cols = assignments->getNumberOfColumns();
+
+#ifdef DEBUG
     cout << "Num Assignments: " << numUsers << "\t" << cols << std::endl;
+#endif
     
     BlockDescriptor<int> assign_block;
     assignments->getBlockOfRows(0, numUsers, readOnly, assign_block);
@@ -94,9 +110,11 @@ int* assignment(float* input_weights, float* centroids, int num_clusters, int nu
     int* returnArray = (int*)MKL_malloc(sizeof(int)*numUsers, 64);
     cblas_scopy(numUsers, (float*)assignArray, 1, (float*)returnArray, 1);
     
+#ifdef DEBUG
     for (int i = 0; i < 50; i++) {
         cout << "user: " << i << " assignment: " << returnArray[i] << std::endl;
     }
+#endif
     
     return returnArray;
     

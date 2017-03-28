@@ -146,10 +146,10 @@ int main(int argc, const char* argv[]) {
 
   time_start = dsecnd();
   time_start = dsecnd();
-  int* user_id_cluster_id =
-      parse_ids_csv(user_id_cluster_id_filepath, num_users);
-  float* centroids =
-      parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
+  // int* user_id_cluster_id =
+  //     parse_ids_csv(user_id_cluster_id_filepath, num_users);
+  // float* centroids =
+  //     parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
   float* item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
   float* user_weights =
@@ -159,16 +159,19 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
 
+  float* centroids;
+  int* user_id_cluster_id;
   float** centroids_ptr = &centroids;
   int** user_id_cluster_id_ptr = &user_id_cluster_id;
+
+  time_start = dsecnd();
+  time_start = dsecnd();
 
   kmeans_clustering(num_clusters, num_iters, sample_percentage, user_weights, 
         num_latent_factors, num_users, centroids_ptr, user_id_cluster_id_ptr, num_threads);
 
-  exit(0);
-
-
-
+  time_end = dsecnd();
+  const double cluster_time = (time_end - time_start);
 
   time_start = dsecnd();
   time_start = dsecnd();
@@ -221,6 +224,7 @@ int main(int argc, const char* argv[]) {
   const double compute_time = (time_end - time_start);
 
   printf("parse time: %f secs \n", parse_time);
+  printf("cluster time: %f secs \n", cluster_time);
   printf("index time: %f secs \n", index_time);
   printf("comp time: %f secs \n", compute_time);
 
