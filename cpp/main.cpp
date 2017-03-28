@@ -10,6 +10,7 @@
 #include "parser.hpp"
 #include "arith.hpp"
 #include "utils.hpp"
+#include "cluster.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,11 +81,11 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
 }
 
 int main(int argc, const char* argv[]) {
-  opt::options_description description("SimDex");
+  opt::options_description description("Simdex");
   description.add_options()("help,h", "Show help")(
       "weights-dir,w", opt::value<std::string>()->required(),
       "weights directory; must contain user_weights.csv and item_weights.csv")(
-      "clusters-dir,d", opt::value<std::string>()->required(),
+      "clusters-dir,d", opt::value<std::string>(),
       "clusters directory; must contain "
       "[sample_percentage]/[num_iters]/[num_clusters]_centroids.csv and "
       "[sample_percentage]/[num_iters]/[num_clusters]_user_cluster_ids")(
@@ -130,39 +131,61 @@ int main(int argc, const char* argv[]) {
   const int num_iters = args["num-iters"].as<int>();
   const int num_bins = args["num-bins"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
-
-  const std::string clusters_dir = args["clusters-dir"].as<std::string>();
-  const std::string centroids_filepath =
-      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
-      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
-      "_centroids.csv";
-  const std::string user_id_cluster_ids_filepath =
-      clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
-      std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
-      "_user_cluster_ids";
   const std::string base_name = args["base-name"].as<std::string>();
 
-#ifndef DEBUG
+  std::string centroids_filepath = "";
+  std::string user_id_cluster_ids_filepath = "";
+  if (args.count("clusters-dir")) {
+    const std::string clusters_dir = args["clusters-dir"].as<std::string>();
+    centroids_filepath = clusters_dir + "/" +
+                         std::to_string(sample_percentage) + "/" +
+                         std::to_string(num_iters) + "/" +
+                         std::to_string(num_clusters) + "_centroids.csv";
+    user_id_cluster_ids_filepath =
+        clusters_dir + "/" + std::to_string(sample_percentage) + "/" +
+        std::to_string(num_iters) + "/" + std::to_string(num_clusters) +
+        "_user_cluster_ids";
+  }
+
+#ifdef DEBUG
+  MKL_Set_Num_Threads(1);
+  omp_set_num_threads(1);
+#else
   MKL_Set_Num_Threads(1);
   omp_set_num_threads(num_threads);
 #endif
 
-  double time_start, time_end;
+  double time_start, time_end;  // used for timing throughout
 
   time_start = dsecnd();
   time_start = dsecnd();
-  int* user_id_cluster_ids =
-      parse_ids_csv(user_id_cluster_ids_filepath, num_users);
-  float* centroids =
-      parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
+
   float* item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
   float* user_weights =
       parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
-  // user_weights is correct--sorted correctly, matches cluster_index
 
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
+
+  time_start = dsecnd();
+  time_start = dsecnd();
+
+  float* centroids;
+  int* user_id_cluster_ids;
+  if (args.count("clusters-dir")) {
+    user_id_cluster_ids =
+        parse_ids_csv(user_id_cluster_ids_filepath, num_users);
+    centroids =
+        parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
+  } else {
+    kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
+                      num_iters, sample_percentage, num_threads, centroids,
+                      user_id_cluster_ids);
+  }
+
+  time_end = dsecnd();
+  const double cluster_time = (time_end - time_start);
 
   time_start = dsecnd();
   time_start = dsecnd();
@@ -171,6 +194,8 @@ int main(int argc, const char* argv[]) {
   std::vector<int>* cluster_index = build_cluster_index(
       user_id_cluster_ids, user_weights, num_users, num_latent_factors,
       num_clusters, num_users_so_far_arr);
+  // user_weights is correct--sorted correctly, matches cluster_index
+
   // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
   float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
@@ -199,6 +224,7 @@ int main(int argc, const char* argv[]) {
 
   time_start = dsecnd();
   time_start = dsecnd();
+
   int num_users_so_far = 0;
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
@@ -216,6 +242,7 @@ int main(int argc, const char* argv[]) {
         item_norms, &theta_ics[cluster_id * num_items], num_items,
         num_latent_factors, num_bins, K, user_stats_file);
   }
+
   time_end = dsecnd();
   const double compute_time = (time_end - time_start);
 
@@ -226,9 +253,12 @@ int main(int argc, const char* argv[]) {
        base_name % num_threads % num_bins % K % sample_percentage %
        num_iters).str();
   timing_stats_file.open(timing_stats_fname);
-  timing_stats_file << "parse_time,index_time,comp_time" << std::endl;
+  timing_stats_file << "parse_time,cluster_time,index_time,comp_time"
+                    << std::endl;
   timing_stats_file << parse_time << ",";
   printf("parse time: %f secs \n", parse_time);
+  timing_stats_file << cluster_time << ",";
+  printf("cluster time: %f secs \n", cluster_time);
   timing_stats_file << index_time << ",";
   printf("index time: %f secs \n", index_time);
   timing_stats_file << compute_time << std::endl;

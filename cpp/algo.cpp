@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <numeric>
 
 #include <mkl.h>
 #include <ipps.h>
