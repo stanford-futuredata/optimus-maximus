@@ -6,7 +6,6 @@ from builtins import zip
 
 import numpy as np
 import pandas as pd
-import sys
 import heapq
 import argparse
 import os
