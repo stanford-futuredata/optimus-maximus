@@ -12,21 +12,25 @@
 #include <stdio.h>
 #include "parser.hpp"
 
-typedef struct userNormTuple{
-    int userID;
-    float userNorm;
-}userNormTuple_t;
+typedef struct userNormTuple {
+  int userID;
+  float userNorm;
+} userNormTuple_t;
 
-typedef struct userThetaUcTuple{
-    int userID;
-    float theta_uc;
-}userThetaUcTuple_t;
+typedef struct userThetaUcTuple {
+  int userID;
+  float theta_uc;
+} userThetaUcTuple_t;
 
-typedef struct upperBoundItem{
-    int itemID;
-    float upperBound;
-}upperBoundItem_t;
+typedef struct upperBoundItem {
+  int itemID;
+  float upperBound;
+} upperBoundItem_t;
 
-void clusterPrep(fullCluster_t *fullClusterData, int clusterID, float *fullUserData, float *clusterCentroids, float *allItemWeights, float *allItemNorms, int numBins, int k, float *vectorized_Acos_output_ic, std::ofstream& misc_file, std::ofstream& run_file);
+void clusterPrep(fullCluster_t *fullClusterData, int clusterID,
+                 float *fullUserData, float *clusterCentroids,
+                 float *allItemWeights, float *allItemNorms, int numBins, int k,
+                 float *vectorized_Acos_output_ic, std::ofstream &misc_file,
+                 std::ofstream &run_file);
 
 #endif /* mz_special_hpp */
