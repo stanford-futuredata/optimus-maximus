@@ -27,8 +27,8 @@ float* get_random_samples(float* input_weights, const int num_rows,
   float* sample_input_weights =
       (float*)_malloc(sizeof(float) * (_num_samples * num_cols));
   for (int i = 0; i < _num_samples; ++i) {
-    std::memcpy(&sample_input_weights[i], &input_weights[v[i]],
-                sizeof(float) * num_cols);
+    std::memcpy(&sample_input_weights[i * num_cols],
+                &input_weights[v[i] * num_cols], sizeof(float) * num_cols);
   }
 
   return sample_input_weights;
@@ -73,9 +73,6 @@ float* computeCentroids(float* sample_users, const int num_cols,
 
 #ifdef DEBUG
   printf("time taken to compute clusters: %f secs \n", time_avg);
-#endif
-
-#ifdef DEBUG
   printNumericTable(algorithm.getResult()->get(kmeans::assignments),
                     "First 10 cluster assignments:", 10);
   printNumericTable(algorithm.getResult()->get(kmeans::centroids),
@@ -109,9 +106,7 @@ int* assignment(float* input_weights, float* centroids, int num_clusters,
       services::SharedPtr<NumericTable>(
           new HomogenNumericTable<float>(input_weights, num_cols, num_rows));
 
-#ifdef DEBUG
   printNumericTable(centroidTablePtr, "Input Centroids:", 20, 10);
-#endif
 
   kmeans::Batch<> algorithm2(num_clusters, 0);
   algorithm2.input.set(kmeans::data, dataTablePtr);
@@ -125,9 +120,6 @@ int* assignment(float* input_weights, float* centroids, int num_clusters,
 
 #ifdef DEBUG
   printf("time taken to assign clusters: %f secs \n", time_avg);
-#endif
-
-#ifdef DEBUG
   printNumericTable(algorithm2.getResult()->get(kmeans::assignments),
                     "First 10 cluster assignments:", 10);
   printNumericTable(algorithm2.getResult()->get(kmeans::centroids),
@@ -172,10 +164,14 @@ void kmeans_clustering(float* input_weights, const int num_rows,
             << info_obj.build << std::endl;
 #endif
 
-  // not sampling at the moment
   int num_samples = 0;
+
+  dsecnd();
+  const double random_start = dsecnd();
   float* sampled_input_weights = get_random_samples(
       input_weights, num_rows, num_cols, sample_percentage, &num_samples);
+  const double random_end = dsecnd();
+  printf("Random sampling time %f \n", random_end - random_start);
 
   centroids = computeCentroids(sampled_input_weights, num_cols, num_clusters,
                                num_iters, num_samples);

@@ -210,10 +210,12 @@ int main(int argc, const char* argv[]) {
 
   std::ofstream user_stats_file;
 #ifdef DEBUG
-  const std::string fname =
-      (boost::format("%1%_bins-%2%_K-%3%_sample-%4%_iters-%5%.csv") %
-       base_name % num_bins % K % sample_percentage % num_iters).str();
-  user_stats_file.open(fname);
+  const std::string user_stats_fname =
+      (boost::format(
+           "%1%_bins-%2%_K-%3%_sample-%4%_iters-%5%_clusters-%6%.csv") %
+       base_name % num_bins % K % sample_percentage % num_iters %
+       args.count("clusters-dir")).str();
+  user_stats_file.open(user_stats_fname);
   user_stats_file << "user_id,cluster_id,theta_uc,num_items_visited"
                   << std::endl;
 #endif
@@ -248,9 +250,9 @@ int main(int argc, const char* argv[]) {
   std::ofstream timing_stats_file;
   const std::string timing_stats_fname =
       (boost::format(
-           "%1%-timing_threads-%2%_bins-%3%_K-%4%_sample-%5%_iters-%6%.csv") %
+           "%1%-timing_threads-%2%_bins-%3%_K-%4%_sample-%5%_iters-%6%_clusters-%7%.csv") %
        base_name % num_threads % num_bins % K % sample_percentage %
-       num_iters).str();
+       num_iters % args.count("clusters-dir")).str();
   timing_stats_file.open(timing_stats_fname);
   timing_stats_file << "parse_time,cluster_time,index_time,comp_time"
                     << std::endl;
