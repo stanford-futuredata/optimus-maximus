@@ -179,3 +179,30 @@ void kmeans_clustering(float* input_weights, const int num_rows,
       assignment(input_weights, centroids, num_clusters, num_cols, num_rows);
   _free(sampled_input_weights);
 }
+
+void random_clustering(float* input_weights, const int num_rows,
+                       const int num_cols, const int num_clusters,
+                       const int num_iters, const int sample_percentage,
+                       const int num_threads, float*& centroids,
+                       int*& user_id_cluster_ids){
+
+  MKL_Free_Buffers();
+  services::Environment::getInstance()->setNumberOfThreads(num_threads);
+  daal::services::interface1::LibraryVersionInfo info_obj;
+#ifdef DEBUG
+  std::cout << info_obj.majorVersion << "\t" << info_obj.minorVersion << "\t"
+            << info_obj.build << std::endl;
+#endif
+
+  
+  std::default_random_engine generator;
+  std::normal_distribution<float> distribution(0.0,1.0);
+
+  float* centroids_arr = (float*)_malloc(sizeof(float) * num_cols * num_clusters);
+  centroids = centroids_arr;
+  for(int i = 0; i < (num_clusters*num_cols); i++){
+    centroids_arr[i] = distribution(generator);
+  }
+  user_id_cluster_ids =
+      assignment(input_weights, centroids, num_clusters, num_cols, num_rows);
+}
