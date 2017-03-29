@@ -1,9 +1,7 @@
 #! /usr/bin/env python
 
 from consts import *
-import os
 import subprocess
-import argparse
 from itertools import product
 
 
