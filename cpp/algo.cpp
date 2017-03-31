@@ -142,24 +142,39 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   time_start = dsecnd();
   time_start = dsecnd();
 
-  upperBoundItem_t sorted_upper_bounds[num_bins][num_items];
-  for (i = 0; i < num_bins; i++) {
-    for (j = 0; j < num_items; j++) {
-      sorted_upper_bounds[i][j].upperBound = upper_bounds[i][j];
-      sorted_upper_bounds[i][j].itemID = j;
-    }
-  }
+
+  int sorted_upper_bounds_indices[num_bins][num_items];
   IppSizeL *pBufSize = (IppSizeL *)malloc(sizeof(IppSizeL));
-  ippsSortRadixGetBufferSize_L(num_items, ipp64s, pBufSize);
+  ippsSortRadixIndexGetBufferSize(num_items, ipp64s, pBufSize);
   Ipp8u *pBuffer = (Ipp8u *)malloc(*pBufSize * sizeof(Ipp8u));
-  for (i = 0; i < num_bins; i++) {
-    ippsSortRadixDescend_64s_I_L((Ipp64s *)sorted_upper_bounds[i], num_items,
-                                 pBuffer);
+  int srcStrideBytes = 4;
+  for (i = 0; i < num_bins; i++){
+    ippsSortRadixIndexDescend_32f((Ipp32f*)upper_bounds[i], srcStrideBytes, &sorted_upper_bounds_indices[i], num_items, pBuffer);
   }
+
   // sorted_upper_bounds are correct
 
   time_end = dsecnd();
   sortUpperBound_time = (time_end - time_start);
+
+  int batch_size = 200;
+  int batch_counter[num_bins] = {0};
+  float sorted_upper_bounds[num_bins][num_items];
+  float* sorted_item_weights = (float*)_malloc(sizeof(float)*num_bins*num_items*num_latent_factors);
+  int bin_offset = num_items*num_latent_factors;
+  int item_id;
+
+  // compute initial batches
+  for (i = 0; i < num_bins; i++){
+    for (j = 0; j < batch_size; j++){
+      item_id = sorted_upper_bounds_indices[i][batch_counter[i]];
+      sorted_upper_bounds[i][batch_counter[i]] = upper_bounds[i][item_id];
+      cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], sorted_item_weights[(i*bin_offset)+(batch_counter[i]*num_latent_factors)]);
+      batch_counter[i]++;
+    }
+  }
+
+
 
   // ----------Computer Per User TopK Below------------------
   int top_K_items[num_users_in_cluster][K];
@@ -173,7 +188,10 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 #else
   const int num_users_to_compute = num_users_in_cluster;
 #endif
-  for (i = 0; i < num_users_to_compute; i++) {
+
+  float *user_dot_items = (float *)_malloc(sizeof(float) * batch_size);
+
+  for (i = 0; i < num_users_to_compute; i++){
     const int bin_index =
         find_theta_bin_index(theta_ucs[i], theta_bins, num_bins);
 
@@ -184,31 +202,51 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     float score = 0.F;
     int itemID = 0;
 
+    const int m = batch_size;
+    const int k = num_latent_factors;
+
+    const float alpha = 1.0;
+    const float beta = 0.0;
+    const int stride = 1;
+
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, sorted_item_weights[(bin_index*bin_offset)], k,
+              user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
+    
     for (j = 0; j < K; j++) {
-      itemID = sorted_upper_bounds[bin_index][j].itemID;
-      score = cblas_sdot(num_latent_factors,
-                         &item_weights[itemID * num_latent_factors], 1,
-                         &user_weights[i * num_latent_factors], 1);
+      itemID = sorted_upper_bounds_indices[bin_index][j]
+      score = user_dot_items[j];
       q.push(std::make_pair(score, itemID));
     }
     int num_items_visited = K;
 
     for (j = K; j < num_items; j++) {
+      if (batch_counter[bin_index] == j){
+          for (int l = 0; l < batch_size; l++){
+            item_id = sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
+            sorted_upper_bounds[bin_index][batch_counter[bin_index]] = upper_bounds[bin_index][item_id];
+            cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], sorted_item_weights[(bin_index*bin_offset)+(batch_counter[bin_index]*num_latent_factors)]);
+            batch_counter[bin_index]++;
+          }
+      }
+
+      if ((j % batch_size) == 0){
+        cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, sorted_item_weights[(bin_index*bin_offset)+(j*num_latent_factors)], k,
+              user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
+      }
+
+
       if (q.top().first >
-          (user_norms[i] * sorted_upper_bounds[bin_index][j].upperBound)) {
+          (user_norms[i] * sorted_upper_bounds[bin_index][j])) {
         break;
       }
-      itemID = sorted_upper_bounds[bin_index][j].itemID;
-      score = cblas_sdot(num_latent_factors,
-                         &item_weights[itemID * num_latent_factors], 1,
-                         &user_weights[i * num_latent_factors], 1);
+      itemID = sorted_upper_bounds_indices[bin_index][j]
+      score = user_dot_items[j % batch_size];
       num_items_visited++;
       if (q.top().first < score) {
         q.pop();
         q.push(std::make_pair(score, itemID));
       }
     }
-
 #ifdef DEBUG
     float top_K_scores[K];
 #endif
@@ -240,6 +278,9 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
   _free(user_norms);
   _free(theta_ucs);
+  _free(sorted_item_weights);
+  _free(user_dot_items);
+
   MKL_Free_Buffers();
 
   // printf("upper bound time: %f secs \n", upperBoundCreation_time);
