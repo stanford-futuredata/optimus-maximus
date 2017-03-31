@@ -101,9 +101,9 @@ int main(int argc, const char* argv[]) {
       "num-iters,i", opt::value<int>()->default_value(10),
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(1),
-      "Number of bins, default: 1")("num-threads,t",
-                                    opt::value<int>()->default_value(1),
-                                    "Number of threads, default: 1")(
+      "Number of bins, default: 1")("batch-size,bs", opt::value<int>()->default_value(200), 
+      "Batch Size, default: 200")("num-threads,t", opt::value<int>()->default_value(1),
+      "Number of threads, default: 1")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
 
@@ -130,6 +130,7 @@ int main(int argc, const char* argv[]) {
   const int sample_percentage = args["sample-percentage"].as<int>();
   const int num_iters = args["num-iters"].as<int>();
   const int num_bins = args["num-bins"].as<int>();
+  const int batch_size = args["batch-size"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
 
@@ -241,7 +242,7 @@ int main(int argc, const char* argv[]) {
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items], num_items,
-        num_latent_factors, num_bins, K, user_stats_file);
+        num_latent_factors, num_bins, K, user_stats_file, batch_size);
   }
 
   time_end = dsecnd();
