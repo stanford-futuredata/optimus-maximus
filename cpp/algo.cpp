@@ -169,7 +169,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     for (j = 0; j < batch_size; j++){
       item_id = sorted_upper_bounds_indices[i][batch_counter[i]];
       sorted_upper_bounds[i][batch_counter[i]] = upper_bounds[i][item_id];
-      cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], sorted_item_weights[(i*bin_offset)+(batch_counter[i]*num_latent_factors)]);
+      cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], 1, sorted_item_weights[(i*bin_offset)+(batch_counter[i]*num_latent_factors)], 1);
       batch_counter[i]++;
     }
   }
@@ -213,7 +213,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
               user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
     
     for (j = 0; j < K; j++) {
-      itemID = sorted_upper_bounds_indices[bin_index][j]
+      itemID = sorted_upper_bounds_indices[bin_index][j];
       score = user_dot_items[j];
       q.push(std::make_pair(score, itemID));
     }
@@ -224,7 +224,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
           for (int l = 0; l < batch_size; l++){
             item_id = sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
             sorted_upper_bounds[bin_index][batch_counter[bin_index]] = upper_bounds[bin_index][item_id];
-            cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], sorted_item_weights[(bin_index*bin_offset)+(batch_counter[bin_index]*num_latent_factors)]);
+            cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], 1, sorted_item_weights[(bin_index*bin_offset)+(batch_counter[bin_index]*num_latent_factors)], 1);
             batch_counter[bin_index]++;
           }
       }
@@ -239,7 +239,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
           (user_norms[i] * sorted_upper_bounds[bin_index][j])) {
         break;
       }
-      itemID = sorted_upper_bounds_indices[bin_index][j]
+      itemID = sorted_upper_bounds_indices[bin_index][j];
       score = user_dot_items[j % batch_size];
       num_items_visited++;
       if (q.top().first < score) {
