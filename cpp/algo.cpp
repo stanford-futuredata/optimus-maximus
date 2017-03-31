@@ -145,7 +145,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
   int sorted_upper_bounds_indices[num_bins][num_items];
   int *pBufSize = (int *)malloc(sizeof(int));
-  ippsSortRadixIndexGetBufferSize(num_items, ipp64s, pBufSize);
+  ippsSortRadixIndexGetBufferSize(num_items, ipp32f, pBufSize);
   Ipp8u *pBuffer = (Ipp8u *)malloc(*pBufSize * sizeof(Ipp8u));
   int srcStrideBytes = 4;
   for (i = 0; i < num_bins; i++){
@@ -170,7 +170,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     for (j = 0; j < batch_size; j++){
       item_id = sorted_upper_bounds_indices[i][batch_counter[i]];
       sorted_upper_bounds[i][batch_counter[i]] = upper_bounds[i][item_id];
-      cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], 1, sorted_item_weights[(i*bin_offset)+(batch_counter[i]*num_latent_factors)], 1);
+      cblas_scopy(num_latent_factors, &item_weights[item_id*num_latent_factors], 1, &sorted_item_weights[(i*bin_offset)+(batch_counter[i]*num_latent_factors)], 1);
       batch_counter[i]++;
     }
   }
@@ -210,8 +210,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     const float beta = 0.0;
     const int stride = 1;
 
-    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, sorted_item_weights[(bin_index*bin_offset)], k,
-              user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, &sorted_item_weights[(bin_index*bin_offset)], k,
+              &user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
     
     for (j = 0; j < K; j++) {
       itemID = sorted_upper_bounds_indices[bin_index][j];
@@ -225,14 +225,14 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
           for (int l = 0; l < batch_size; l++){
             item_id = sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
             sorted_upper_bounds[bin_index][batch_counter[bin_index]] = upper_bounds[bin_index][item_id];
-            cblas_scopy(num_latent_factors, item_weights[item_id*num_latent_factors], 1, sorted_item_weights[(bin_index*bin_offset)+(batch_counter[bin_index]*num_latent_factors)], 1);
+            cblas_scopy(num_latent_factors, &item_weights[item_id*num_latent_factors], 1, &sorted_item_weights[(bin_index*bin_offset)+(batch_counter[bin_index]*num_latent_factors)], 1);
             batch_counter[bin_index]++;
           }
       }
 
       if ((j % batch_size) == 0){
-        cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, sorted_item_weights[(bin_index*bin_offset)+(j*num_latent_factors)], k,
-              user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
+        cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, &sorted_item_weights[(bin_index*bin_offset)+(j*num_latent_factors)], k,
+              &user_weights[i*num_latent_factors], stride, beta, user_dot_items, stride);
       }
 
 
