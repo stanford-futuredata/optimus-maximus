@@ -17,6 +17,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                            const float *item_norms, const float *theta_ics,
                            const int num_items, const int num_latent_factors,
                            const int num_bins, const int K,
-                           std::ofstream &user_stats_file, const int batch_size);
+                           std::ofstream &user_stats_file,
+                           const int batch_size);
 
 #endif /* algo_hpp */

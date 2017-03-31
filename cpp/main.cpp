@@ -28,6 +28,8 @@
 #include <math.h>
 
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/program_options.hpp>
 
 #include <mkl.h>
@@ -36,10 +38,6 @@
 #include <omp.h>
 
 namespace opt = boost::program_options;
-
-double creationTime;
-double sortTime;
-double computeKTime;
 
 /**
  * Input: user id -> cluster id mapping (k-means assignments), user weights
@@ -101,8 +99,10 @@ int main(int argc, const char* argv[]) {
       "num-iters,i", opt::value<int>()->default_value(10),
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(1),
-      "Number of bins, default: 1")("batch-size,bs", opt::value<int>()->default_value(200), 
-      "Batch Size, default: 200")("num-threads,t", opt::value<int>()->default_value(1),
+      "Number of bins, default: 1")("batch-size",
+                                    opt::value<int>()->default_value(200),
+                                    "Batch size, default: 200")(
+      "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
@@ -209,7 +209,6 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
 
-  std::ofstream user_stats_file;
 #ifdef DEBUG
   const std::string user_stats_fname =
       (boost::format(
@@ -217,17 +216,12 @@ int main(int argc, const char* argv[]) {
        base_name % num_bins % K % sample_percentage % num_iters %
        args.count("clusters-dir")).str();
   user_stats_file.open(user_stats_fname);
-  user_stats_file << "user_id,cluster_id,theta_uc,num_items_visited"
-                  << std::endl;
 #endif
 
-  creationTime = 0;
-  sortTime = 0;
-  computeKTime = 0;
-
   time_start = dsecnd();
   time_start = dsecnd();
 
+  std::ofstream user_stats_file;
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
@@ -237,6 +231,7 @@ int main(int argc, const char* argv[]) {
     std::cout << "Cluster ID " << cluster_id << std::endl;
 #endif
     const int num_users_so_far = num_users_so_far_arr[cluster_id];
+
     computeTopKForCluster(
         cluster_id, &centroids[cluster_id * num_latent_factors],
         cluster_index[cluster_id],
@@ -246,26 +241,32 @@ int main(int argc, const char* argv[]) {
   }
 
   time_end = dsecnd();
-  const double compute_time = (time_end - time_start);
+  const double algo_time = (time_end - time_start);
+  const double compute_time = cluster_time + index_time + algo_time;
 
   std::ofstream timing_stats_file;
-  const std::string timing_stats_fname =
-      (boost::format(
-           "%1%-timing_threads-%2%_bins-%3%_K-%4%_sample-%5%_iters-%6%_clusters-%7%.csv") %
-       base_name % num_threads % num_bins % K % sample_percentage %
-       num_iters % args.count("clusters-dir")).str();
-  timing_stats_file.open(timing_stats_fname);
-  timing_stats_file << "parse_time,cluster_time,index_time,comp_time"
-                    << std::endl;
-  timing_stats_file << parse_time << ",";
-  printf("parse time: %f secs \n", parse_time);
-  timing_stats_file << cluster_time << ",";
-  printf("cluster time: %f secs \n", cluster_time);
-  timing_stats_file << index_time << ",";
-  printf("index time: %f secs \n", index_time);
-  timing_stats_file << compute_time << std::endl;
-  printf("comp time: %f secs \n", compute_time);
+  const std::string timing_stats_fname = "simdex-timing.csv";
+  const bool exists = boost::filesystem::exists(timing_stats_fname);
+  timing_stats_file.open(timing_stats_fname, std::ios_base::app);
+  if (!exists) {
+    timing_stats_file
+        << "model,K,num_threads,num_bins,sample_percentage,num_iters,"
+           "clusters,parse_time,cluster_time,index_time,algo_time,comp_time"
+        << std::endl;
+  }
+  const std::string timing_stats =
+      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%") %
+       base_name % num_threads % num_bins % K % sample_percentage % num_iters %
+       args.count("clusters-dir") % parse_time % cluster_time % index_time %
+       algo_time % compute_time).str();
+  timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
+
+  printf("parse time: %f secs \n", parse_time);
+  printf("cluster time: %f secs \n", cluster_time);
+  printf("index time: %f secs \n", index_time);
+  printf("algo time: %f secs \n", algo_time);
+  printf("total comp time: %f secs \n", compute_time);
 
   delete[] cluster_index;
 #ifdef DEBUG

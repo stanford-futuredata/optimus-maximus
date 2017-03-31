@@ -166,12 +166,8 @@ void kmeans_clustering(float* input_weights, const int num_rows,
 
   int num_samples = 0;
 
-  dsecnd();
-  const double random_start = dsecnd();
   float* sampled_input_weights = get_random_samples(
       input_weights, num_rows, num_cols, sample_percentage, &num_samples);
-  const double random_end = dsecnd();
-  printf("Random sampling time %f \n", random_end - random_start);
 
   centroids = computeCentroids(sampled_input_weights, num_cols, num_clusters,
                                num_iters, num_samples);
@@ -182,9 +178,8 @@ void kmeans_clustering(float* input_weights, const int num_rows,
 
 void random_clustering(float* input_weights, const int num_rows,
                        const int num_cols, const int num_clusters,
-                       const int num_iters, const int sample_percentage,
                        const int num_threads, float*& centroids,
-                       int*& user_id_cluster_ids){
+                       int*& user_id_cluster_ids) {
 
   MKL_Free_Buffers();
   services::Environment::getInstance()->setNumberOfThreads(num_threads);
@@ -194,13 +189,13 @@ void random_clustering(float* input_weights, const int num_rows,
             << info_obj.build << std::endl;
 #endif
 
-  
   std::default_random_engine generator;
-  std::normal_distribution<float> distribution(0.0,1.0);
+  std::normal_distribution<float> distribution(0.0, 1.0);
 
-  float* centroids_arr = (float*)_malloc(sizeof(float) * num_cols * num_clusters);
+  float* centroids_arr =
+      (float*)_malloc(sizeof(float) * num_cols * num_clusters);
   centroids = centroids_arr;
-  for(int i = 0; i < (num_clusters*num_cols); i++){
+  for (int i = 0; i < (num_clusters * num_cols); i++) {
     centroids_arr[i] = distribution(generator);
   }
   user_id_cluster_ids =
