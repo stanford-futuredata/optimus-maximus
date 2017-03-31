@@ -154,8 +154,6 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                                   num_items, pBuffer);
   }
 
-  // sorted_upper_bounds are correct
-
   time_end = dsecnd();
   sortUpperBound_time = (time_end - time_start);
 
@@ -164,7 +162,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   float sorted_upper_bounds[num_bins][num_items];
   float *sorted_item_weights = (float *)_malloc(sizeof(float) * num_bins *
                                                 num_items * num_latent_factors);
-  int bin_offset = num_items * num_latent_factors;
+  const int bin_offset = num_items * num_latent_factors;
   int item_id;
 
   // compute initial batches
@@ -189,7 +187,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
 #ifdef DEBUG
   const int num_users_to_compute =
-      num_users_in_cluster < 15 ? num_users_in_cluster : 15;
+      num_users_in_cluster < 25 ? num_users_in_cluster : 25;
 #else
   const int num_users_to_compute = num_users_in_cluster;
 #endif
@@ -207,7 +205,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     float score = 0.F;
     int itemID = 0;
 
-    const int m = batch_size;
+    int m = batch_size;  // may be adjusted later
     const int k = num_latent_factors;
 
     const float alpha = 1.0;
@@ -228,7 +226,12 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
     for (j = K; j < num_items; j++) {
       if (batch_counter[bin_index] == j) {
-        for (int l = 0; l < batch_size; l++) {
+        // previous batches exhausted, need to add an additional batch
+        const int true_batch_size =
+            std::min(batch_size, num_items - batch_counter[bin_index]);
+        // if we're at the very end, we may not need a full batch
+        m = true_batch_size;  // change for upcoming sgemv op
+        for (int l = 0; l < true_batch_size; l++) {
           item_id =
               sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
           sorted_upper_bounds[bin_index][batch_counter[bin_index]] =
