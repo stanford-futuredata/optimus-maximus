@@ -87,7 +87,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                            const float *item_norms, const float *theta_ics,
                            const int num_items, const int num_latent_factors,
                            const int num_bins, const int K,
-                           std::ofstream &user_stats_file) {
+                           std::ofstream &user_stats_file, const int batch_size) {
 
   double time_start, time_end, upperBoundCreation_time, sortUpperBound_time,
       computeTopK_time;
@@ -157,7 +157,6 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   time_end = dsecnd();
   sortUpperBound_time = (time_end - time_start);
 
-  int batch_size = 200;
   int batch_counter[num_bins];
   std::memset(batch_counter, 0, sizeof batch_counter);
   float sorted_upper_bounds[num_bins][num_items];
