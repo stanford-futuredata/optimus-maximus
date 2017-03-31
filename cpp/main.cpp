@@ -209,6 +209,7 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
 
+  std::ofstream user_stats_file;
 #ifdef DEBUG
   const std::string user_stats_fname =
       (boost::format(
@@ -221,7 +222,6 @@ int main(int argc, const char* argv[]) {
   time_start = dsecnd();
   time_start = dsecnd();
 
-  std::ofstream user_stats_file;
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
