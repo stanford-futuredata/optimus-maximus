@@ -144,7 +144,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
 
   int sorted_upper_bounds_indices[num_bins][num_items];
-  IppSize *pBufSize = (IppSize *)malloc(sizeof(IppSize));
+  int *pBufSize = (int *)malloc(sizeof(int));
   ippsSortRadixIndexGetBufferSize(num_items, ipp64s, pBufSize);
   Ipp8u *pBuffer = (Ipp8u *)malloc(*pBufSize * sizeof(Ipp8u));
   int srcStrideBytes = 4;
