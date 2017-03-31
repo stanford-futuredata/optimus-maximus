@@ -144,12 +144,12 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
 
   int sorted_upper_bounds_indices[num_bins][num_items];
-  IppSizeL *pBufSize = (IppSizeL *)malloc(sizeof(IppSizeL));
+  IppSize *pBufSize = (IppSize *)malloc(sizeof(IppSize));
   ippsSortRadixIndexGetBufferSize(num_items, ipp64s, pBufSize);
   Ipp8u *pBuffer = (Ipp8u *)malloc(*pBufSize * sizeof(Ipp8u));
   int srcStrideBytes = 4;
   for (i = 0; i < num_bins; i++){
-    ippsSortRadixIndexDescend_32f((Ipp32f*)upper_bounds[i], srcStrideBytes, &sorted_upper_bounds_indices[i], num_items, pBuffer);
+    ippsSortRadixIndexDescend_32f((Ipp32f*)upper_bounds[i], srcStrideBytes, (Ipp32s*)sorted_upper_bounds_indices[i], num_items, pBuffer);
   }
 
   // sorted_upper_bounds are correct
@@ -158,7 +158,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   sortUpperBound_time = (time_end - time_start);
 
   int batch_size = 200;
-  int batch_counter[num_bins] = {0};
+  int batch_counter[num_bins];
+  std::memset(batch_counter, 0, sizeof batch_counter);
   float sorted_upper_bounds[num_bins][num_items];
   float* sorted_item_weights = (float*)_malloc(sizeof(float)*num_bins*num_items*num_latent_factors);
   int bin_offset = num_items*num_latent_factors;
