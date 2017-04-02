@@ -208,6 +208,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 #endif
 
   float *user_dot_items = (float *)_malloc(sizeof(float) * batch_size);
+  float *user_times_upper_bound = (float*)_malloc(sizeof(float)*batch_size);
 
   for (i = 0; i < num_users_to_compute; i++) {
     const int bin_index =
@@ -267,9 +268,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                          [(bin_index * bin_offset) + (j * num_latent_factors)],
                     k, &user_weights[i * num_latent_factors], stride, beta,
                     user_dot_items, stride);
+        cblas_scopy(batch_size, &sorted_upper_bounds[bin_index][j], 1, user_times_upper_bound, 1 );
+        cblas_sscal(batch_size, user_norms[i], user_times_upper_bound, 1);
       }
 
-      if (q.top().first > (user_norms[i] * sorted_upper_bounds[bin_index][j])) {
+      if (q.top().first > user_times_upper_bound[j]) {
         break;
       }
       itemID = sorted_upper_bounds_indices[bin_index][j];
