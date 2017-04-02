@@ -205,7 +205,7 @@ int main(int argc, const char* argv[]) {
       compute_norms_vector(item_weights, num_items, num_latent_factors);
   // item_norms are correct
 
-  float* centroid_norms = compute_norms_vector(centroids, num_clusters, num_latent_factors)
+  float* centroid_norms = compute_norms_vector(centroids, num_clusters, num_latent_factors);
 
     // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
