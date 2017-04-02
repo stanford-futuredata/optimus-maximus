@@ -48,7 +48,7 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
                                       float*& user_weights, const int num_users,
                                       const int num_latent_factors,
                                       const int num_clusters,
-                                      int* num_users_so_far_arr
+                                      int* num_users_so_far_arr,
                                       int* max_cluster_users) {
 
   std::vector<int>* cluster_index = new std::vector<int>[num_clusters];
@@ -218,10 +218,10 @@ int main(int argc, const char* argv[]) {
 
   float* user_norms = compute_norms_vector(user_weights, num_users, num_latent_factors);
 
-  float* theta_ucs = compute_all_theta_ucs(user_weights, const float *user_norms, centroids,
+  float* theta_ucs = compute_all_theta_ucs(user_weights, user_norms, centroids,
                            centroid_norms, num_latent_factors,
                            num_users, num_clusters, cluster_index,
-                           max_cluster_users)
+                           max_cluster_users);
 
   time_end = dsecnd();
   const double index_time = (time_end - time_start);

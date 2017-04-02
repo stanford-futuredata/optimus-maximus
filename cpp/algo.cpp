@@ -117,7 +117,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   // float *theta_ucs =
   //     compute_theta_ucs_for_centroid(user_weights, user_norms, centroid,
   //                                    num_users_in_cluster, num_latent_factors, centroid_norm);
-  
+
   // NOTE: both are now already in the right order, i.e., you can access
   // them sequentially. This is because we reordered the user weights to be
   // in cluster order in main.cpp (see build_cluster_index)
@@ -308,8 +308,6 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
   // ----------Free Allocated Memory Below-------
 
-  _free(user_norms);
-  _free(theta_ucs);
   _free(sorted_item_weights);
   _free(user_dot_items);
 
