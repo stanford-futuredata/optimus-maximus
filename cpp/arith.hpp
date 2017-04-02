@@ -23,4 +23,9 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
                                       const int num_latent_factors,
                                       const float *centroid_norm);
 
+float *compute_all_theta_ucs(const float *user_weights, const float *user_norms, const float *centroids,
+                           const float *centroid_norms, const int num_latent_factors,
+                           const int num_users, const int num_clusters, const std::vector<int>* cluster_index,
+                           const int max_cluster_users);
+
 #endif /* arith_hpp */
