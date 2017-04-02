@@ -211,7 +211,9 @@ int main(int argc, const char* argv[]) {
     // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
 
-  float** normalized_centroids_ptr;
+  float* normalized_centroids;
+  float** normalized_centroids_ptr = &normalized_centroids;
+
   float* theta_ics = compute_theta_ics(item_weights, centroids, num_items, num_latent_factors, 
                           num_clusters, item_norms, centroid_norms, normalized_centroids_ptr);
 
@@ -220,7 +222,7 @@ int main(int argc, const char* argv[]) {
   float* theta_ucs = compute_all_theta_ucs(user_weights, user_norms, centroids,
                            centroid_norms, num_latent_factors,
                            num_users, num_clusters, cluster_index, 
-                           num_users_so_far_arr, normalized_centroids_ptr);
+                           num_users_so_far_arr, normalized_centroids);
 
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
