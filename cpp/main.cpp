@@ -200,14 +200,17 @@ int main(int argc, const char* argv[]) {
       num_clusters, num_users_so_far_arr);
   // user_weights is correct--sorted correctly, matches cluster_index
 
-  // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
-  // between centroid i and item j
-  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
-                                       num_latent_factors, num_clusters);
   // theta_ics are correct
   float* item_norms =
       compute_norms_vector(item_weights, num_items, num_latent_factors);
   // item_norms are correct
+
+  float* centroid_norms = compute_norms_vector(centroids, num_clusters, num_latent_factors)
+
+    // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
+  // between centroid i and item j
+  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items,
+                                       num_latent_factors, num_clusters, item_norms, centroid_norms);
 
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
@@ -240,7 +243,7 @@ int main(int argc, const char* argv[]) {
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items], num_items,
-        num_latent_factors, num_bins, K, user_stats_file, batch_size);
+        num_latent_factors, num_bins, K, user_stats_file, batch_size, &centroid_norms[cluster_id]);
   }
 
   time_end = dsecnd();

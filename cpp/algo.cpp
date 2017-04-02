@@ -99,7 +99,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                            const int num_items, const int num_latent_factors,
                            const int num_bins, const int K,
                            std::ofstream &user_stats_file,
-                           const int batch_size) {
+                           const int batch_size, const float *centroid_norm) {
 
   double time_start, time_end, upperBoundCreation_time, sortUpperBound_time,
       computeTopK_time;
@@ -114,7 +114,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                                            num_latent_factors);
   float *theta_ucs =
       compute_theta_ucs_for_centroid(user_weights, user_norms, centroid,
-                                     num_users_in_cluster, num_latent_factors);
+                                     num_users_in_cluster, num_latent_factors, centroid_norm);
   // NOTE: both are now already in the right order, i.e., you can access
   // them sequentially. This is because we reordered the user weights to be
   // in cluster order in main.cpp (see build_cluster_index)
