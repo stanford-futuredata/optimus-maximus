@@ -114,7 +114,7 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
   vsAcos(num_clusters * num_items, cos_theta_ics, theta_ics);
   remove_nans(theta_ics, num_clusters * num_items);
 
-  // _free(normalized_centroids);
+  _free(normalized_centroids);
   _free(normalized_item_weights);
   _free(cos_theta_ics);
 
