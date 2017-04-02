@@ -156,6 +156,9 @@ int main(int argc, const char* argv[]) {
   omp_set_num_threads(num_threads);
 #endif
 
+  const MKL_UINT new_mode = VML_HA | VML_FTZDAZ_ON | VML_ERRMODE_DEFAULT;
+  MKL_UINT old_mode = vmlSetMode(new_mode);
+
   double time_start, time_end;  // used for timing throughout
 
   time_start = dsecnd();

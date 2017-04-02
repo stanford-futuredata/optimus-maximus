@@ -150,35 +150,25 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   const int stride = 1;
 
   float *users_dot_centroid = (float *)_malloc(sizeof(float) * num_users);
-  float centroid_norm[num_latent_factors];
+  float centroid_norm = cblas_snrm2(num_latent_factors, centroid, 1);
 
-  centroid_norm[0] = cblas_snrm2(num_latent_factors, centroid, 1);
-  int i = 1;
-  // TODO: inefficient
-  for (; i < num_latent_factors; i++) {
-    centroid_norm[i] = centroid_norm[0];
-  }
+  float inv_centroid_norm = 1.0f / centroid_norm;
+  float new_centroid[num_latent_factors];
+  cblas_scopy(num_latent_factors, centroid, 1, new_centroid, 1); 
+  cblas_sscal(num_latent_factors, inv_centroid_norm, new_centroid, 1);
 
   float *user_norms_matrix =
       (float *)_malloc(sizeof(float) * num_users * num_latent_factors);
+  cblas_scopy(num_users*num_latent_factors, user_weights, 1, user_norms_matrix, 1);
+  float inv_user_norms[num_users];
+  cblas_scopy(num_users, user_norms, 1, inv_user_norms, 1); 
+  vsInv(num_users, user_norms, inv_user_norms); 
   for (int i = 0; i < num_users; i++) {
-    for (int j = 0; j < num_latent_factors; j++) {
-      user_norms_matrix[(i * num_latent_factors) + j] = user_norms[i];
-    }
-  }
-
-  vsInv(num_latent_factors, centroid_norm, centroid_norm);
-  vsInv(num_users * num_latent_factors, user_norms_matrix, user_norms_matrix);
-
-  vsMul(num_latent_factors, centroid, centroid_norm, centroid_norm);
-  for (i = 0; i < num_users; i++) {
-    vsMul(num_latent_factors, &user_weights[i * num_latent_factors],
-          &user_norms_matrix[i * num_latent_factors],
-          &user_norms_matrix[i * num_latent_factors]);
+      cblas_sscal(num_latent_factors, inv_user_norms[i], &user_norms_matrix[i*num_latent_factors], 1);
   }
 
   cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, user_norms_matrix, k,
-              centroid_norm, stride, beta, users_dot_centroid, stride);
+              new_centroid, stride, beta, users_dot_centroid, stride);
 
   // now compute theta_uc's by taking arccosine
   float *theta_ucs = (float *)_malloc(sizeof(float) * num_users);
