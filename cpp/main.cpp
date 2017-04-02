@@ -253,7 +253,7 @@ int main(int argc, const char* argv[]) {
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items], num_items,
-        num_latent_factors, num_bins, K, user_stats_file, batch_size, &centroid_norms[cluster_id];
+        num_latent_factors, num_bins, K, user_stats_file, batch_size, &centroid_norms[cluster_id]);
   }
 
   time_end = dsecnd();
