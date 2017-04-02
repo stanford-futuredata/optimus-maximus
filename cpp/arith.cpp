@@ -114,8 +114,6 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
 
   _free(normalized_centroids);
   _free(normalized_item_weights);
-  _free(item_norms_matrix);
-  _free(centroid_norms_matrix);
   _free(cos_theta_ics);
 
   return theta_ics;
