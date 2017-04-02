@@ -215,7 +215,6 @@ float *compute_all_theta_ucs(const float *user_weights, const float *user_norms,
     // }
     
     
-#pragma omp parallel for
     for (i = 0; i < num_clusters; i++) {
         m = cluster_index[i].size();
         float users_dot_centroid[m];
