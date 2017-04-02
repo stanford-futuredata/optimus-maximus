@@ -177,7 +177,7 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
 float *compute_all_theta_ucs(const float *user_weights, const float *user_norms, const float *centroids,
                            const float *centroid_norms, const int num_latent_factors,
                            const int num_users, const int num_clusters, const std::vector<int>* cluster_index,
-                           const int max_cluster_users, const int* num_users_so_far_arr,
+                           const int* num_users_so_far_arr,
                            float **normalized_centroids_ptr){
     
 //    const int m = num_users;

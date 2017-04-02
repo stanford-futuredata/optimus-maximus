@@ -10,6 +10,7 @@
 #define arith_hpp
 
 #include "types.hpp"
+#include <vector>
 
 float *compute_norms_vector(const float *matrix_weights, const int num_rows,
                             const int num_cols);
