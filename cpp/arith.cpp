@@ -100,7 +100,7 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
   cblas_scopy(num_clusters*num_latent_factors, centroids, 1, normalized_centroids, 1);
   float inv_centroid_norms[num_clusters];
   cblas_scopy(num_clusters, centroid_norms, 1, inv_centroid_norms, 1);
-  vsInv(num_items, inv_centroid_norms, inv_centroid_norms);
+  vsInv(num_clusters, inv_centroid_norms, inv_centroid_norms);
 
 #pragma omp parallel for
   for (int i = 0; i < num_clusters; i++){
@@ -209,10 +209,10 @@ float *compute_all_theta_ucs(const float *user_weights, const float *user_norms,
         cblas_sscal(num_latent_factors, inv_user_norms[i], &user_norms_matrix[i*num_latent_factors], 1);
     }
     
-    cblas_scopy(num_clusters*num_latent_factors, centroids, 1, centroids_norm_matrix, 1);
-    float inv_cluster_norms[num_clusters];
-    cblas_scopy(num_clusters, centroid_norms, 1, inv_cluster_norms, 1);
-    vsInv(num_users, inv_cluster_norms, inv_cluster_norms);
+    // cblas_scopy(num_clusters*num_latent_factors, centroids, 1, centroids_norm_matrix, 1);
+    // float inv_cluster_norms[num_clusters];
+    // cblas_scopy(num_clusters, centroid_norms, 1, inv_cluster_norms, 1);
+    // vsInv(num_clusters, inv_cluster_norms, inv_cluster_norms);
 
 #pragma omp parallel for
     for (i = 0; i < num_clusters; i++) {
