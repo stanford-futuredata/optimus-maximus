@@ -69,8 +69,7 @@ float *compute_norms_vector(const float *matrix_weights, const int num_rows,
  **/
 float *compute_theta_ics(const float *item_weights, const float *centroids,
                          const int num_items, const int num_latent_factors,
-                         const int num_clusters, const float *item_norms, const float *centroid_norms,
-                         const float **normalized_centroids_ptr) {
+                         const int num_clusters, const float *item_norms, const float *centroid_norms) {
   const int m = num_clusters;
   const int k = num_latent_factors;
   const int n = num_items;
