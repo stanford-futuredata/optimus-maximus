@@ -84,20 +84,20 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
       (float *)_malloc(sizeof(float) * num_clusters * num_latent_factors);
 
 
-  cblas_scopy(num_items*num_latent_factors, item_weights, item_norms_matrix);
+  cblas_scopy(num_items*num_latent_factors, item_weights, 1, normalized_item_weights, 1);
   float inv_item_norms[num_items];
-  cblas_scopy(num_items, item_norms, inv_item_norms);
+  cblas_scopy(num_items, item_norms, 1, inv_item_norms, 1);
   vsInv(num_items, inv_item_norms, inv_item_norms);
   for (int i = 0; i < num_items; i++){
-    cblas_sscal(num_latent_factors, inv_item_norms[i], &item_norms_matrix[i*num_latent_factors], 1);
+    cblas_sscal(num_latent_factors, inv_item_norms[i], &normalized_item_weights[i*num_latent_factors], 1);
   }
 
-  cblas_scopy(num_clusters*num_latent_factors, centroids, centroid_norms_matrix);
+  cblas_scopy(num_clusters*num_latent_factors, centroids, 1, normalized_centroids, 1);
   float inv_centroid_norms[num_clusters];
-  cblas_scopy(num_clusters, centroid_norms, inv_centroid_norms);
+  cblas_scopy(num_clusters, centroid_norms, 1, inv_centroid_norms, 1);
   vsInv(num_items, inv_centroid_norms, inv_centroid_norms);
   for (int i = 0; i < num_clusters; i++){
-    cblas_sscal(num_latent_factors, inv_centroid_norms[i], &centroid_norms_matrix[i*num_latent_factors], 1);
+    cblas_sscal(num_latent_factors, inv_centroid_norms[i], &normalized_centroids[i*num_latent_factors], 1);
   }
 
   cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
@@ -140,7 +140,7 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   float *users_dot_centroid = (float *)_malloc(sizeof(float) * num_users);
   // float centroid_norm = cblas_snrm2(num_latent_factors, centroid, 1);
 
-  float inv_centroid_norm = 1.0f / centroid_norm;
+  float inv_centroid_norm = 1.0f / *centroid_norm;
   float new_centroid[num_latent_factors];
   cblas_scopy(num_latent_factors, centroid, 1, new_centroid, 1); 
   cblas_sscal(num_latent_factors, inv_centroid_norm, new_centroid, 1);
