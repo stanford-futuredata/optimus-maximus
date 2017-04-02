@@ -164,3 +164,59 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   _free(users_dot_centroid);
   return theta_ucs;
 }
+
+float *compute_all_theta_ucs(const float *user_weights, const float *user_norms, const float *centroids,
+                           const float *centroid_norms, const int num_latent_factors,
+                           const int num_users, const int num_clusters, const std::vector<int>* cluster_index,
+                           const int max_cluster_users){
+    
+//    const int m = num_users;
+    int m;
+    const int k = num_latent_factors;
+    
+    const float alpha = 1.0;
+    const float beta = 0.0;
+    const int stride = 1;
+    
+    int i;
+    
+    float *theta_ucs = (float *)_malloc(sizeof(float) * num_users);
+    float *user_norms_matrix = (float *)_malloc(sizeof(float) * num_users * num_latent_factors);
+    float *centroids_norm_matrix = (float *)_malloc(sizeof(float) * num_clusters * num_latent_factors);
+    float *users_dot_centroid = (float *)_malloc(sizeof(float) * max_cluster_users);
+
+    
+    cblas_scopy(num_users*num_latent_factors, user_weights, 1, user_norms_matrix, 1);
+    float inv_user_norms[num_users];
+    cblas_scopy(num_users, user_norms, 1, inv_user_norms, 1);
+    vsInv(num_users, inv_user_norms, inv_user_norms);
+    for (i = 0; i < num_users; i++) {
+        cblas_sscal(num_latent_factors, inv_user_norms[i], &user_norms_matrix[i*num_latent_factors], 1);
+    }
+    
+    cblas_scopy(num_clusters*num_latent_factors, centroids, 1, centroids_norm_matrix, 1);
+    float inv_cluster_norms[num_clusters];
+    cblas_scopy(num_clusters, centroid_norms, 1, inv_cluster_norms, 1);
+    vsInv(num_users, inv_cluster_norms, inv_cluster_norms);
+    for (i = 0; i < num_clusters; i++) {
+        cblas_sscal(num_latent_factors, inv_cluster_norms[i], &centroids_norm_matrix[i*num_latent_factors], 1);
+    }
+    
+    int num_users_so_far = 0;
+    
+    for (i = 0; i < num_clusters; i++) {
+        m = cluster_index[i].size();
+        
+        cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, &user_norms_matrix[num_users_so_far*num_latent_factors], k,
+                    &centroids_norm_matrix[i*num_latent_factors], stride, beta, users_dot_centroid, stride);
+        
+        vsAcos(m, users_dot_centroid, &theta_ucs[num_users_so_far]);
+        num_users_so_far += m;
+    }
+    
+    _free(user_norms_matrix);
+    _free(users_dot_centroid);
+    _free(centroids_norm_matrix);
+    return theta_ucs;
+    
+}
