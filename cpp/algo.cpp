@@ -232,7 +232,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                 &sorted_item_weights[(bin_index * bin_offset)], k,
                 &user_weights[i * num_latent_factors], stride, beta,
                 user_dot_items, stride);
-    cblas_scopy(batch_size, &sorted_upper_bounds[bin_index][j], 1, user_times_upper_bound, 1 );
+    cblas_scopy(batch_size, sorted_upper_bounds[bin_index], 1, user_times_upper_bound, 1 );
     cblas_sscal(batch_size, user_norms[i], user_times_upper_bound, 1);
 
     for (j = 0; j < K; j++) {
