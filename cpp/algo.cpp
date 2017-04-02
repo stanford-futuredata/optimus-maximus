@@ -192,6 +192,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     }
   }
 
+  int mod = (batch_size) - 1;
+
   // ----------Computer Per User TopK Below------------------
   int top_K_items[num_users_in_cluster][K];
 
@@ -259,7 +261,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
         }
       }
 
-      if ((j % batch_size) == 0) {
+      if ((j & mod) == 0) {
         cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
                     &sorted_item_weights
                          [(bin_index * bin_offset) + (j * num_latent_factors)],
@@ -271,7 +273,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
         break;
       }
       itemID = sorted_upper_bounds_indices[bin_index][j];
-      score = user_dot_items[j % batch_size];
+      score = user_dot_items[j & mod];
       num_items_visited++;
       if (q.top().first < score) {
         q.pop();
