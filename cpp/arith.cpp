@@ -83,8 +83,6 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
   float *normalized_centroids =
       (float *)_malloc(sizeof(float) * num_clusters * num_latent_factors);
 
-  *normalized_centroids_ptr = normalized_centroids;
-
 
   cblas_scopy(num_items*num_latent_factors, item_weights, 1, normalized_item_weights, 1);
   float inv_item_norms[num_items];
