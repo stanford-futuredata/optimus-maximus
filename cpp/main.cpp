@@ -48,8 +48,7 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
                                       float*& user_weights, const int num_users,
                                       const int num_latent_factors,
                                       const int num_clusters,
-                                      int* num_users_so_far_arr,
-                                      int* max_cluster_users) {
+                                      int* num_users_so_far_arr) {
 
   std::vector<int>* cluster_index = new std::vector<int>[num_clusters];
   for (int user_id = 0; user_id < num_users; ++user_id) {
@@ -64,9 +63,7 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
   for (int i = 0; i < num_clusters; ++i) {
     const std::vector<int> user_ids_for_cluster = cluster_index[i];
     const int num_users_in_cluster = user_ids_for_cluster.size();
-    if (num_users_in_cluster > *max_cluster_users){
-      *max_cluster_users = num_users_in_cluster;
-    }
+
     num_users_so_far_arr[i] = num_users_so_far;
     num_users_so_far += num_users_in_cluster;
     for (int j = 0; j < num_users_in_cluster; ++j) {
@@ -199,10 +196,9 @@ int main(int argc, const char* argv[]) {
   time_start = dsecnd();
 
   int num_users_so_far_arr[num_clusters];
-  int max_cluster_users = 0;
   std::vector<int>* cluster_index = build_cluster_index(
       user_id_cluster_ids, user_weights, num_users, num_latent_factors,
-      num_clusters, num_users_so_far_arr, &max_cluster_users);
+      num_clusters, num_users_so_far_arr);
   // user_weights is correct--sorted correctly, matches cluster_index
 
   // theta_ics are correct
@@ -214,14 +210,17 @@ int main(int argc, const char* argv[]) {
 
     // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
-  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items, num_latent_factors, num_clusters, item_norms, centroid_norms);
+
+  float** normalized_centroids_ptr;
+  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items, num_latent_factors, 
+                          num_clusters, item_norms, centroid_norms, normalized_centroids_ptr);
 
   float* user_norms = compute_norms_vector(user_weights, num_users, num_latent_factors);
 
   float* theta_ucs = compute_all_theta_ucs(user_weights, user_norms, centroids,
                            centroid_norms, num_latent_factors,
-                           num_users, num_clusters, cluster_index,
-                           max_cluster_users);
+                           num_users, num_clusters, cluster_index, 
+                           num_users_so_far_arr, normalized_centroids_ptr);
 
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
