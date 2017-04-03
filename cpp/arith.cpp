@@ -73,8 +73,8 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
   const int m = num_clusters;
   const int k = num_latent_factors;
   const int n = num_items;
-  const float alpha = 1.0;
-  const float beta = 0.0;
+  const float alpha = 1.0f;
+  const float beta = 0.0f;
 
   int i, j, index;
 
@@ -139,8 +139,8 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   const int m = num_users;
   const int k = num_latent_factors;
 
-  const float alpha = 1.0;
-  const float beta = 0.0;
+  const float alpha = 1.0f;
+  const float beta = 0.0f;
   const int stride = 1;
   int i, j, index;
 

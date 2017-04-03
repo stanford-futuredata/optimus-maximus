@@ -131,9 +131,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   int i, j;
   for (i = 0; i < num_bins; i++) {
     // TODO: inefficient copy value to all items in the array
-    for (j = 0; j < num_items; j++) {
-      temp_upper_bounds[j] = theta_bins[i];
-    }
+    // DONE
+    std::fill(temp_upper_bounds, temp_upper_bounds+num_items, theta_bins[i]);
     // temp_upper_bounds = theta_b
     vsSub(num_items, theta_ics, temp_upper_bounds, temp_upper_bounds);
     // temp_upper_bounds = theta_ic - theta_b
