@@ -125,27 +125,23 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
       theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
   const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
   // theta_bins is correct
-  float temp_upper_bounds[num_items];
   float upper_bounds[num_bins][num_items];
 
-  int i, j;
+  int i, j, l;
+  const float beta = 0.0f;
+
+
   for (i = 0; i < num_bins; i++) {
-    // TODO: inefficient copy value to all items in the array
-    // DONE
-    std::fill(temp_upper_bounds, temp_upper_bounds+num_items, theta_bins[i]);
-    // temp_upper_bounds = theta_b
-    vsSub(num_items, theta_ics, temp_upper_bounds, temp_upper_bounds);
-    // temp_upper_bounds = theta_ic - theta_b
-    for (int l = 0; l < num_items; ++l) {
-      // TODO: inefficient
-      if (temp_upper_bounds[l] < 0) {
-        temp_upper_bounds[l] = 0.F;
-      }
-    }
-    vsCos(num_items, temp_upper_bounds, temp_upper_bounds);
-    // temp_upper_bounds = cos(theta_ic - theta_b)
-    vsMul(num_items, item_norms, temp_upper_bounds, upper_bounds[i]);
-    // upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
+    std::fill(upper_bounds[i], upper_bounds[i]+num_items, theta_bins[i]);
+    // theta_ic - theta_b
+    vsSub(num_items, theta_ics, upper_bounds[i], upper_bounds[i]);
+  }
+  ippsThreshold_32f_I((Ipp32f*)upper_bounds, num_bins*num_items, (Ipp32f)beta, ippCmpLess);
+  // cos(theta_ic - theta_b)
+  vsCos(num_bins*num_items, upper_bounds[0], upper_bounds[0]);
+  for (i = 0; i < num_bins; i++) {
+    //upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
+    vsMul(num_items, item_norms, upper_bounds[i], upper_bounds[i]);
   }
 
   // upper_bounds are correct
@@ -224,7 +220,8 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     const int k = num_latent_factors;
 
     const float alpha = 1.0f;
-    const float beta = 0.0f;
+    // moved up
+    // const float beta = 0.0f;
     const int stride = 1;
 
     cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
