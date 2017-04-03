@@ -223,16 +223,19 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     int m = batch_size;  // may be adjusted later
     const int k = num_latent_factors;
 
-    const float alpha = 1.0;
-    const float beta = 0.0;
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
     const int stride = 1;
 
     cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
                 &sorted_item_weights[(bin_index * bin_offset)], k,
                 &user_weights[i * num_latent_factors], stride, beta,
                 user_dot_items, stride);
-    cblas_scopy(batch_size, sorted_upper_bounds[bin_index], 1, user_times_upper_bound, 1 );
-    cblas_sscal(batch_size, user_norms[i], user_times_upper_bound, 1);
+
+    #pragma simd
+    for (j = 0; j < batch_size; j++) {
+        user_times_upper_bound[j] = user_norms[i] * sorted_upper_bounds[bin_index][j];
+    }
 
     for (j = 0; j < K; j++) {
       itemID = sorted_upper_bounds_indices[bin_index][j];
@@ -269,8 +272,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                          [(bin_index * bin_offset) + (j * num_latent_factors)],
                     k, &user_weights[i * num_latent_factors], stride, beta,
                     user_dot_items, stride);
-        cblas_scopy(batch_size, &sorted_upper_bounds[bin_index][j], 1, user_times_upper_bound, 1 );
-        cblas_sscal(batch_size, user_norms[i], user_times_upper_bound, 1);
+
+        #pragma simd
+        for (l = 0; l < batch_size; l++) {
+            user_times_upper_bound[l] = user_norms[i] * sorted_upper_bounds[bin_index][j+l];
+        }
       }
 
       if (q.top().first > user_times_upper_bound[j & mod]) {
