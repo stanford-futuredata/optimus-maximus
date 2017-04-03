@@ -46,12 +46,15 @@ float* computeCentroids(float* sample_users, const int num_cols,
           new HomogenNumericTable<float>(sample_users, num_cols, num_samples));
 
   init.input.set(kmeans::init::data, sampleTablePtr);
-
+#ifdef DEBUG
   time_st = dsecnd();
   time_st = dsecnd();
+#endif
   init.compute();
+#ifdef DEBUG
   time_end = dsecnd();
   time_avg = (time_end - time_st);
+#endif
 
 #ifdef DEBUG
   printf("time taken to compute initial centroids: %f secs \n", time_avg);
@@ -65,11 +68,15 @@ float* computeCentroids(float* sample_users, const int num_cols,
   algorithm.input.set(kmeans::data, sampleTablePtr);
   algorithm.input.set(kmeans::inputCentroids, centroids);
 
+#ifdef DEBUG
   time_st = dsecnd();
   time_st = dsecnd();
+#endif
   algorithm.compute();
+#ifdef DEBUG
   time_end = dsecnd();
   time_avg = (time_end - time_st);
+#endif
 
 #ifdef DEBUG
   printf("time taken to compute clusters: %f secs \n", time_avg);
@@ -112,11 +119,15 @@ int* assignment(float* input_weights, float* centroids, int num_clusters,
   algorithm2.input.set(kmeans::data, dataTablePtr);
   algorithm2.input.set(kmeans::inputCentroids, centroidTablePtr);
 
+#ifdef DEBUG
   time_st = dsecnd();
   time_st = dsecnd();
+#endif
   algorithm2.compute();
+#ifdef DEBUG
   time_end = dsecnd();
   time_avg = (time_end - time_st);
+#endif
 
 #ifdef DEBUG
   printf("time taken to assign clusters: %f secs \n", time_avg);
