@@ -76,6 +76,8 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
   const float alpha = 1.0;
   const float beta = 0.0;
 
+  int i, j, index;
+
   float *cos_theta_ics =
       (float *)_malloc(sizeof(float) * num_clusters * num_items);
   float *normalized_item_weights =
@@ -84,22 +86,26 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
       (float *)_malloc(sizeof(float) * num_clusters * num_latent_factors);
 
 
-  cblas_scopy(num_items*num_latent_factors, item_weights, 1, normalized_item_weights, 1);
   float inv_item_norms[num_items];
-  cblas_scopy(num_items, item_norms, 1, inv_item_norms, 1);
-  vsInv(num_items, inv_item_norms, inv_item_norms);
+  vsInv(num_items, item_norms, inv_item_norms);
 
-  for (int i = 0; i < num_items; i++){
-    cblas_sscal(num_latent_factors, inv_item_norms[i], &normalized_item_weights[i*num_latent_factors], 1);
+  for (i = 0; i < num_items; i++){
+    index = i*num_latent_factors;
+    #pragma simd
+    for (j = 0; j < num_latent_factors; j++) {
+        normalized_item_weights[index+j] = inv_item_norms[i] * item_weights[index+j];
+    }
   }
 
-  cblas_scopy(num_clusters*num_latent_factors, centroids, 1, normalized_centroids, 1);
   float inv_centroid_norms[num_clusters];
-  cblas_scopy(num_clusters, centroid_norms, 1, inv_centroid_norms, 1);
-  vsInv(num_clusters, inv_centroid_norms, inv_centroid_norms);
+  vsInv(num_clusters, centroid_norms, inv_centroid_norms);
 
-  for (int i = 0; i < num_clusters; i++){
-    cblas_sscal(num_latent_factors, inv_centroid_norms[i], &normalized_centroids[i*num_latent_factors], 1);
+  for (i = 0; i < num_clusters; i++){
+    index = i*num_latent_factors;
+    #pragma simd
+    for (j = 0; j < num_latent_factors; j++) {
+        normalized_centroids[index+j] = inv_centroid_norms[i] * centroids[index+j];
+    }
   }
 
   cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
@@ -136,24 +142,30 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   const float alpha = 1.0;
   const float beta = 0.0;
   const int stride = 1;
+  int i, j, index;
 
   float *users_dot_centroid = (float *)_malloc(sizeof(float) * num_users);
   // float centroid_norm = cblas_snrm2(num_latent_factors, centroid, 1);
 
   float inv_centroid_norm = 1.0f / *centroid_norm;
   float new_centroid[num_latent_factors];
-  cblas_scopy(num_latent_factors, centroid, 1, new_centroid, 1); 
-  cblas_sscal(num_latent_factors, inv_centroid_norm, new_centroid, 1);
+
+  #pragma simd
+  for (i = 0; i < num_latent_factors; i++) {
+      new_centroid[i] = inv_centroid_norm * centroid[i];
+  }
 
   float *user_norms_matrix =
       (float *)_malloc(sizeof(float) * num_users * num_latent_factors);
-  cblas_scopy(num_users*num_latent_factors, user_weights, 1, user_norms_matrix, 1);
   float inv_user_norms[num_users];
-  cblas_scopy(num_users, user_norms, 1, inv_user_norms, 1); 
-  vsInv(num_users, inv_user_norms, inv_user_norms); 
+  vsInv(num_users, user_norms, inv_user_norms); 
 
-  for (int i = 0; i < num_users; i++) {
-      cblas_sscal(num_latent_factors, inv_user_norms[i], &user_norms_matrix[i*num_latent_factors], 1);
+  for (i = 0; i < num_users; i++) {
+    index = i*num_latent_factors;
+    #pragma simd
+    for (j = 0; j < num_latent_factors; j++) {
+        user_norms_matrix[index+j] = inv_user_norms[i] * user_weights[index+j];
+    }
   }
 
   cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, user_norms_matrix, k,
