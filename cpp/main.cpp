@@ -79,6 +79,10 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
   return cluster_index;
 }
 
+bool is_power_of_two(unsigned int x) {
+  return ((x != 0) && ((x & (~x + 1)) == x));
+}
+
 int main(int argc, const char* argv[]) {
   opt::options_description description("SimDex");
   description.add_options()("help,h", "Show help")(
@@ -101,8 +105,8 @@ int main(int argc, const char* argv[]) {
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(1),
       "Number of bins, default: 1")("batch-size",
-                                    opt::value<int>()->default_value(200),
-                                    "Batch size, default: 200")(
+                                    opt::value<int>()->default_value(256),
+                                    "Batch size, default: 256")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
       "base-name", opt::value<std::string>()->required(),
@@ -135,6 +139,12 @@ int main(int argc, const char* argv[]) {
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
 
+  if (!is_power_of_two(batch_size)) {
+    // batch_size must be a power of 2; exit if not
+    std::cout << "Batch size " << batch_size << " is not a power of 2." << std::endl;
+    exit(1);
+  }
+
   std::string centroids_filepath = "";
   std::string user_id_cluster_ids_filepath = "";
   if (args.count("clusters-dir")) {
@@ -157,12 +167,9 @@ int main(int argc, const char* argv[]) {
   omp_set_num_threads(num_threads);
 #endif
 
-  // const MKL_UINT new_mode = VML_HA | VML_FTZDAZ_ON | VML_ERRMODE_DEFAULT;
-  // MKL_UINT old_mode = vmlSetMode(new_mode);
-
   double time_start, time_end;  // used for timing throughout
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
   float* item_weights =
@@ -173,7 +180,7 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
   float* centroids;
@@ -192,35 +199,25 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double cluster_time = (time_end - time_start);
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
   int num_users_so_far_arr[num_clusters];
   std::vector<int>* cluster_index = build_cluster_index(
       user_id_cluster_ids, user_weights, num_users, num_latent_factors,
       num_clusters, num_users_so_far_arr);
-  // user_weights is correct--sorted correctly, matches cluster_index
+  // user_weights is now sorted correctly, matches cluster_index
 
-  // theta_ics are correct
   float* item_norms =
       compute_norms_vector(item_weights, num_items, num_latent_factors);
-  // item_norms are correct
+  float* centroid_norms =
+      compute_norms_vector(centroids, num_clusters, num_latent_factors);
 
-  float* centroid_norms = compute_norms_vector(centroids, num_clusters, num_latent_factors);
-
-    // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
+  // theta_ics: a num_clusters x num_items matrix, theta_ics[i, j] = angle
   // between centroid i and item j
-
-
-  float* theta_ics = compute_theta_ics(item_weights, centroids, num_items, num_latent_factors, 
-                          num_clusters, item_norms, centroid_norms);
-
-  // float* user_norms = compute_norms_vector(user_weights, num_users, num_latent_factors);
-
-  // float* theta_ucs = compute_all_theta_ucs(user_weights, user_norms, centroids,
-  //                          centroid_norms, num_latent_factors,
-  //                          num_users, num_clusters, cluster_index, 
-  //                          num_users_so_far_arr, normalized_centroids);
+  float* theta_ics =
+      compute_theta_ics(item_weights, centroids, num_items, num_latent_factors,
+                        num_clusters, item_norms, centroid_norms);
 
   time_end = dsecnd();
   const double index_time = (time_end - time_start);
@@ -235,7 +232,7 @@ int main(int argc, const char* argv[]) {
   user_stats_file.open(user_stats_fname);
 #endif
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
 #pragma omp parallel for
@@ -247,13 +244,13 @@ int main(int argc, const char* argv[]) {
     std::cout << "Cluster ID " << cluster_id << std::endl;
 #endif
     const int num_users_so_far = num_users_so_far_arr[cluster_id];
-
     computeTopKForCluster(
         cluster_id, &centroids[cluster_id * num_latent_factors],
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
-        item_norms, &theta_ics[cluster_id * num_items], num_items,
-        num_latent_factors, num_bins, K, user_stats_file, batch_size, &centroid_norms[cluster_id]);
+        item_norms, &theta_ics[cluster_id * num_items],
+        centroid_norms[cluster_id], num_items, num_latent_factors, num_bins, K,
+        batch_size, user_stats_file);
   }
 
   time_end = dsecnd();
@@ -266,17 +263,18 @@ int main(int argc, const char* argv[]) {
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   if (!exists) {
     timing_stats_file
-        << "model,K,num_latent_factors,num_threads,num_bins,sample_percentage,"
+        << "model,K,num_latent_factors,num_threads,num_bins,batch_size,sample_"
+           "percentage,"
            "num_iters,"
            "clusters,parse_time,cluster_time,index_time,algo_time,comp_time"
         << std::endl;
   }
   const std::string timing_stats =
       (boost::format(
-           "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%") %
+           "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%") %
        base_name % K % num_latent_factors % num_threads % num_bins %
-       sample_percentage % num_iters % args.count("clusters-dir") % parse_time %
-       cluster_time % index_time % algo_time % compute_time).str();
+       batch_size % sample_percentage % num_iters % args.count("clusters-dir") %
+       parse_time % cluster_time % index_time % algo_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 

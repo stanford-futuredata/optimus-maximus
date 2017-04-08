@@ -96,27 +96,24 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                            const std::vector<int> &user_ids_in_cluster,
                            const float *user_weights, const float *item_weights,
                            const float *item_norms, const float *theta_ics,
-                           const int num_items, const int num_latent_factors,
-                           const int num_bins, const int K,
-                           std::ofstream &user_stats_file,
-                           const int batch_size, const float *centroid_norm) {
+                           const float &centroid_norm, const int num_items,
+                           const int num_latent_factors, const int num_bins,
+                           const int K, const int batch_size,
+                           std::ofstream &user_stats_file) {
 
-  double time_start, time_end, upperBoundCreation_time, sortUpperBound_time,
-      computeTopK_time;
+  double time_start, time_end;
 
   const int num_users_in_cluster = user_ids_in_cluster.size();
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
   // compute user_norms and theta_ucs for every user assigned to this cluster
-
   float *user_norms = compute_norms_vector(user_weights, num_users_in_cluster,
                                            num_latent_factors);
-  float *theta_ucs =
-      compute_theta_ucs_for_centroid(user_weights, user_norms, centroid,
-                                     num_users_in_cluster, num_latent_factors, centroid_norm);
-  
+  float *theta_ucs = compute_theta_ucs_for_centroid(
+      user_weights, user_norms, centroid, num_users_in_cluster,
+      num_latent_factors, centroid_norm);
   // NOTE: both are now already in the right order, i.e., you can access
   // them sequentially. This is because we reordered the user weights to be
   // in cluster order in main.cpp (see build_cluster_index)
@@ -128,42 +125,46 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   float upper_bounds[num_bins][num_items];
 
   int i, j, l;
-  const float beta = 0.0f;
-
 
   for (i = 0; i < num_bins; i++) {
-    std::fill(upper_bounds[i], upper_bounds[i]+num_items, theta_bins[i]);
-    // theta_ic - theta_b
+    std::fill(upper_bounds[i], upper_bounds[i] + num_items, theta_bins[i]);
     vsSub(num_items, theta_ics, upper_bounds[i], upper_bounds[i]);
   }
-  ippsThreshold_32f_I((Ipp32f*)upper_bounds, num_bins*num_items, (Ipp32f)beta, ippCmpLess);
-  // cos(theta_ic - theta_b)
-  vsCos(num_bins*num_items, upper_bounds[0], upper_bounds[0]);
+  // upper_bounds[i] = theta_ic - theta_b
+  ippsThreshold_32f_I((Ipp32f *)upper_bounds, num_bins * num_items,
+                      (Ipp32f)0.0f, ippCmpLess);
+  // all values less than 0 in upper_bounds[i] now set to 0
+  // Same as:
+  // for (i = 0; i < num_bins; ++i) {
+  //   for (j = 0; j < num_items; ++j) {
+  //     if (upper_bounds[i][j] < 0) {
+  //       upper_bounds[i][j] = 0.F;
+  //     }
+  //   }
+  // }
+  vsCos(num_bins * num_items, upper_bounds[0], upper_bounds[0]);
+  // upper_bounds[i] = cos(theta_ic - theta_b)
   for (i = 0; i < num_bins; i++) {
-    //upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
     vsMul(num_items, item_norms, upper_bounds[i], upper_bounds[i]);
   }
+  // upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
 
-  // upper_bounds are correct
   time_end = dsecnd();
-  upperBoundCreation_time = (time_end - time_start);
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
   int sorted_upper_bounds_indices[num_bins][num_items];
-  int *pBufSize = (int *)malloc(sizeof(int));
+  int *pBufSize = (int *)_malloc(sizeof(int));
   ippsSortRadixIndexGetBufferSize(num_items, ipp32f, pBufSize);
-  Ipp8u *pBuffer = (Ipp8u *)malloc(*pBufSize * sizeof(Ipp8u));
-  int srcStrideBytes = 4;
+  Ipp8u *pBuffer = (Ipp8u *)_malloc(*pBufSize * sizeof(Ipp8u));
+  const int src_stride_bytes = 4;
   for (i = 0; i < num_bins; i++) {
-    ippsSortRadixIndexDescend_32f((Ipp32f *)upper_bounds[i], srcStrideBytes,
+    ippsSortRadixIndexDescend_32f((Ipp32f *)upper_bounds[i], src_stride_bytes,
                                   (Ipp32s *)sorted_upper_bounds_indices[i],
                                   num_items, pBuffer);
   }
-
   time_end = dsecnd();
-  sortUpperBound_time = (time_end - time_start);
 
   int batch_counter[num_bins];
   std::memset(batch_counter, 0, sizeof batch_counter);
@@ -173,11 +174,13 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   const int bin_offset = num_items * num_latent_factors;
   int item_id;
 
-  // compute initial batches
+  // prepare initial batches
   for (i = 0; i < num_bins; i++) {
     for (j = 0; j < batch_size; j++) {
       item_id = sorted_upper_bounds_indices[i][batch_counter[i]];
       sorted_upper_bounds[i][batch_counter[i]] = upper_bounds[i][item_id];
+      // copy item_weights into sorted_item_weights based on order of
+      // sorted_upper_bounds_indices
       cblas_scopy(
           num_latent_factors, &item_weights[item_id * num_latent_factors], 1,
           &sorted_item_weights
@@ -187,12 +190,10 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     }
   }
 
-  int mod = (batch_size) - 1;
-
   // ----------Computer Per User TopK Below------------------
   int top_K_items[num_users_in_cluster][K];
 
-  time_start = dsecnd();
+  dsecnd();
   time_start = dsecnd();
 
 #ifdef DEBUG
@@ -203,7 +204,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 #endif
 
   float *user_dot_items = (float *)_malloc(sizeof(float) * batch_size);
-  float *user_times_upper_bound = (float*)_malloc(sizeof(float)*batch_size);
+  float *user_norm_times_upper_bound =
+      (float *)_malloc(sizeof(float) * batch_size);
+  const int mod = batch_size - 1;  // assumes batch_size is a power of 2, so
+                                   // mod is all 1's in binary, therefore
+                                   // ind % batch_size == ind & mod
 
   for (i = 0; i < num_users_to_compute; i++) {
     const int bin_index =
@@ -220,8 +225,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
     const int k = num_latent_factors;
 
     const float alpha = 1.0f;
-    // moved up
-    // const float beta = 0.0f;
+    const float beta = 0.0f;
     const int stride = 1;
 
     cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
@@ -229,9 +233,10 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                 &user_weights[i * num_latent_factors], stride, beta,
                 user_dot_items, stride);
 
-    #pragma simd
+#pragma simd
     for (j = 0; j < batch_size; j++) {
-        user_times_upper_bound[j] = user_norms[i] * sorted_upper_bounds[bin_index][j];
+      user_norm_times_upper_bound[j] =
+          user_norms[i] * sorted_upper_bounds[bin_index][j];
     }
 
     for (j = 0; j < K; j++) {
@@ -239,6 +244,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
       score = user_dot_items[j];
       q.push(std::make_pair(score, itemID));
     }
+
     int num_items_visited = K;
 
     for (j = K; j < num_items; j++) {
@@ -247,7 +253,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
         const int true_batch_size =
             std::min(batch_size, num_items - batch_counter[bin_index]);
         // if we're at the very end, we may not need a full batch
-        m = true_batch_size;  // change for upcoming sgemv op
+        m = true_batch_size;  // change for upcoming sgemv operation
         for (int l = 0; l < true_batch_size; l++) {
           item_id =
               sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
@@ -270,13 +276,14 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
                     k, &user_weights[i * num_latent_factors], stride, beta,
                     user_dot_items, stride);
 
-        #pragma simd
+#pragma simd
         for (l = 0; l < batch_size; l++) {
-            user_times_upper_bound[l] = user_norms[i] * sorted_upper_bounds[bin_index][j+l];
+          user_norm_times_upper_bound[l] =
+              user_norms[i] * sorted_upper_bounds[bin_index][j + l];
         }
       }
 
-      if (q.top().first > user_times_upper_bound[j & mod]) {
+      if (q.top().first > user_norm_times_upper_bound[j & mod]) {
         break;
       }
       itemID = sorted_upper_bounds_indices[bin_index][j];
@@ -312,21 +319,14 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   }
 
   time_end = dsecnd();
-  computeTopK_time = (time_end - time_start);
 
   // ----------Free Allocated Memory Below-------
-
+  _free(pBufSize);
+  _free(pBuffer);
   _free(user_norms);
   _free(theta_ucs);
   _free(sorted_item_weights);
   _free(user_dot_items);
-
+  _free(user_norm_times_upper_bound);
   MKL_Free_Buffers();
-
-  // printf("upper bound time: %f secs \n", upperBoundCreation_time);
-  // printf("sort time: %f secs \n", sortUpperBound_time);
-  // printf("compute top K time: %f secs \n", computeTopK_time);
-  // creationTime += upperBoundCreation_time;
-  // sortTime += sortUpperBound_time;
-  // computeKTime += computeTopK_time;
 }
