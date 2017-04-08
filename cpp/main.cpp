@@ -250,15 +250,17 @@ int main(int argc, const char* argv[]) {
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   if (!exists) {
     timing_stats_file
-        << "model,K,num_threads,num_bins,sample_percentage,num_iters,"
+        << "model,K,num_latent_factors,num_threads,num_bins,sample_percentage,"
+           "num_iters,"
            "clusters,parse_time,cluster_time,index_time,algo_time,comp_time"
         << std::endl;
   }
   const std::string timing_stats =
-      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%") %
-       base_name % K % num_threads % num_bins % sample_percentage % num_iters %
-       args.count("clusters-dir") % parse_time % cluster_time % index_time %
-       algo_time % compute_time).str();
+      (boost::format(
+           "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%") %
+       base_name % K % num_latent_factors % num_threads % num_bins %
+       sample_percentage % num_iters % args.count("clusters-dir") % parse_time %
+       cluster_time % index_time % algo_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 

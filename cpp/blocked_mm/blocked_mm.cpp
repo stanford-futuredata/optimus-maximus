@@ -32,7 +32,6 @@ void computeTopK(float *matrix, const int num_users, const int num_items,
                         std::vector<std::pair<float, int> >,
                         std::greater<std::pair<float, int> > > q;
 
-
     unsigned long index = i;
     index *= num_items;
 
@@ -214,12 +213,13 @@ int main(int argc, const char *argv[]) {
   const bool exists = boost::filesystem::exists(timing_stats_fname);
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   if (!exists) {
-    timing_stats_file << "model,K,num_threads,gemm_time,pr_queue_time,comp_time"
-                      << std::endl;
+    timing_stats_file << "model,K,num_latent_factors,num_threads,gemm_time,pr_"
+                         "queue_time,comp_time" << std::endl;
   }
   const std::string timing_stats =
-      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") % base_name % num_threads % K %
-       gemm_time % pr_queue_time % compute_time).str();
+      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%") % base_name %
+       num_latent_factors % num_threads % K % gemm_time % pr_queue_time %
+       compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
