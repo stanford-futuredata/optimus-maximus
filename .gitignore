@@ -6,6 +6,7 @@ tags
 # C++ binary files
 *.o
 simdex
+blocked_mm
 # Visual Studio Code
 .vscode
 # Python binary files

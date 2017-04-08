@@ -6,9 +6,6 @@
 #ifndef utils_hpp
 #define utils_hpp
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
 #include <chrono>
 #include <boost/timer/timer.hpp>
 

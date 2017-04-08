@@ -1,6 +1,6 @@
 //
 //  algo.cpp
-//  Simdex
+//  SimDex
 //
 //
 
@@ -62,22 +62,33 @@ void check_against_naive(const float *user_weight, const float *item_weights,
   const float beta = 0.0;
   const int stride = 1;
 
-  float *scores = (float *)_malloc(sizeof(float) * num_items);
+  float scores[num_items];
   cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, item_weights, k,
               user_weight, stride, beta, scores, stride);
 
+  // Sort item ids by their associated scores in descending order
   std::vector<int> v(num_items);
   std::iota(v.begin(), v.end(), 0);
   std::sort(v.begin(), v.end(),
             [&scores](int i1, int i2) { return scores[i1] > scores[i2]; });
+  // Sort scores in descending order, too
+  std::sort(scores, scores + num_items, std::greater<float>());
+  // First compare scores
   for (int i = 0; i < K; ++i) {
-    if (v[i] != computed_top_K[i]) {
-      std::cout << "v[i] does not equal computed_top_K[i], i = " << i
-                << std::endl;
+    if (scores[i] != computed_scores[i]) {
+      std::cout << "scores[i] = " << scores[i]
+                << " does not equal computed_scores[i] = " << computed_scores[i]
+                << ", i = " << i << std::endl;
       exit(1);
     }
   }
-  _free(scores);
+  for (int i = 0; i < K; ++i) {
+    if (v[i] != computed_top_K[i]) {
+      std::cout << "v[i] = " << v[i]
+                << " does not equal computed_top_K[i] = " << computed_top_K[i]
+                << ", i = " << i << std::endl;
+    }
+  }
 }
 #endif
 
@@ -187,7 +198,7 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 
 #ifdef DEBUG
   const int num_users_to_compute =
-      num_users_in_cluster < 25 ? num_users_in_cluster : 25;
+      num_users_in_cluster < 30 ? num_users_in_cluster : 30;
 #else
   const int num_users_to_compute = num_users_in_cluster;
 #endif

@@ -1,6 +1,6 @@
 //
 //  algo.hpp
-//  Simdex
+//  SimDex
 //
 //
 

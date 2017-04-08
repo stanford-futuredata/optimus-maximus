@@ -1,6 +1,6 @@
 //
 //  parser.cpp
-//  Simdex
+//  SimDex
 //
 //  Created by Geet Sethi on 10/24/16.
 //  Copyright © 2016 Geet Sethi. All rights reserved.
@@ -13,7 +13,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -21,9 +20,9 @@
 #include <cstring>
 #include <vector>
 
-#include <mkl.h>
-
 #include <boost/tokenizer.hpp>
+
+#include <mkl.h>
 
 float *parse_weights_csv(const std::string filename, const int num_rows,
                          const int num_cols) {

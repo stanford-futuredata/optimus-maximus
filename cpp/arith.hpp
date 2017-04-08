@@ -1,6 +1,6 @@
 //
 //  arith.hpp
-//  Simdex
+//  SimDex
 //
 //  Created by Geet Sethi on 10/27/16.
 //  Copyright © 2016 Geet Sethi. All rights reserved.

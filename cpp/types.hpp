@@ -1,6 +1,6 @@
 //
 //  types.hpp
-//  Simdex
+//  SimDex
 //
 //
 

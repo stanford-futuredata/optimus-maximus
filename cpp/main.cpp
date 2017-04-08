@@ -1,6 +1,6 @@
 //
 //  main.cpp
-//  Simdex
+//  SimDex
 //
 //  Created by Geet Sethi on 10/24/16.
 //  Copyright © 2016 Geet Sethi. All rights reserved.
@@ -79,7 +79,7 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
 }
 
 int main(int argc, const char* argv[]) {
-  opt::options_description description("Simdex");
+  opt::options_description description("SimDex");
   description.add_options()("help,h", "Show help")(
       "weights-dir,w", opt::value<std::string>()->required(),
       "weights directory; must contain user_weights.csv and item_weights.csv")(
@@ -256,17 +256,17 @@ int main(int argc, const char* argv[]) {
   }
   const std::string timing_stats =
       (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%") %
-       base_name % num_threads % num_bins % K % sample_percentage % num_iters %
+       base_name % K % num_threads % num_bins % sample_percentage % num_iters %
        args.count("clusters-dir") % parse_time % cluster_time % index_time %
        algo_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
-  printf("parse time: %f secs \n", parse_time);
-  printf("cluster time: %f secs \n", cluster_time);
-  printf("index time: %f secs \n", index_time);
-  printf("algo time: %f secs \n", algo_time);
-  printf("total comp time: %f secs \n", compute_time);
+  printf("parse time: %f secs\n", parse_time);
+  printf("cluster time: %f secs\n", cluster_time);
+  printf("index time: %f secs\n", index_time);
+  printf("algo time: %f secs\n", algo_time);
+  printf("total comp time: %f secs\n", compute_time);
 
   delete[] cluster_index;
 #ifdef DEBUG
