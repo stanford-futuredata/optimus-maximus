@@ -7,13 +7,13 @@
 #include "../parser.hpp"
 #include "../utils.hpp"
 
+#include <chrono>
 #include <queue>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 
 #include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 #include <mkl.h>
@@ -127,11 +127,12 @@ int main(int argc, const char *argv[]) {
 
   if (needed > tb) {
     const int per_instance = (int)floor((num_users) / 3.0);
+    std::cout << "Blocking user matrix into 3 sub-matrices, " << per_instance
+              << " rows per matrix" << std::endl;
     unsigned long mem_needed = 1;
     mem_needed = mem_needed * per_instance;
     mem_needed = mem_needed * n;
     mem_needed = mem_needed * sizeof(float);
-    printf("bytes needed: %lu\n", mem_needed);
     float *matrix_product = (float *)_malloc(mem_needed);
 
     dsecnd();
@@ -185,7 +186,6 @@ int main(int argc, const char *argv[]) {
     _free(matrix_product);
 
   } else {
-
     float *matrix_product = (float *)_malloc(needed);
 
     dsecnd();
@@ -209,13 +209,13 @@ int main(int argc, const char *argv[]) {
   }
 
   std::ofstream timing_stats_file;
-  const std::string timing_stats_fname = "blocked_mm-timing.csv";
-  const bool exists = boost::filesystem::exists(timing_stats_fname);
+  const unsigned int curr_time =
+      std::chrono::system_clock::now().time_since_epoch().count();
+  const std::string timing_stats_fname =
+      base_name + "_timing_" + std::to_string(curr_time) + ".csv";
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
-  if (!exists) {
-    timing_stats_file << "model,K,num_latent_factors,num_threads,gemm_time,pr_"
-                         "queue_time,comp_time" << std::endl;
-  }
+  timing_stats_file << "model,K,num_latent_factors,num_threads,gemm_time,pr_"
+                       "queue_time,comp_time" << std::endl;
   const std::string timing_stats =
       (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%") % base_name %
        num_latent_factors % num_threads % K % gemm_time % pr_queue_time %

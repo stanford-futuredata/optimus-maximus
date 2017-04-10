@@ -1,55 +1,43 @@
 #! /usr/bin/env python
 
-from consts import *
-import os
-import subprocess
+from consts import MODEL_DIR_BASE, TO_RUN, NUM_VIRTUAL_CORES_PER_POOL, LEMP_CPU_IDS
+from pathos import multiprocessing
+from itertools import product
 import argparse
+import os
+import time
+import subprocess
 
 
-def mkdir_p(dir):
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+def run(run_args):
+    cpu_ids, num_factors, num_users, num_items, K, num_threads, input_dir, \
+    base_name, output_dir, runner = run_args
 
-
-#LEMP/release/tools/runNaive \
-#--Q^T=/lfs/raiders6/ssd/geet/lemp/datasets/netflix/f_10/s2_userWeights.csv \
-#--P=/lfs/raiders6/ssd/geet/lemp/datasets/netflix/f_10/s_itemWeights.csv \
-#--logFile="../../results/log_netflix_${f}_${k}.txt"
-#--k=1 --r=10 --m=480189 --n=17770
-
-
-def fn(arg):
-    num_factors, num_users, num_items, K, num_threads, users_in_fname, \
-    items_in_fname, output_dir, runner = arg
-    mkdir_p(output_dir)
-    if not os.path.isfile(users_in_fname):
-        print("Can't find %s" % (users_in_fname))
-        return
-    if not os.path.isfile(items_in_fname):
-        print("Can't find %s" % (items_in_fname))
+    if not os.path.isdir(input_dir):
+        print("Can't find %s" % input_dir)
         return
 
-    # ../lemp[-no]-simd/tools/runLemp
-    # --Q^T=/dfs/scratch0/fabuzaid/simdex/models/lemp-paper/Netflix-noav-10/user_weights.csv
-    # --P=/dfs/scratch0/fabuzaid/simdex/models/lemp-paper/Netflix-noav-10/item_weights.csv
-    # --logFile=/dfs/scratch0/fabuzaid/simdex/experiments/lemp-paper/Netflix-noav-10/1/lemp-simd/lemp_timing_stats.txt
-    # --resultsFile=/dfs/scratch0/fabuzaid/simdex/experiments/lemp-paper/model-Netflix-noav-10/K-1/lemp-simd/lemp_user_results.csv
-    # --k=1 --method=LEMP_LI --cacheSizeinKB=2560 --r=10 --m=480189 --n=17770
+    user_weights_fname = os.path.join(input_dir, 'user_weights.csv')
+    item_weights_fname = os.path.join(input_dir, 'item_weights.csv')
+
     cmd = [
+        'taskset',
+        '-c',
+        cpu_ids,
         runner,
         '--method=LEMP_LI',
         '--cacheSizeinKB=2560',
         '--Q^T',
-        users_in_fname,
+        user_weights_fname,
         '--P',
-        items_in_fname,
+        item_weights_fname,
         '--r=%d' % num_factors,
         '--m=%d' % num_users,
         '--n=%d' % num_items,
         '--k=%d' % K,
         '--t=%d' % num_threads,
-        '--logFile=%s' % output_dir + 'lemp_timing_stats.txt',
-        '--resultsFile=%s' % output_dir + 'lemp_user_results.csv',
+        '--logFile=%s' % os.path.join(output_dir, '%s_timing_%d.csv' %
+                                      (base_name, int(time.time() * 1000))),
     ]
     print('Running ' + str(cmd))
     process = subprocess.Popen(cmd)
@@ -61,6 +49,8 @@ def fn(arg):
 
 def main():
     parser = argparse.ArgumentParser()
+    # These flags determine what version of Lemp to use: with/without SIMD,
+    # with/without ICC compiler (defaults to g++-4.8)
     parser.add_argument('--simd', dest='simd', action='store_true')
     parser.add_argument('--no-simd', dest='simd', action='store_false')
     parser.set_defaults(simd=True)
@@ -70,27 +60,28 @@ def main():
     args = parser.parse_args()
 
     TOP_K = [1, 5, 10, 50]
-    output_suffix = 'lemp-%s-%s/' % (('icc' if args.icc else 'no-icc'),
-                                     ('simd' if args.simd else 'no-simd'))
-    output_dir_base = OUTPUT_DIR_BASE + output_suffix
+    NUM_THREADS = [1]
+
+    output_suffix = 'lemp-%s-%s' % (('icc' if args.icc else 'no-icc'),
+                                    ('simd' if args.simd else 'no-simd'))
     runner = '../%s/tools/runLemp' % output_suffix
 
-    #run_args = []
-    for (model_dir, (num_factors, num_users, num_items)) in TO_RUN:
-        for K in TOP_K:
-            for num_threads in [8, 4, 2, 1]:
-                #run_args.append(
-                result = fn((num_factors, num_users, num_items, K, num_threads,
-                             MODEL_DIR_BASE + model_dir + 'user_weights.csv',
-                             MODEL_DIR_BASE + model_dir + 'item_weights.csv',
-                             output_dir_base.format(model_dir=model_dir,
-                                                    K=K), runner))
-                print(result)
+    output_dir = 'lemp-timing'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    #from pathos import multiprocessing
-    #pool = multiprocessing.Pool(13)
-    #results = pool.map(fn, run_args)
-    #print(results)
+    run_args = []
+    for (model_dir, (num_factors, num_users, num_items)) in TO_RUN:
+        input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
+        base_name = model_dir.replace('/', '-')
+        for K, num_threads in product(TOP_K, NUM_THREADS):
+            run_args.append(
+                (LEMP_CPU_IDS, num_factors, num_users, num_items, K,
+                 num_threads, input_dir, base_name, output_dir, runner))
+
+    pool = multiprocessing.Pool(
+        int(NUM_VIRTUAL_CORES_PER_POOL / 2))  # 7 cores for Lemp
+    pool.map(run, run_args)
 
 
 if __name__ == '__main__':

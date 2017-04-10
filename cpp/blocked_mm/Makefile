@@ -9,7 +9,7 @@ CXX := icc
 CXX_FLAGS += -std=c++11 -D ICC -mkl -qopenmp
 INCLUDE_DIRS := /usr/include/boost
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
-LIBRARIES := boost_system boost_program_options boost_filesystem
+LIBRARIES := boost_system boost_program_options
 
 INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \

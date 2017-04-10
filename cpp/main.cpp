@@ -12,23 +12,14 @@
 #include "utils.hpp"
 #include "clustering/cluster.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <sys/stat.h>
-#include <functional>
+#include <chrono>
 #include <utility>
-#include <queue>
-#include <algorithm>
 #include <numeric>
-#include <unordered_map>
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <math.h>
 
 #include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/program_options.hpp>
 
@@ -141,7 +132,8 @@ int main(int argc, const char* argv[]) {
 
   if (!is_power_of_two(batch_size)) {
     // batch_size must be a power of 2; exit if not
-    std::cout << "Batch size " << batch_size << " is not a power of 2." << std::endl;
+    std::cout << "Batch size " << batch_size << " is not a power of 2."
+              << std::endl;
     exit(1);
   }
 
@@ -258,23 +250,23 @@ int main(int argc, const char* argv[]) {
   const double compute_time = cluster_time + index_time + algo_time;
 
   std::ofstream timing_stats_file;
-  const std::string timing_stats_fname = "simdex-timing.csv";
-  const bool exists = boost::filesystem::exists(timing_stats_fname);
+  const unsigned int curr_time =
+      std::chrono::system_clock::now().time_since_epoch().count();
+  const std::string timing_stats_fname =
+      base_name + "_timing_" + std::to_string(curr_time) + ".csv";
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
-  if (!exists) {
-    timing_stats_file
-        << "model,K,num_latent_factors,num_threads,num_bins,batch_size,sample_"
-           "percentage,"
-           "num_iters,"
-           "clusters,parse_time,cluster_time,index_time,algo_time,comp_time"
-        << std::endl;
-  }
+  timing_stats_file
+      << "model,K,num_latent_factors,num_threads,num_bins,batch_size,num_"
+         "clusters,sample_"
+         "percentage,"
+         "num_iters,"
+         "parse_time,cluster_time,index_time,algo_time,comp_time" << std::endl;
   const std::string timing_stats =
       (boost::format(
            "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%") %
        base_name % K % num_latent_factors % num_threads % num_bins %
-       batch_size % sample_percentage % num_iters % args.count("clusters-dir") %
-       parse_time % cluster_time % index_time % algo_time % compute_time).str();
+       batch_size % num_clusters % sample_percentage % num_iters % parse_time %
+       cluster_time % index_time % algo_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
