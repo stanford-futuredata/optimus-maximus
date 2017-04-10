@@ -103,54 +103,45 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df):
         start, end = plt.ylim()
         plt.title(model)
         plt.ylim([start, max_runtime * 1.1])
+        plt.minorticks_on()
         plt.xlabel('K')
         plt.ylabel('Time (s)')
         sns.despine()
         # save_figure('f-u-plot-%s.pdf' % model, legend)
         plt.show()
 
-#sns.set_context(rc = {'patch.linewidth': 1})
-#for dataset in DATASETS:
-#    for F in F_:
-#        table = df.query('dataset_name == "%s" and n_bins == 1.0 and n_features == %d and algorithm == "simdex"' % (dataset, F))
-#        data = table.groupby(['n_cluster', 'k'], as_index=False).aggregate(min).query('n_cluster <= 2048 and n_cluster > 8')
-#        _ = sns.barplot(x="k", y="total_compute_time", hue="n_cluster", color="seagreen", data=data)
-#        bottom_plot = sns.barplot(x="k", y ="k_mean_time", hue="n_cluster", data=data, color="#ffffff", hatch='x')
-#
-#        legend = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-#        fix_legend(legend)
-#        plt.yscale('log')
-#        start, end = plt.ylim()
-#        plt.xlabel('K')
-#        plt.ylabel('Time (s)')
-#        sns.despine()
-#        plt.minorticks_off()
-#        plt.title('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F))
-#        # save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
-#        plt.show()
 
-def throughput_vs_n_cluster(df):
-    for dataset in DATASETS:
-        for F in F_:
-            table = df.query(
-                'dataset_name == "%s" and n_bins == 1.0 and n_features == %d and algorithm == "simdex"'
-                % (dataset, F))
-            data = table.groupby(
-                ['n_cluster', 'k'],
-                as_index=False).aggregate(min).query('n_cluster <= 4096')
-            _ = sns.barplot(
-                x='k', y='total_compute_time', hue='n_cluster', data=data)
-            legend = plt.legend(
-                bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            fix_legend(legend)
-            plt.yscale('log')
-            start, end = plt.ylim()
-            plt.xlabel('K')
-            plt.ylabel('Time (s)')
-            sns.despine()
-            save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F),
-                        legend)
-            plt.show()
+def throughput_vs_num_clusters(simdex_df):
+    for model in MODELS:
+        table = simdex_df.query('model == "%s"' % model)
+        data = table.groupby(
+            ['num_clusters', 'K'], as_index=False).aggregate(min)
+        top = sns.barplot(
+            x='K',
+            y='comp_time',
+            hue='num_clusters',
+            data=data,
+            linewidth=1.25,
+            edgecolor='black')
+        bottom = sns.barplot(
+            x='K',
+            y='cluster_time',
+            hue='num_clusters',
+            data=data,
+            linewidth=1.25,
+            edgecolor='black',
+            color='#ffffff',
+            hatch='x')
+
+        plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        start, end = plt.ylim()
+        plt.xlabel('K')
+        plt.ylabel('Time (s)')
+        plt.minorticks_on()
+        sns.despine()
+        plt.title(model)
+        # save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
+        plt.show()
 
 
 def items_visited_cdf(df, filename):
