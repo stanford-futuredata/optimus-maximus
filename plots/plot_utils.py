@@ -144,6 +144,39 @@ def throughput_vs_num_clusters(simdex_df):
         plt.show()
 
 
+def runtime_vs_num_bins(simdex_df):
+    best_rt = simdex_df.sort_values(by='comp_time').groupby(
+        ['model', 'K'], as_index=False).first()
+    for model in MODELS:
+        best_rt_model = best_rt.query('model == "%s"' % model)
+        data = []
+        for _, row in best_rt_model.iterrows():
+            K, num_clusters = row['K'], row['num_clusters']
+            data_for_K = simdex_df.query(
+                'model == "%s" and num_clusters == %d and K == %d' %
+                (model, num_clusters, K))
+            data.append(data_for_K)
+        data = pd.concat(data)
+
+        sns.barplot(
+            x='K',
+            y='comp_time',
+            hue='num_bins',
+            data=data,
+            linewidth=1.25,
+            edgecolor='black')
+
+        plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        start, end = plt.ylim()
+        plt.xlabel('K')
+        plt.ylabel('Time (s)')
+        plt.minorticks_on()
+        sns.despine()
+        plt.title(model)
+        # save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
+        plt.show()
+
+
 def items_visited_cdf(df, filename):
     items_visited = df[['K', 'ItemsVisited']].groupby(
         ['K'], as_index=False).aggregate(lambda x: list(x))
