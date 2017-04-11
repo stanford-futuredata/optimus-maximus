@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from consts import MODEL_DIR_BASE, TO_RUN, NUM_VIRTUAL_CORES_PER_POOL, SIMDEX_CPU_IDS
+from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, NUMA_QUEUE
 from pathos import multiprocessing
 from itertools import product
 import os
@@ -8,7 +8,7 @@ import subprocess
 
 
 def run(run_args):
-    cpu_ids, num_factors, num_users, num_items, K, num_clusters, sample_percentage, \
+    numa_queue, num_factors, num_users, num_items, K, num_clusters, sample_percentage, \
             num_iters, num_threads, num_bins, input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
@@ -17,6 +17,8 @@ def run(run_args):
 
     base_name = os.path.join(output_dir, base_name)
 
+    # Fetch corresponding cpu ids for available NUMA node
+    cpu_ids = numa_queue.get()
     cmd = [
         'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
         str(num_users), '-n', str(num_items), '-f', str(num_factors), '-c',
@@ -24,11 +26,9 @@ def run(run_args):
         '-b', str(num_bins), '-t', str(num_threads), '--base-name', base_name
     ]
     print('Running ' + str(cmd))
-    process = subprocess.Popen(cmd)
-    process.wait()
-    if process.returncode == 1:
-        print(str(cmd) + ' failed')
-    return process.returncode
+    subprocess.call(cmd)
+    # Add cpu ids for NUMA node back to queue
+    numa_queue.put(cpu_ids)
 
 
 def main():
@@ -46,6 +46,7 @@ def main():
         os.makedirs(output_dir)
 
     run_args = []
+
     for (model_dir, (num_factors, num_users, num_items)) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
@@ -53,12 +54,12 @@ def main():
                 TOP_K, NUM_THREADS, NUM_BINS, NUM_CLUSTERS, SAMPLE_PERCENTAGES,
                 NUM_ITERS):
             run_args.append(
-                (SIMDEX_CPU_IDS, num_factors, num_users, num_items, K,
+                (NUMA_QUEUE, num_factors, num_users, num_items, K,
                  num_clusters, sample_percentage, num_iters, num_threads,
                  num_bins, input_dir, base_name, output_dir, runner))
 
-    pool = multiprocessing.Pool(int(
-        NUM_VIRTUAL_CORES_PER_POOL / 2))  # 7 cores for SimDex
+    pool = multiprocessing.ProcessPool(
+        NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
     pool.map(run, run_args)
 
 

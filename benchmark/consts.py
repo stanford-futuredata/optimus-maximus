@@ -1,3 +1,5 @@
+from pathos.helpers import mp
+
 # We want only physical cores, not virtual cores. This means that we'll
 # use every _other_ CPU in a given NUM node range
 NUM_VIRTUAL_CORES_PER_POOL = 14
@@ -13,6 +15,7 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
         str(v)
         for v in range(cpu_id_offsets[1], cpu_id_offsets[1] + num_cores, 2)))
 
+
 # From `lscpu` on raiders6:
 #   CPU(s):                112
 #   On-line CPU(s) list:   0-111
@@ -25,20 +28,17 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
 #   NUMA node2 CPU(s):     28-41,84-97
 #   NUMA node3 CPU(s):     42-55,98-111
 
-# We'll use NUMA node 1 for Simdex, NUMA node 2 for Blocked MM, and NUMA node 3
-# for Lemp
+NUM_NUMA_NODES = 4
 
-
-SIMDEX_CPU_ID_OFFSETS = (14, 70)  # Simdex has CPU IDs 14-27,70-83
-BLOCKED_MM_CPU_ID_OFFSETS = (28, 84)  # Blocked MM has CPU IDs 28-41,84-97
-LEMP_CPU_ID_OFFSETS = (42, 98)  # Lemp has CPU IDs 42-55,98-111
-
-SIMDEX_CPU_IDS = get_cpu_assignments(SIMDEX_CPU_ID_OFFSETS,
-                                     NUM_VIRTUAL_CORES_PER_POOL)
-BLOCKED_MM_CPU_IDS = get_cpu_assignments(BLOCKED_MM_CPU_ID_OFFSETS,
-                                         NUM_VIRTUAL_CORES_PER_POOL)
-LEMP_CPU_IDS = get_cpu_assignments(LEMP_CPU_ID_OFFSETS,
-                                   NUM_VIRTUAL_CORES_PER_POOL)
+# When assigning cores to a given process, use NUMA_QUEUE
+# to fetch in real-time an available NUMA node. This guarantees
+# that we won't have any contention.
+m = mp.Manager()
+NUMA_QUEUE = m.Queue(NUM_NUMA_NODES)
+numa_cpu_id_offsets = [(0, 56), (14, 70), (28, 84), (42, 98)]
+for cpu_id_offsets in numa_cpu_id_offsets:
+    NUMA_QUEUE.put(
+        get_cpu_assignments(cpu_id_offsets, NUM_VIRTUAL_CORES_PER_POOL))
 
 MODEL_DIR_BASE = '/lfs/raiders6/ssd/fabuzaid/models-simdex'
 
@@ -53,6 +53,7 @@ TO_RUN = [
     ('pb-new/Netflix-50', (50, 480189, 17770)),
     ('sigmod-deadline/Netflix-50', (50, 480189, 17770)),
     ('lemp-paper/Netflix-noav-100', (100, 480189, 17770)),
+
     #('pb-new/kdd-10', (10, 1000990, 624961)),
     #('sigmod-deadline/kdd-10', (10, 1000990, 624961)),
     #('pb-new/kdd-25', (25, 1000990, 624961)),

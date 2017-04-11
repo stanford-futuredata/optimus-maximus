@@ -45,4 +45,3 @@ lemp_sigmod_netflix_25 = df2.query(
     'model == "lemp-timing/sigmod-deadline-Netflix-25" and num_threads == 1')
 lemp_sigmod_netflix_50 = df2.query(
     'model == "lemp-timing/sigmod-deadline-Netflix-50" and num_threads == 1')
-

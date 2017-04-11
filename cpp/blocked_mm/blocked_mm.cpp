@@ -28,6 +28,8 @@ void computeTopK(float *matrix, const int num_users, const int num_items,
 #pragma omp parallel for
   for (int i = 0; i < num_users; i++) {
 
+    // TODO: allocate vector on the stack, reserve the size we need or use the
+    // insertion-and-copy array strategy that Matei suggested
     std::priority_queue<std::pair<float, int>,
                         std::vector<std::pair<float, int> >,
                         std::greater<std::pair<float, int> > > q;

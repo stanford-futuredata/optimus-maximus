@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from consts import MODEL_DIR_BASE, TO_RUN, NUM_VIRTUAL_CORES_PER_POOL, LEMP_CPU_IDS
+from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, NUMA_QUEUE
 from pathos import multiprocessing
 from itertools import product
 import argparse
@@ -10,7 +10,7 @@ import subprocess
 
 
 def run(run_args):
-    cpu_ids, num_factors, num_users, num_items, K, num_threads, input_dir, \
+    numa_queue, num_factors, num_users, num_items, K, num_threads, input_dir, \
     base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
@@ -20,6 +20,8 @@ def run(run_args):
     user_weights_fname = os.path.join(input_dir, 'user_weights.csv')
     item_weights_fname = os.path.join(input_dir, 'item_weights.csv')
 
+    # Fetch corresponding cpu ids for available NUMA node
+    cpu_ids = numa_queue.get()
     cmd = [
         'taskset',
         '-c',
@@ -40,11 +42,9 @@ def run(run_args):
                                       (base_name, int(time.time() * 1000))),
     ]
     print('Running ' + str(cmd))
-    process = subprocess.Popen(cmd)
-    process.wait()
-    if process.returncode == 1:
-        print(str(cmd) + ' failed')
-    return process.returncode
+    subprocess.call(cmd)
+    # Add cpu ids for NUMA node back to queue
+    numa_queue.put(cpu_ids)
 
 
 def main():
@@ -76,11 +76,11 @@ def main():
         base_name = model_dir.replace('/', '-')
         for K, num_threads in product(TOP_K, NUM_THREADS):
             run_args.append(
-                (LEMP_CPU_IDS, num_factors, num_users, num_items, K,
-                 num_threads, input_dir, base_name, output_dir, runner))
+                (NUMA_QUEUE, num_factors, num_users, num_items, K, num_threads,
+                 input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.Pool(
-        int(NUM_VIRTUAL_CORES_PER_POOL / 2))  # 7 cores for Lemp
+        NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
     pool.map(run, run_args)
 
 
