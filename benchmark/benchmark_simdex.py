@@ -3,6 +3,7 @@
 from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, NUMA_QUEUE
 from pathos import multiprocessing
 from itertools import product
+import argparse
 import os
 import subprocess
 
@@ -32,6 +33,10 @@ def run(run_args):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output_dir', required=True)
+    args = parser.parse_args()
+
     TOP_K = [1, 5, 10, 50]
     NUM_THREADS = [1]
     NUM_BINS = [1, 3, 5, 10]
@@ -41,7 +46,7 @@ def main():
 
     runner = '../cpp/simdex'
 
-    output_dir = 'simdex-timing'
+    output_dir = args.output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

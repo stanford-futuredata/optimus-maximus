@@ -2,6 +2,7 @@
 
 from consts import MODEL_DIR_BASE, TO_RUN
 from itertools import product
+import argparse
 import os
 import subprocess
 
@@ -32,11 +33,16 @@ def run(run_args):
 # We don't run this in parallel, since we may need all the memory on the
 # machine
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output_dir', required=True)
+    args = parser.parse_args()
+
     TOP_K = [1, 5, 10, 50]
     NUM_THREADS = [1]
 
     runner = '../cpp/blocked_mm/blocked_mm'
-    output_dir = 'blocked_mm-timing'
+
+    output_dir = args.output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

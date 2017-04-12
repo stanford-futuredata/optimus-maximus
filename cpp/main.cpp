@@ -227,6 +227,17 @@ int main(int argc, const char* argv[]) {
   dsecnd();
   time_start = dsecnd();
 
+  // TODO: These buffers are reused across multiple calls to
+  // computeTopKForCluster.  For multiple threads, there will be
+  // contention--need to allocate a buffer per thread.
+  float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
+  int* sorted_upper_bounds_indices =
+      (int*)_malloc(num_bins * num_items * sizeof(int));
+  float* sorted_upper_bounds =
+      (float*)_malloc(num_bins * num_items * sizeof(float));
+  float* sorted_item_weights = (float*)_malloc(sizeof(float) * num_bins *
+                                               num_items * num_latent_factors);
+
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
@@ -242,7 +253,8 @@ int main(int argc, const char* argv[]) {
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
         centroid_norms[cluster_id], num_items, num_latent_factors, num_bins, K,
-        batch_size, user_stats_file);
+        batch_size, upper_bounds, sorted_upper_bounds_indices,
+        sorted_upper_bounds, sorted_item_weights, user_stats_file);
   }
 
   time_end = dsecnd();
@@ -276,6 +288,10 @@ int main(int argc, const char* argv[]) {
   printf("algo time: %f secs\n", algo_time);
   printf("total comp time: %f secs\n", compute_time);
 
+  _free(upper_bounds);
+  _free(sorted_upper_bounds_indices);
+  _free(sorted_upper_bounds);
+  _free(sorted_item_weights);
   delete[] cluster_index;
 #ifdef DEBUG
   user_stats_file.close();

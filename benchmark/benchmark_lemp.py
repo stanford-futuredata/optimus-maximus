@@ -49,6 +49,7 @@ def run(run_args):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--output_dir', required=True)
     # These flags determine what version of Lemp to use: with/without SIMD,
     # with/without ICC compiler (defaults to g++-4.8)
     parser.add_argument('--simd', dest='simd', action='store_true')
@@ -66,7 +67,7 @@ def main():
                                     ('simd' if args.simd else 'no-simd'))
     runner = '../%s/tools/runLemp' % output_suffix
 
-    output_dir = 'lemp-timing'
+    output_dir = args.output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 

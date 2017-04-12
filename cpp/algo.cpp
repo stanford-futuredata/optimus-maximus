@@ -92,14 +92,15 @@ void check_against_naive(const float *user_weight, const float *item_weights,
 }
 #endif
 
-void computeTopKForCluster(const int cluster_id, const float *centroid,
-                           const std::vector<int> &user_ids_in_cluster,
-                           const float *user_weights, const float *item_weights,
-                           const float *item_norms, const float *theta_ics,
-                           const float &centroid_norm, const int num_items,
-                           const int num_latent_factors, const int num_bins,
-                           const int K, const int batch_size,
-                           std::ofstream &user_stats_file) {
+void computeTopKForCluster(
+    const int cluster_id, const float *centroid,
+    const std::vector<int> &user_ids_in_cluster, const float *user_weights,
+    const float *item_weights, const float *item_norms, const float *theta_ics,
+    const float &centroid_norm, const int num_items,
+    const int num_latent_factors, const int num_bins, const int K,
+    const int batch_size, float *upper_bounds, int *sorted_upper_bounds_indices,
+    float *sorted_upper_bounds, float *sorted_item_weights,
+    std::ofstream &user_stats_file) {
 
   double time_start, time_end;
 
@@ -122,13 +123,14 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
       theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
   const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
   // theta_bins is correct
-  float upper_bounds[num_bins][num_items];
 
   int i, j, l;
 
   for (i = 0; i < num_bins; i++) {
-    std::fill(upper_bounds[i], upper_bounds[i] + num_items, theta_bins[i]);
-    vsSub(num_items, theta_ics, upper_bounds[i], upper_bounds[i]);
+    std::fill(&upper_bounds[i * num_items], &upper_bounds[(i + 1) * num_items],
+              theta_bins[i]);
+    vsSub(num_items, theta_ics, &upper_bounds[i * num_items],
+          &upper_bounds[i * num_items]);
   }
   // upper_bounds[i] = theta_ic - theta_b
   ippsThreshold_32f_I((Ipp32f *)upper_bounds, num_bins * num_items,
@@ -142,10 +144,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   //     }
   //   }
   // }
-  vsCos(num_bins * num_items, upper_bounds[0], upper_bounds[0]);
+  vsCos(num_bins * num_items, upper_bounds, upper_bounds);
   // upper_bounds[i] = cos(theta_ic - theta_b)
   for (i = 0; i < num_bins; i++) {
-    vsMul(num_items, item_norms, upper_bounds[i], upper_bounds[i]);
+    vsMul(num_items, item_norms, &upper_bounds[i * num_items],
+          &upper_bounds[i * num_items]);
   }
   // upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
 
@@ -154,31 +157,29 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   dsecnd();
   time_start = dsecnd();
 
-  int sorted_upper_bounds_indices[num_bins][num_items];
   int *pBufSize = (int *)_malloc(sizeof(int));
   ippsSortRadixIndexGetBufferSize(num_items, ipp32f, pBufSize);
   Ipp8u *pBuffer = (Ipp8u *)_malloc(*pBufSize * sizeof(Ipp8u));
   const int src_stride_bytes = 4;
   for (i = 0; i < num_bins; i++) {
-    ippsSortRadixIndexDescend_32f((Ipp32f *)upper_bounds[i], src_stride_bytes,
-                                  (Ipp32s *)sorted_upper_bounds_indices[i],
-                                  num_items, pBuffer);
+    ippsSortRadixIndexDescend_32f(
+        (Ipp32f *)&upper_bounds[i * num_items], src_stride_bytes,
+        (Ipp32s *)&sorted_upper_bounds_indices[i * num_items], num_items,
+        pBuffer);
   }
   time_end = dsecnd();
 
   int batch_counter[num_bins];
   std::memset(batch_counter, 0, sizeof batch_counter);
-  float sorted_upper_bounds[num_bins][num_items];
-  float *sorted_item_weights = (float *)_malloc(sizeof(float) * num_bins *
-                                                num_items * num_latent_factors);
   const int bin_offset = num_items * num_latent_factors;
   int item_id;
 
   // prepare initial batches
   for (i = 0; i < num_bins; i++) {
     for (j = 0; j < batch_size; j++) {
-      item_id = sorted_upper_bounds_indices[i][batch_counter[i]];
-      sorted_upper_bounds[i][batch_counter[i]] = upper_bounds[i][item_id];
+      item_id = sorted_upper_bounds_indices[i * num_items + batch_counter[i]];
+      sorted_upper_bounds[i * num_items + batch_counter[i]] =
+          upper_bounds[i * num_items + item_id];
       // copy item_weights into sorted_item_weights based on order of
       // sorted_upper_bounds_indices
       cblas_scopy(
@@ -236,11 +237,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 #pragma simd
     for (j = 0; j < batch_size; j++) {
       user_norm_times_upper_bound[j] =
-          user_norms[i] * sorted_upper_bounds[bin_index][j];
+          user_norms[i] * sorted_upper_bounds[bin_index * num_items + j];
     }
 
     for (j = 0; j < K; j++) {
-      itemID = sorted_upper_bounds_indices[bin_index][j];
+      itemID = sorted_upper_bounds_indices[bin_index * num_items + j];
       score = user_dot_items[j];
       q.push(std::make_pair(score, itemID));
     }
@@ -255,10 +256,11 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
         // if we're at the very end, we may not need a full batch
         m = true_batch_size;  // change for upcoming sgemv operation
         for (int l = 0; l < true_batch_size; l++) {
-          item_id =
-              sorted_upper_bounds_indices[bin_index][batch_counter[bin_index]];
-          sorted_upper_bounds[bin_index][batch_counter[bin_index]] =
-              upper_bounds[bin_index][item_id];
+          item_id = sorted_upper_bounds_indices
+              [bin_index * num_items + batch_counter[bin_index]];
+          sorted_upper_bounds
+              [bin_index * num_items + batch_counter[bin_index]] =
+                  upper_bounds[bin_index * num_items + item_id];
           cblas_scopy(num_latent_factors,
                       &item_weights[item_id * num_latent_factors], 1,
                       &sorted_item_weights
@@ -279,14 +281,15 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
 #pragma simd
         for (l = 0; l < batch_size; l++) {
           user_norm_times_upper_bound[l] =
-              user_norms[i] * sorted_upper_bounds[bin_index][j + l];
+              user_norms[i] *
+              sorted_upper_bounds[bin_index * num_items + j + l];
         }
       }
 
       if (q.top().first > user_norm_times_upper_bound[j & mod]) {
         break;
       }
-      itemID = sorted_upper_bounds_indices[bin_index][j];
+      itemID = sorted_upper_bounds_indices[bin_index * num_items + j];
       score = user_dot_items[j & mod];
       num_items_visited++;
       if (q.top().first < score) {
@@ -325,7 +328,6 @@ void computeTopKForCluster(const int cluster_id, const float *centroid,
   _free(pBuffer);
   _free(user_norms);
   _free(theta_ucs);
-  _free(sorted_item_weights);
   _free(user_dot_items);
   _free(user_norm_times_upper_bound);
   MKL_Free_Buffers();
