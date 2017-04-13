@@ -21,8 +21,30 @@
 
 #include <omp.h>
 
-void computeTopK(float *matrix, const int num_users, const int num_items,
-                 const int K) {
+void computeTopRating(float *ratings_matrix, const int num_users,
+                      const int num_items) {
+  int *top_K_items = new int[num_users];
+#pragma omp parallel for
+  for (int user_id = 0; user_id < num_users; user_id++) {
+
+    unsigned long index = user_id;
+    index *= num_items;
+    float best_rating = ratings_matrix[index];
+    int best_item_id = 0;
+    for (int item_id = 1; item_id < num_items; ++item_id) {
+      const float curr_rating = ratings_matrix[index + item_id];
+      if (curr_rating > best_rating) {
+        best_rating = curr_rating;
+        best_item_id = item_id;
+      }
+    }
+    top_K_items[user_id] = best_item_id;
+  }
+  delete[] top_K_items;
+}
+
+void computeTopK(float *ratings_matrix, const int num_users,
+                 const int num_items, const int K) {
 
   int *top_K_items = new int[num_users * K];
 #pragma omp parallel for
@@ -38,13 +60,13 @@ void computeTopK(float *matrix, const int num_users, const int num_items,
     index *= num_items;
 
     for (int j = 0; j < K; j++) {
-      q.push(std::make_pair(matrix[index + j], j));
+      q.push(std::make_pair(ratings_matrix[index + j], j));
     }
 
     for (int j = K; j < num_items; j++) {
-      if (matrix[index + j] > q.top().first) {
+      if (ratings_matrix[index + j] > q.top().first) {
         q.pop();
-        q.push(std::make_pair(matrix[index + j], j));
+        q.push(std::make_pair(ratings_matrix[index + j], j));
       }
     }
 
@@ -149,7 +171,11 @@ int main(int argc, const char *argv[]) {
 
     dsecnd();
     time_st = dsecnd();
-    computeTopK(matrix_product, per_instance, num_items, K);
+    if (K == 1) {
+      computeTopRating(matrix_product, per_instance, num_items);
+    } else {
+      computeTopK(matrix_product, per_instance, num_items, K);
+    }
     time_end = dsecnd();
     pr_queue_time += (time_end - time_st);
 
@@ -163,7 +189,11 @@ int main(int argc, const char *argv[]) {
 
     dsecnd();
     time_st = dsecnd();
-    computeTopK(matrix_product, per_instance, num_items, K);
+    if (K == 1) {
+      computeTopRating(matrix_product, per_instance, num_items);
+    } else {
+      computeTopK(matrix_product, per_instance, num_items, K);
+    }
     time_end = dsecnd();
     pr_queue_time += (time_end - time_st);
 
@@ -177,7 +207,11 @@ int main(int argc, const char *argv[]) {
 
     dsecnd();
     time_st = dsecnd();
-    computeTopK(matrix_product, per_instance, num_items, K);
+    if (K == 1) {
+      computeTopRating(matrix_product, per_instance, num_items);
+    } else {
+      computeTopK(matrix_product, per_instance, num_items, K);
+    }
     time_end = dsecnd();
     pr_queue_time += (time_end - time_st);
 
@@ -199,7 +233,11 @@ int main(int argc, const char *argv[]) {
 
     dsecnd();
     time_st = dsecnd();
-    computeTopK(matrix_product, m, num_items, K);
+    if (K == 1) {
+      computeTopRating(matrix_product, num_users, num_items);
+    } else {
+      computeTopK(matrix_product, num_users, num_items, K);
+    }
     time_end = dsecnd();
     pr_queue_time = (time_end - time_st);
 

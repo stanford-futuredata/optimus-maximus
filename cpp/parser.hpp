@@ -9,7 +9,6 @@
 #ifndef parser_hpp
 #define parser_hpp
 
-#include "types.hpp"
 #include <string>
 
 float *parse_weights_csv(const std::string filename, const int num_rows,

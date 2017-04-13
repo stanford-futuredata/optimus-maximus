@@ -4,7 +4,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
-MODELS = [
+NETFLIX_MODELS = [
     'lemp-paper-Netflix-noav-10',
     'pb-new-Netflix-10',
     'sigmod-deadline-Netflix-10',
@@ -15,6 +15,15 @@ MODELS = [
     'sigmod-deadline-Netflix-50',
     'lemp-paper-Netflix-noav-50',
     'lemp-paper-Netflix-noav-100',
+]
+
+KDD_MODELS = [
+    'pb-new-kdd-10',
+    'sigmod-deadline-kdd-10',
+    'pb-new-kdd-25',
+    'sigmod-deadline-kdd-25',
+    #'pb-new/kdd-50',
+    #'sigmod-deadline/kdd-50',
 ]
 
 
@@ -76,7 +85,7 @@ def get_theta_b(df):
 ###########
 ## PLOTS ##
 ###########
-def f_u_plots(simdex_df, lemp_df, blocked_mm_df):
+def f_u_plots(simdex_df, lemp_df, blocked_mm_df=None, models=NETFLIX_MODELS):
     simdex_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()[['model', 'K', 'comp_time']]
     simdex_rt['algo'] = 'SimDex'
@@ -84,12 +93,14 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df):
     lemp_rt = lemp_df[['model', 'K', 'comp_time']]
     lemp_rt['algo'] = 'LEMP'
 
-    blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
-    blocked_mm_rt['algo'] = 'Blocked Matrix Multiply'
+    if blocked_mm_df is not None:
+        blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
+        blocked_mm_rt['algo'] = 'Blocked Matrix Multiply'
+        total_rt = pd.concat([simdex_rt, lemp_rt, blocked_mm_rt])
+    else:
+        total_rt = pd.concat([simdex_rt, lemp_rt])
 
-    total_rt = pd.concat([simdex_rt, lemp_rt, blocked_mm_rt])
-
-    for model in MODELS:
+    for model in models:
         data = total_rt.query('model == "%s"' % model)
         max_runtime = data['comp_time'].max()
         sns.barplot(
@@ -111,19 +122,19 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df):
         plt.show()
 
 
-def throughput_vs_num_clusters(simdex_df):
-    for model in MODELS:
+def runtime_vs_num_clusters(simdex_df, models):
+    for model in models:
         table = simdex_df.query('model == "%s"' % model)
         data = table.groupby(
             ['num_clusters', 'K'], as_index=False).aggregate(min)
-        top = sns.barplot(
+        sns.barplot(
             x='K',
             y='comp_time',
             hue='num_clusters',
             data=data,
             linewidth=1.25,
             edgecolor='black')
-        bottom = sns.barplot(
+        sns.barplot(
             x='K',
             y='cluster_time',
             hue='num_clusters',
@@ -140,14 +151,14 @@ def throughput_vs_num_clusters(simdex_df):
         plt.minorticks_on()
         sns.despine()
         plt.title(model)
-        # save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
+        # save_figure('runtime-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
         plt.show()
 
 
-def runtime_vs_num_bins(simdex_df):
+def runtime_vs_num_bins(simdex_df, models):
     best_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    for model in MODELS:
+    for model in models:
         best_rt_model = best_rt.query('model == "%s"' % model)
         data = []
         for _, row in best_rt_model.iterrows():
@@ -173,7 +184,7 @@ def runtime_vs_num_bins(simdex_df):
         plt.minorticks_on()
         sns.despine()
         plt.title(model)
-        # save_figure('throughput-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
+        # save_figure('runtime-vs-n-cluster-%s-%d.pdf' % (dataset, F), legend)
         plt.show()
 
 
