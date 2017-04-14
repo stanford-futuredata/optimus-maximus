@@ -22,8 +22,8 @@ KDD_MODELS = [
     'sigmod-deadline-kdd-10',
     'pb-new-kdd-25',
     'sigmod-deadline-kdd-25',
-    #'pb-new/kdd-50',
-    #'sigmod-deadline/kdd-50',
+    'pb-new-kdd-50',
+    'sigmod-deadline-kdd-50',
 ]
 
 
