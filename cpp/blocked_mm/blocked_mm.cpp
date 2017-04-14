@@ -29,15 +29,16 @@ void computeTopRating(float *ratings_matrix, const int num_users,
 
     unsigned long index = user_id;
     index *= num_items;
-    float best_rating = ratings_matrix[index];
-    int best_item_id = 0;
-    for (int item_id = 1; item_id < num_items; ++item_id) {
-      const float curr_rating = ratings_matrix[index + item_id];
-      if (curr_rating > best_rating) {
-        best_rating = curr_rating;
-        best_item_id = item_id;
-      }
-    }
+    int best_item_id = cblas_isamax(num_items, &ratings_matrix[index], 1);
+    // float best_rating = ratings_matrix[index];
+    // int best_item_id = 0;
+    // for (int item_id = 1; item_id < num_items; ++item_id) {
+    //   const float curr_rating = ratings_matrix[index + item_id];
+    //   if (curr_rating > best_rating) {
+    //     best_rating = curr_rating;
+    //     best_item_id = item_id;
+    //   }
+    // }
     top_K_items[user_id] = best_item_id;
   }
   delete[] top_K_items;
@@ -94,8 +95,10 @@ int main(int argc, const char *argv[]) {
       "Nubmer of latent factors")("num-threads,t",
                                   opt::value<int>()->default_value(1),
                                   "Number of threads, default: 1")(
-      "base-name", opt::value<std::string>()->required(),
-      "Base name for file output to record stats");
+      "block-size,b", opt::value<long>()->default_value(25000),
+      "Number of users per block")("base-name",
+                                   opt::value<std::string>()->required(),
+                                   "Base name for file output to record stats");
 
   opt::variables_map args;
   opt::store(opt::command_line_parser(argc, argv).options(description).run(),
@@ -116,6 +119,9 @@ int main(int argc, const char *argv[]) {
   const int num_users = args["num-users"].as<int>();
   const int num_items = args["num-items"].as<int>();
   const int num_latent_factors = args["num-latent-factors"].as<int>();
+  const unsigned long num_users_per_block =
+      args["block-size"]
+          .as<long>();  // TODO: calculate this based on available memory
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
 
@@ -130,123 +136,56 @@ int main(int argc, const char *argv[]) {
 
   double time_st, time_end, gemm_time = 0, pr_queue_time = 0, compute_time = 0;
 
-  const float alpha = 1.0;
-  const float beta = 0.0;
-  const int m = num_users;
-  const int n = num_items;
-  const int k = num_latent_factors;
-
   float *item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
   float *user_weights =
       parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
   mkl_free_buffers();
 
-  unsigned long tb = 1024 * 1024 * 1024;
-  tb = tb * 800;
+  // unsigned long available_mem = 1024 * 1024 * 1024;
+  // available_mem = available_mem * 800;
 
-  unsigned long needed = m;
-  needed *= n;
+  unsigned long needed = num_users_per_block;
+  needed *= num_items;
   needed *= sizeof(float);
+  float *matrix_product = (float *)_malloc(needed);
 
-  if (needed > tb) {
-    const int per_instance = (int)floor((num_users) / 3.0);
-    std::cout << "Blocking user matrix into 3 sub-matrices, " << per_instance
-              << " rows per matrix" << std::endl;
-    unsigned long mem_needed = 1;
-    mem_needed = mem_needed * per_instance;
-    mem_needed = mem_needed * n;
-    mem_needed = mem_needed * sizeof(float);
-    float *matrix_product = (float *)_malloc(mem_needed);
+  const float alpha = 1.0;
+  const float beta = 0.0;
+  const int n = num_items;
+  const int k = num_latent_factors;
 
+  for (unsigned long num_users_so_far = 0; num_users_so_far < num_users;
+       num_users_so_far += num_users_per_block) {
+    std::cout << "Num users so far: " << num_users_so_far << std::endl;
+    // Compute blocked matrix product
     dsecnd();
     time_st = dsecnd();
 
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, per_instance, n, k,
-                alpha, user_weights, k, item_weights, k, beta, matrix_product,
-                n);
+    const int m = std::min(num_users_per_block, num_users - num_users_so_far);
 
-    time_end = dsecnd();
-    gemm_time += (time_end - time_st);
-
-    dsecnd();
-    time_st = dsecnd();
-    if (K == 1) {
-      computeTopRating(matrix_product, per_instance, num_items);
-    } else {
-      computeTopK(matrix_product, per_instance, num_items, K);
-    }
-    time_end = dsecnd();
-    pr_queue_time += (time_end - time_st);
-
-    dsecnd();
-    time_st = dsecnd();
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, per_instance, n, k,
-                alpha, &user_weights[per_instance], k, item_weights, k, beta,
-                matrix_product, n);
-    time_end = dsecnd();
-    gemm_time += (time_end - time_st);
-
-    dsecnd();
-    time_st = dsecnd();
-    if (K == 1) {
-      computeTopRating(matrix_product, per_instance, num_items);
-    } else {
-      computeTopK(matrix_product, per_instance, num_items, K);
-    }
-    time_end = dsecnd();
-    pr_queue_time += (time_end - time_st);
-
-    dsecnd();
-    time_st = dsecnd();
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, per_instance, n, k,
-                alpha, &user_weights[per_instance * 2], k, item_weights, k,
-                beta, matrix_product, n);
-    time_end = dsecnd();
-    gemm_time += (time_end - time_st);
-
-    dsecnd();
-    time_st = dsecnd();
-    if (K == 1) {
-      computeTopRating(matrix_product, per_instance, num_items);
-    } else {
-      computeTopK(matrix_product, per_instance, num_items, K);
-    }
-    time_end = dsecnd();
-    pr_queue_time += (time_end - time_st);
-
-    compute_time = gemm_time + pr_queue_time;
-
-    _free(item_weights);
-    _free(user_weights);
-    _free(matrix_product);
-
-  } else {
-    float *matrix_product = (float *)_malloc(needed);
-
-    dsecnd();
-    time_st = dsecnd();
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
                 user_weights, k, item_weights, k, beta, matrix_product, n);
     time_end = dsecnd();
-    gemm_time = (time_end - time_st);
+    gemm_time += (time_end - time_st);
 
+    // Find Top K
     dsecnd();
     time_st = dsecnd();
+
     if (K == 1) {
-      computeTopRating(matrix_product, num_users, num_items);
+      computeTopRating(matrix_product, num_users_per_block, num_items);
     } else {
-      computeTopK(matrix_product, num_users, num_items, K);
+      computeTopK(matrix_product, num_users_per_block, num_items, K);
     }
     time_end = dsecnd();
-    pr_queue_time = (time_end - time_st);
-
-    compute_time = gemm_time + pr_queue_time;
-
-    _free(item_weights);
-    _free(user_weights);
-    _free(matrix_product);
+    pr_queue_time += (time_end - time_st);
   }
+  compute_time = gemm_time + pr_queue_time;
+
+  _free(item_weights);
+  _free(user_weights);
+  _free(matrix_product);
 
   std::ofstream timing_stats_file;
   const unsigned int curr_time =
@@ -254,12 +193,13 @@ int main(int argc, const char *argv[]) {
   const std::string timing_stats_fname =
       base_name + "_timing_" + std::to_string(curr_time) + ".csv";
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
-  timing_stats_file << "model,K,num_latent_factors,num_threads,gemm_time,pr_"
-                       "queue_time,comp_time" << std::endl;
+  timing_stats_file
+      << "model,K,num_latent_factors,num_threads,block_size,gemm_time,pr_"
+         "queue_time,comp_time" << std::endl;
   const std::string timing_stats =
-      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%") % base_name %
-       num_latent_factors % num_threads % K % gemm_time % pr_queue_time %
-       compute_time).str();
+      (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%") % base_name %
+       num_latent_factors % num_threads % K % num_users_per_block % gemm_time %
+       pr_queue_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 

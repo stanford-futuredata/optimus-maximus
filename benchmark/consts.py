@@ -1,4 +1,5 @@
 from pathos.helpers import mp
+import os
 
 # We want only physical cores, not virtual cores. This means that we'll
 # use every _other_ CPU in a given NUM node range
@@ -40,7 +41,7 @@ for cpu_id_offsets in numa_cpu_id_offsets:
     NUMA_QUEUE.put(
         get_cpu_assignments(cpu_id_offsets, NUM_VIRTUAL_CORES_PER_POOL))
 
-MODEL_DIR_BASE = '/lfs/raiders6/ssd/fabuzaid/models-simdex'
+MODEL_DIR_BASE = '%s/models-simdex' % os.getenv('HOME')
 
 TO_RUN = [
     ('lemp-paper/Netflix-noav-10', (10, 480189, 17770)),
@@ -54,12 +55,12 @@ TO_RUN = [
     ('sigmod-deadline/Netflix-50', (50, 480189, 17770)),
     ('lemp-paper/Netflix-noav-100', (100, 480189, 17770)),
 
-    #('pb-new/kdd-10', (10, 1000990, 624961)),
-    #('sigmod-deadline/kdd-10', (10, 1000990, 624961)),
-    #('pb-new/kdd-25', (25, 1000990, 624961)),
-    #('sigmod-deadline/kdd-25', (25, 1000990, 624961)),
-    #('pb-new/kdd-50', (50, 1000990, 624961)),
-    #('sigmod-deadline/kdd-50', (50, 1000990, 624961)),
+    ('pb-new/kdd-10', (10, 1000990, 624961)),
+    ('sigmod-deadline/kdd-10', (10, 1000990, 624961)),
+    ('pb-new/kdd-25', (25, 1000990, 624961)),
+    ('sigmod-deadline/kdd-25', (25, 1000990, 624961)),
+    ('pb-new/kdd-50', (50, 1000990, 624961)),
+    ('sigmod-deadline/kdd-50', (50, 1000990, 624961)),
 
     #('lemp-paper/IE-svd-10', (10, 7716114, 1322094)),
     #('lemp-paper/IE-svd-50', (50, 7716114, 1322094)),
