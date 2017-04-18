@@ -1,6 +1,3 @@
-[submodule "LEMP"]
-	path = LEMP
-	url = git@github.com:stanford-futuredata/LEMP-benchmarking.git
 [submodule "LEMP-benchmarking"]
 	path = LEMP-benchmarking
 	url = git@github.com:stanford-futuredata/LEMP-benchmarking.git
