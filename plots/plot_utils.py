@@ -26,6 +26,9 @@ KDD_MODELS = [
     'sigmod-deadline-kdd-50',
 ]
 
+R2_MODELS = [
+    'ramdisk-r2-10',
+]
 
 ###########
 ## UTILS ##
