@@ -1,1 +1,0 @@
-rsync -avz --delete -e ssh . geet@raiders6:~/simdex-sync

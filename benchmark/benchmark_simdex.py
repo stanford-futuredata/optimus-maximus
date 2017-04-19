@@ -35,12 +35,15 @@ def run(run_args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--sweep', dest='sweep', action='store_true')
+    parser.add_argument('--no-sweep', dest='sweep', action='store_false')
+    parser.set_defaults(sweep=False)
     args = parser.parse_args()
 
     TOP_K = [1, 5, 10, 50]
     NUM_THREADS = [1]
-    NUM_BINS = [1, 3, 5, 10]
-    NUM_CLUSTERS = [64, 128, 256, 512, 1024, 2048, 4096]
+    NUM_BINS = [1, 3, 5, 10] if args.sweep else [5]
+    NUM_CLUSTERS = [64, 128, 256, 512, 1024, 2048, 4096] if args.sweep else [512, 1024]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
 
