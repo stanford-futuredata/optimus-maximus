@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Run from top-level dir, e.g., `scripts/build_lemp.sh --simd --no-icc`
+
 if [ "$#" -ne 2 ]; then
     echo "Two arguments required: [--simd|--no-simd] [--icc|--no-icc]"
     exit 1
