@@ -1,7 +1,11 @@
 model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
-lemp-paper-KDD-50,50,1,10,25000,1017.7,553.21,1570.91
+nomad-KDD-100-gold-standard,100,1,1,25000,1632.16,388.887,2021.05
+nomad-KDD-100-gold-standard,100,1,5,25000,1636.19,553.602,2189.79
+nomad-KDD-100-gold-standard,100,1,10,25000,1641.96,555.543,2197.5
+nomad-KDD-100-gold-standard,100,1,50,25000,1634.47,579.961,2214.43
 lemp-paper-KDD-50,50,1,1,25000,1018.31,387.609,1405.92
 lemp-paper-KDD-50,50,1,5,25000,1019.69,552.255,1571.94
+lemp-paper-KDD-50,50,1,10,25000,1017.7,553.21,1570.91
 lemp-paper-KDD-50,50,1,50,25000,1018.13,558.739,1576.87
 pb-new-kdd-10,10,1,50,25000,400.449,555.724,956.173
 pb-new-kdd-10,10,1,10,25000,400.333,551.872,952.206
