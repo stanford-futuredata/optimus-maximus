@@ -16,8 +16,7 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
         str(v)
         for v in range(cpu_id_offsets[1], cpu_id_offsets[1] + num_cores, 2)))
 
-
-# From `lscpu` on raiders6:
+    # From `lscpu` on raiders6:
 #   CPU(s):                112
 #   On-line CPU(s) list:   0-111
 #   Thread(s) per core:    2
@@ -29,49 +28,55 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
 #   NUMA node2 CPU(s):     28-41,84-97
 #   NUMA node3 CPU(s):     42-55,98-111
 
+
 NUM_NUMA_NODES = 4
+NUMA_CPU_ID_OFFSETS = [(0, 56), (14, 70), (28, 84), (42, 98)]
 
 # When assigning cores to a given process, use NUMA_QUEUE
 # to fetch in real-time an available NUMA node. This guarantees
 # that we won't have any contention.
-m = mp.Manager()
-NUMA_QUEUE = m.Queue(NUM_NUMA_NODES)
-numa_cpu_id_offsets = [(0, 56), (14, 70), (28, 84), (42, 98)]
-for cpu_id_offsets in numa_cpu_id_offsets:
-    NUMA_QUEUE.put(
-        get_cpu_assignments(cpu_id_offsets, NUM_VIRTUAL_CORES_PER_POOL))
+def get_numa_queue(num_jobs_per_numa_node=1):
+    m = mp.Manager()
+    queue = m.Queue(NUM_NUMA_NODES*num_jobs_per_numa_node)
+    for cpu_id_offsets in NUMA_CPU_ID_OFFSETS:
+        for i in range(num_jobs_per_numa_node):
+            queue.put(
+                get_cpu_assignments(cpu_id_offsets,
+                                    NUM_VIRTUAL_CORES_PER_POOL))
+    return queue
+
 
 MODEL_DIR_BASE = '%s/models-simdex' % os.getenv('HOME')
 
 TO_RUN = [
-    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770)),
-    ('lemp-paper/Netflix-50', (50, 480189, 17770)),
-    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770)),
-    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770)),
+    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (256, 512))),
+    ('lemp-paper/Netflix-50', (50, 480189, 17770, (256, 512))),
+    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (256, 512))),
+    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (256, 512))),
 
-    ('lemp-paper/KDD-50', (50, 1000990, 624961)),
+    ('lemp-paper/KDD-50', (50, 1000990, 624961, (512, 1024))),
 
-    ('nomad/KDD-100-gold-standard', (100, 1000990, 624961)),
+    ('nomad/KDD-100-gold-standard', (100, 1000990, 624961, (512, 1024))),
 
-    ('nomad/R2-10-reg-1', (10, 1823179, 136736)),
-    ('nomad/R2-10-reg-0.1', (10, 1823179, 136736)),
-    ('nomad/R2-10-reg-0.01', (10, 1823179, 136736)),
-    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736)),
+    ('nomad/R2-10-reg-1', (10, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-10-reg-0.1', (10, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-10-reg-0.01', (10, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736, (1024, 2048))),
 
-    ('nomad/R2-25-reg-1', (25, 1823179, 136736)),
-    ('nomad/R2-25-reg-0.1', (25, 1823179, 136736)),
-    ('nomad/R2-25-reg-0.01', (25, 1823179, 136736)),
-    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736)),
+    ('nomad/R2-25-reg-1', (25, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-25-reg-0.1', (25, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-25-reg-0.01', (25, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (1024, 2048))),
 
-    ('nomad/R2-50-reg-1', (50, 1823179, 136736)),
-    ('nomad/R2-50-reg-0.1', (50, 1823179, 136736)),
-    ('nomad/R2-50-reg-0.01', (50, 1823179, 136736)),
-    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736)),
+    ('nomad/R2-50-reg-1', (50, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-50-reg-0.1', (50, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-50-reg-0.01', (50, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736, (1024, 2048))),
 
-    ('nomad/R2-100-reg-1', (100, 1823179, 136736)),
-    ('nomad/R2-100-reg-0.1', (100, 1823179, 136736)),
-    ('nomad/R2-100-reg-0.01', (100, 1823179, 136736)),
-    ('nomad/R2-100-reg-0.001', (100, 1823179, 136736)),
+    ('nomad/R2-100-reg-1', (100, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-100-reg-0.1', (100, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-100-reg-0.01', (100, 1823179, 136736, (1024, 2048))),
+    ('nomad/R2-100-reg-0.001', (100, 1823179, 136736, (1024, 2048))),
 
     #('pb-new/Netflix-10', (10, 480189, 17770)),
     #('pb-new/Netflix-10-iters-100', (10, 480189, 17770)),

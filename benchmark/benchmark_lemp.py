@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, NUMA_QUEUE
+from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, get_numa_queue
 from pathos import multiprocessing
 from itertools import product
 import argparse
@@ -72,12 +72,14 @@ def main():
         os.makedirs(output_dir)
 
     run_args = []
-    for (model_dir, (num_factors, num_users, num_items)) in TO_RUN:
+    numa_queue = get_numa_queue()
+
+    for (model_dir, (num_factors, num_users, num_items, _)) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         for K, num_threads in product(TOP_K, NUM_THREADS):
             run_args.append(
-                (NUMA_QUEUE, num_factors, num_users, num_items, K, num_threads,
+                (numa_queue, num_factors, num_users, num_items, K, num_threads,
                  input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.Pool(

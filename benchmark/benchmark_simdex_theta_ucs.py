@@ -24,7 +24,8 @@ def run(run_args):
         'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
         str(num_users), '-n', str(num_items), '-f', str(num_factors), '-c',
         str(num_clusters), '-s', str(sample_percentage), '-i', str(num_iters),
-        '-b', str(num_bins), '-t', str(num_threads), '--base-name', base_name
+        '-b', str(num_bins), '-t', str(num_threads), '--base-name', base_name,
+        '--print-theta-ucs'
     ]
     print('Running ' + str(cmd))
     subprocess.call(cmd)
@@ -35,15 +36,11 @@ def run(run_args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_dir', required=True)
-    parser.add_argument('--sweep', dest='sweep', action='store_true')
-    parser.add_argument('--no-sweep', dest='sweep', action='store_false')
-    parser.set_defaults(sweep=False)
     args = parser.parse_args()
 
-    TOP_K = [1, 5, 10, 50]
+    TOP_K = [1]
     NUM_THREADS = [1]
-    NUM_BINS = [1, 3, 5, 10] if args.sweep else [5]
-    NUM_CLUSTERS = [64, 128, 256, 512, 1024, 2048, 4096]
+    NUM_BINS = [5]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
 
@@ -54,22 +51,22 @@ def main():
         os.makedirs(output_dir)
 
     run_args = []
-    numa_queue = get_numa_queue()
 
-    for (model_dir, (num_factors, num_users, num_items, best_num_clusters)) in TO_RUN:
+    numa_queue = get_numa_queue(num_jobs_per_numa_node=3)
+
+    for (model_dir, (num_factors, num_users, num_items,
+                     best_num_clusters)) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
-        num_clusters_to_try = NUM_CLUSTERS if args.sweep else best_num_clusters
         for K, num_threads, num_bins, num_clusters, sample_percentage, num_iters in product(
-                TOP_K, NUM_THREADS, NUM_BINS, num_clusters_to_try, SAMPLE_PERCENTAGES,
-                NUM_ITERS):
+                TOP_K, NUM_THREADS, NUM_BINS, best_num_clusters,
+                SAMPLE_PERCENTAGES, NUM_ITERS):
             run_args.append(
                 (numa_queue, num_factors, num_users, num_items, K,
                  num_clusters, sample_percentage, num_iters, num_threads,
                  num_bins, input_dir, base_name, output_dir, runner))
 
-    pool = multiprocessing.ProcessPool(
-        NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
+    pool = multiprocessing.ProcessPool(NUM_NUMA_NODES * 3)
     pool.map(run, run_args)
 
 

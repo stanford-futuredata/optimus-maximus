@@ -30,6 +30,8 @@
 
 namespace opt = boost::program_options;
 
+bool print_theta_ucs = false;
+
 /**
  * Input: user id -> cluster id mapping (k-means assignments), user weights
  * Output: array of vectors: cluster_id -> vector of user ids, user weights
@@ -100,6 +102,7 @@ int main(int argc, const char* argv[]) {
                                     "Batch size, default: 256")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
+      "print-theta-ucs", opt::bool_switch(&print_theta_ucs), "description")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
 
@@ -199,6 +202,32 @@ int main(int argc, const char* argv[]) {
       user_id_cluster_ids, user_weights, num_users, num_latent_factors,
       num_clusters, num_users_so_far_arr);
   // user_weights is now sorted correctly, matches cluster_index
+  if (print_theta_ucs) {
+    float* theta_ucs = compute_all_theta_ucs(
+        user_weights, centroids, num_latent_factors, num_users, num_clusters,
+        cluster_index, num_users_so_far_arr);
+    std::ofstream theta_ucs_file;
+    const unsigned int curr_time =
+        std::chrono::system_clock::now().time_since_epoch().count();
+    const std::string timing_stats_fname =
+        base_name + "_theta_ucs_" + std::to_string(curr_time) + ".csv";
+    theta_ucs_file.open(timing_stats_fname, std::ios_base::app);
+    theta_ucs_file << "cluster_id,theta_uc" << std::endl;
+    for (int cluster_id = 0; cluster_id < num_clusters; ++cluster_id) {
+      const int num_users_in_cluster = cluster_index[cluster_id].size();
+      if (num_users_in_cluster == 0) {
+        continue;
+      }
+      const int num_users_so_far = num_users_so_far_arr[cluster_id];
+      for (int i = 0; i < num_users_in_cluster; ++i) {
+        theta_ucs_file << cluster_id << "," << theta_ucs[num_users_so_far + i]
+                       << std::endl;
+      }
+    }
+    theta_ucs_file.close();
+    _free(theta_ucs);
+    return 0;
+  }
 
   float* item_norms =
       compute_norms_vector(item_weights, num_items, num_latent_factors);
