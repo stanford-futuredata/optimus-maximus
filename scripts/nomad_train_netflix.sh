@@ -15,5 +15,6 @@ OUTPUT_DIR=$4
 
 mkdir -p $OUTPUT_DIR
 
-mpirun ./nomad_double --nthreads 4 --reg $REG --lrate 0.0005 --drate 0.05 --dim $DIM --timeout 500 \
-  --path $INPUT_DIR --output $OUTPUT_DIR
+mpirun ./nomad_double --nthreads 4 --reg $REG --lrate 0.008 --drate 0.01 --dim $DIM --timeout 1000 \
+  --path ${INPUT_DIR}/ --output ${OUTPUT_DIR}/ > ${OUTPUT_DIR}/output.txt
+# --lrate 0.012 --drate 0.05
