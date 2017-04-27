@@ -108,6 +108,7 @@ void computeTopKForCluster(
 
   dsecnd();
   time_start = dsecnd();
+  int *top_K_items = (int *)_malloc(num_users_in_cluster * K * sizeof(int));
 
   // compute user_norms and theta_ucs for every user assigned to this cluster
   float *user_norms = compute_norms_vector(user_weights, num_users_in_cluster,
@@ -192,8 +193,6 @@ void computeTopKForCluster(
   }
 
   // ----------Computer Per User TopK Below------------------
-  int top_K_items[num_users_in_cluster][K];
-
   dsecnd();
   time_start = dsecnd();
 
@@ -306,14 +305,14 @@ void computeTopKForCluster(
       top_K_scores[K - 1 - j] = p.first;
 #endif
       // don't need to store score
-      top_K_items[i][K - 1 - j] = p.second;  // store item ID
+      top_K_items[i * K + K - 1 - j] = p.second;  // store item ID
       q.pop();
     }
 
 #ifdef DEBUG
     std::cout << "User ID " << user_ids_in_cluster[i] << std::endl;
     check_against_naive(&user_weights[i * num_latent_factors], item_weights,
-                        num_items, num_latent_factors, top_K_items[i],
+                        num_items, num_latent_factors, &top_K_items[i * K],
                         top_K_scores, K);
 
     user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
@@ -326,6 +325,7 @@ void computeTopKForCluster(
   // ----------Free Allocated Memory Below-------
   _free(pBufSize);
   _free(pBuffer);
+  _free(top_K_items);
   _free(user_norms);
   _free(theta_ucs);
   _free(user_dot_items);
