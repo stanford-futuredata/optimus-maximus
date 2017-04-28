@@ -30,7 +30,7 @@
 
 namespace opt = boost::program_options;
 
-bool print_theta_ucs = false;
+bool print_theta_bs = false;
 
 /**
  * Input: user id -> cluster id mapping (k-means assignments), user weights
@@ -92,17 +92,17 @@ int main(int argc, const char* argv[]) {
       "num-latent-factors,f", opt::value<int>()->required(),
       "Nubmer of latent factors")(
       "num-clusters,c", opt::value<int>()->required(), "Number of clusters")(
-      "sample-percentage,s", opt::value<int>()->default_value(20),
+      "sample-percentage,s", opt::value<int>()->default_value(10),
       "Ratio of users to sample during clustering, between 0. and 1.")(
-      "num-iters,i", opt::value<int>()->default_value(10),
+      "num-iters,i", opt::value<int>()->default_value(3),
       "Number of iterations to run clustering, default: 10")(
-      "num-bins,b", opt::value<int>()->default_value(1),
+      "num-bins,b", opt::value<int>()->default_value(5),
       "Number of bins, default: 1")("batch-size",
                                     opt::value<int>()->default_value(256),
                                     "Batch size, default: 256")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
-      "print-theta-ucs", opt::bool_switch(&print_theta_ucs), "description")(
+      "print-theta-bs", opt::bool_switch(&print_theta_bs), "description")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
 
@@ -202,30 +202,51 @@ int main(int argc, const char* argv[]) {
       user_id_cluster_ids, user_weights, num_users, num_latent_factors,
       num_clusters, num_users_so_far_arr);
   // user_weights is now sorted correctly, matches cluster_index
-  if (print_theta_ucs) {
-    float* theta_ucs = compute_all_theta_ucs(
-        user_weights, centroids, num_latent_factors, num_users, num_clusters,
-        cluster_index, num_users_so_far_arr);
-    std::ofstream theta_ucs_file;
+
+  if (print_theta_bs) {
+    std::ofstream theta_bs_file;
     const unsigned int curr_time =
         std::chrono::system_clock::now().time_since_epoch().count();
-    const std::string timing_stats_fname =
-        base_name + "_theta_ucs_" + std::to_string(curr_time) + ".csv";
-    theta_ucs_file.open(timing_stats_fname, std::ios_base::app);
-    theta_ucs_file << "cluster_id,theta_uc" << std::endl;
-    for (int cluster_id = 0; cluster_id < num_clusters; ++cluster_id) {
+    const std::string theta_bs_fname =
+        base_name + "_theta_bs_" + std::to_string(curr_time) + ".csv";
+    theta_bs_file.open(theta_bs_fname, std::ios_base::app);
+    theta_bs_file << "cluster_id,theta_uc,theta_b" << std::endl;
+
+    float* centroid_norms =
+        compute_norms_vector(centroids, num_clusters, num_latent_factors);
+
+    for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
       const int num_users_in_cluster = cluster_index[cluster_id].size();
       if (num_users_in_cluster == 0) {
         continue;
       }
       const int num_users_so_far = num_users_so_far_arr[cluster_id];
+
+      float* user_weights_for_centroid =
+          &user_weights[num_users_so_far * num_latent_factors];
+      float* centroid = &centroids[cluster_id * num_latent_factors];
+      const float centroid_norm = centroid_norms[cluster_id];
+
+      float* user_norms = compute_norms_vector(
+          user_weights_for_centroid, num_users_in_cluster, num_latent_factors);
+      float* theta_ucs = compute_theta_ucs_for_centroid(
+          user_weights, user_norms, centroid, num_users_in_cluster,
+          num_latent_factors, centroid_norm);
+
+      const float theta_max =
+          theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
+      const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
       for (int i = 0; i < num_users_in_cluster; ++i) {
-        theta_ucs_file << cluster_id << "," << theta_ucs[num_users_so_far + i]
-                       << std::endl;
+        const int bin_index =
+            find_theta_bin_index(theta_ucs[i], theta_bins, num_bins);
+        const float theta_b = theta_bins[bin_index];
+        theta_bs_file << cluster_id << "," << theta_ucs[i] << "," << theta_b
+                      << std::endl;
       }
+      _free(theta_ucs);
+      _free(user_norms);
     }
-    theta_ucs_file.close();
-    _free(theta_ucs);
+    theta_bs_file.close();
     return 0;
   }
 
@@ -244,15 +265,14 @@ int main(int argc, const char* argv[]) {
   const double index_time = (time_end - time_start);
 
   std::ofstream user_stats_file;
-#ifdef DEBUG
+  const unsigned int curr_time = std::chrono::system_clock::now().time_since_epoch().count();
+#ifdef STATS
   const std::string user_stats_fname =
-      (boost::format(
-           "%1%_bins-%2%_K-%3%_sample-%4%_iters-%5%_clusters-%6%.csv") %
-       base_name % num_bins % K % sample_percentage % num_iters %
-       args.count("clusters-dir")).str();
+      base_name + "_items_visited_" + std::to_string(curr_time) + ".csv";
   user_stats_file.open(user_stats_fname);
+  user_stats_file << "cluster_id,theta_uc,theta_b,num_items_visited"
+                  << std::endl;
 #endif
-
   dsecnd();
   time_start = dsecnd();
 
@@ -291,10 +311,13 @@ int main(int argc, const char* argv[]) {
   const double compute_time = cluster_time + index_time + algo_time;
 
   std::ofstream timing_stats_file;
-  const unsigned int curr_time =
-      std::chrono::system_clock::now().time_since_epoch().count();
+#ifdef STATS
+  const std::string timing_stats_fname =
+      base_name + "_timing_STATS_1_" + std::to_string(curr_time) + ".csv";
+#else
   const std::string timing_stats_fname =
       base_name + "_timing_" + std::to_string(curr_time) + ".csv";
+#endif
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   timing_stats_file
       << "model,K,num_latent_factors,num_threads,num_bins,batch_size,num_"
@@ -322,7 +345,7 @@ int main(int argc, const char* argv[]) {
   _free(sorted_upper_bounds);
   _free(sorted_item_weights);
   delete[] cluster_index;
-#ifdef DEBUG
+#ifdef STATS
   user_stats_file.close();
 #endif
 

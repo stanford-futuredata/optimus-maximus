@@ -38,16 +38,23 @@ def main():
     parser.add_argument('--sweep', dest='sweep', action='store_true')
     parser.add_argument('--no-sweep', dest='sweep', action='store_false')
     parser.set_defaults(sweep=False)
+    parser.add_argument('--stats', dest='stats', action='store_true')
+    parser.add_argument('--no-stats', dest='stats', action='store_false')
+    parser.set_defaults(stats=False)
+    parser.add_argument(
+        '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
-    TOP_K = [1, 5, 10, 50]
+    TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
+        1, 5, 10, 50
+    ]
     NUM_THREADS = [1]
     NUM_BINS = [1, 3, 5, 10] if args.sweep else [5]
     NUM_CLUSTERS = [64, 128, 256, 512, 1024, 2048, 4096]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
 
-    runner = '../cpp/simdex'
+    runner = '../cpp/simdex_stats' if args.stats else '../cpp/simdex'
 
     output_dir = args.output_dir
     if not os.path.exists(output_dir):
@@ -56,13 +63,14 @@ def main():
     run_args = []
     numa_queue = get_numa_queue()
 
-    for (model_dir, (num_factors, num_users, num_items, best_num_clusters)) in TO_RUN:
+    for (model_dir, (num_factors, num_users, num_items,
+                     best_num_clusters)) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         num_clusters_to_try = NUM_CLUSTERS if args.sweep else best_num_clusters
         for K, num_threads, num_bins, num_clusters, sample_percentage, num_iters in product(
-                TOP_K, NUM_THREADS, NUM_BINS, num_clusters_to_try, SAMPLE_PERCENTAGES,
-                NUM_ITERS):
+                TOP_K, NUM_THREADS, NUM_BINS, num_clusters_to_try,
+                SAMPLE_PERCENTAGES, NUM_ITERS):
             run_args.append(
                 (numa_queue, num_factors, num_users, num_items, K,
                  num_clusters, sample_percentage, num_iters, num_threads,

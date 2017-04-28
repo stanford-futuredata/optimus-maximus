@@ -3,9 +3,12 @@
 *.txt
 # ctags
 tags
-# C++ binary files
+# C++ object files
 *.o
+# Executables
 simdex
+simdex_stats
+simdex_debug
 blocked_mm
 # Visual Studio Code
 .vscode

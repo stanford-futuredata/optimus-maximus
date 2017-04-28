@@ -25,7 +25,7 @@ def run(run_args):
         str(num_users), '-n', str(num_items), '-f', str(num_factors), '-c',
         str(num_clusters), '-s', str(sample_percentage), '-i', str(num_iters),
         '-b', str(num_bins), '-t', str(num_threads), '--base-name', base_name,
-        '--print-theta-ucs'
+        '--print-theta-bs'
     ]
     print('Running ' + str(cmd))
     subprocess.call(cmd)

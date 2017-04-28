@@ -32,12 +32,13 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
 NUM_NUMA_NODES = 4
 NUMA_CPU_ID_OFFSETS = [(0, 56), (14, 70), (28, 84), (42, 98)]
 
+
 # When assigning cores to a given process, use NUMA_QUEUE
 # to fetch in real-time an available NUMA node. This guarantees
 # that we won't have any contention.
 def get_numa_queue(num_jobs_per_numa_node=1):
     m = mp.Manager()
-    queue = m.Queue(NUM_NUMA_NODES*num_jobs_per_numa_node)
+    queue = m.Queue(NUM_NUMA_NODES * num_jobs_per_numa_node)
     for cpu_id_offsets in NUMA_CPU_ID_OFFSETS:
         for i in range(num_jobs_per_numa_node):
             queue.put(
@@ -98,11 +99,11 @@ TO_RUN = [
 
     #('pb-new/Netflix-10', (10, 480189, 17770)),
     #('pb-new/Netflix-10-iters-100', (10, 480189, 17770)),
-    #('pb-new/Netflix-25', (25, 480189, 17770)),
+    #('pb-new/Netflix-25', (25, 480189, 17770, (256, 512))),
     #('pb-new/Netflix-50', (50, 480189, 17770)),
 
     #('sigmod-deadline/Netflix-10', (10, 480189, 17770)),
-    #('sigmod-deadline/Netflix-25', (25, 480189, 17770)),
+    #('sigmod-deadline/Netflix-25', (25, 480189, 17770, (256, 512))),
     #('sigmod-deadline/Netflix-50', (50, 480189, 17770)),
 
     #('pb-new/kdd-10', (10, 1000990, 624961)),

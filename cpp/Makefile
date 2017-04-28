@@ -2,7 +2,11 @@
 ifeq ($(DEBUG), 1)
   CXX_FLAGS := -g -O0 -D DEBUG
 else
-  CXX_FLAGS := -g -O3
+  CXX_FLAGS := -O3
+endif
+
+ifeq ($(STATS), 1)
+  CXX_FLAGS += -D STATS
 endif
 
 CXX := icc
@@ -18,8 +22,18 @@ L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
 SRCS = main.cpp algo.cpp arith.cpp parser.cpp clustering/cluster.cpp
 OBJS = $(SRCS:.cpp=.o)
 
+MAIN_DEBUG := simdex_debug
+MAIN_STATS := simdex_stats
+MAIN_RELEASE := simdex
+
 # define the executable file 
-MAIN = simdex
+ifeq ($(DEBUG), 1)
+  MAIN := $(MAIN_DEBUG)
+else ifeq ($(STATS), 1)
+  MAIN := $(MAIN_STATS)
+else
+  MAIN := $(MAIN_RELEASE)
+endif
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -42,4 +56,4 @@ $(MAIN): $(OBJS)
 	$(CXX) $(CXX_FLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o clustering/*.o *~ $(MAIN)
+	$(RM) *.o clustering/*.o *~ $(MAIN_DEBUG) $(MAIN_STATS) $(MAIN_RELEASE)

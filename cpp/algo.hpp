@@ -11,6 +11,10 @@
 #include <iostream>
 #include <vector>
 
+std::vector<float> linspace(const float start, const float end, const int num);
+int find_theta_bin_index(const float theta_uc,
+                         const std::vector<float> theta_bins,
+                         const int num_bins);
 void computeTopKForCluster(
     const int cluster_id, const float *centroid,
     const std::vector<int> &user_ids_in_cluster, const float *user_weights,

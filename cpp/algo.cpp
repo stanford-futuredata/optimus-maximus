@@ -207,8 +207,8 @@ void computeTopKForCluster(
   float *user_norm_times_upper_bound =
       (float *)_malloc(sizeof(float) * batch_size);
   const int mod = batch_size - 1;  // assumes batch_size is a power of 2, so
-                                   // mod is all 1's in binary, therefore
-                                   // ind % batch_size == ind & mod
+  // mod is all 1's in binary, therefore
+  // ind % batch_size == ind & mod
 
   for (i = 0; i < num_users_to_compute; i++) {
     const int bin_index =
@@ -315,8 +315,11 @@ void computeTopKForCluster(
                         num_items, num_latent_factors, &top_K_items[i * K],
                         top_K_scores, K);
 
-    user_stats_file << user_ids_in_cluster[i] << "," << cluster_id << ","
-                    << theta_ucs[i] << "," << num_items_visited << std::endl;
+#endif
+#ifdef STATS
+    user_stats_file << cluster_id << "," << theta_ucs[i] << ","
+                    << theta_bins[bin_index] << "," << num_items_visited
+                    << std::endl;
 #endif
   }
 
