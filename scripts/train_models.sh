@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+!/usr/bin/env bash
 
 set -x
 
@@ -26,39 +26,47 @@ set -x
 ./nomad_train.sh 0.1 10 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-10-reg-0.1
 ./nomad_train.sh 0.01 10 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-10-reg-0.01
 ./nomad_train.sh 0.001 10 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-10-reg-0.001
+./nomad_train.sh 0.0001 10 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-10-reg-0.0001
 
 ./nomad_train.sh 1 25 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-25-reg-1
 ./nomad_train.sh 0.1 25 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-25-reg-0.1
 ./nomad_train.sh 0.01 25 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-25-reg-0.01
 ./nomad_train.sh 0.001 25 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-25-reg-0.001
+./nomad_train.sh 0.0001 25 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-25-reg-0.0001
 
 ./nomad_train.sh 1 50 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-50-reg-1
 ./nomad_train.sh 0.1 50 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-50-reg-0.1
 ./nomad_train.sh 0.01 50 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-50-reg-0.01
 ./nomad_train.sh 0.001 50 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-50-reg-0.001
+./nomad_train.sh 0.0001 50 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-50-reg-0.0001
 
 ./nomad_train.sh 1 100 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-100-reg-1
 ./nomad_train.sh 0.1 100 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-100-reg-0.1
 ./nomad_train.sh 0.01 100 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-100-reg-0.01
 ./nomad_train.sh 0.001 100 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-100-reg-0.001
+./nomad_train.sh 0.0001 100 ~/data/yahoo_music_R2_dataset/nomad-format ~/models/nomad/R2-100-reg-0.0001
 
 ./nomad_train.sh 1 10 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-10-reg-1
 ./nomad_train.sh 0.1 10 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-10-reg-0.1
 ./nomad_train.sh 0.01 10 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-10-reg-0.01
 ./nomad_train.sh 0.001 10 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-10-reg-0.001
+./nomad_train.sh 0.0001 10 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-10-reg-0.0001
 
 ./nomad_train.sh 1 25 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-25-reg-1
 ./nomad_train.sh 0.1 25 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-25-reg-0.1
 ./nomad_train.sh 0.01 25 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-25-reg-0.01
 ./nomad_train.sh 0.001 25 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-25-reg-0.001
+./nomad_train.sh 0.0001 25 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-25-reg-0.0001
 
 ./nomad_train.sh 1 50 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-50-reg-1
 ./nomad_train.sh 0.1 50 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-50-reg-0.1
 ./nomad_train.sh 0.01 50 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-50-reg-0.01
 ./nomad_train.sh 0.001 50 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-50-reg-0.001
+./nomad_train.sh 0.0001 50 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-50-reg-0.0001
 
 ./nomad_train.sh 1 100 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-100-gold-standard
 ./nomad_train.sh 0.1 100 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-100-reg-0.1
 ./nomad_train.sh 0.01 100 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-100-reg-0.01
 ./nomad_train.sh 0.001 100 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-100-reg-0.001
+./nomad_train.sh 0.0001 100 ~/data/yahoo_KDD_cup_2011_dataset/nomad-format ~/models/nomad/KDD-100-reg-0.0001
 
