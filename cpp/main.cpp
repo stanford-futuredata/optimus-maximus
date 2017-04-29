@@ -265,12 +265,13 @@ int main(int argc, const char* argv[]) {
   const double index_time = (time_end - time_start);
 
   std::ofstream user_stats_file;
-  const unsigned int curr_time = std::chrono::system_clock::now().time_since_epoch().count();
+  const unsigned int curr_time =
+      std::chrono::system_clock::now().time_since_epoch().count();
 #ifdef STATS
   const std::string user_stats_fname =
-      base_name + "_items_visited_" + std::to_string(curr_time) + ".csv";
+      base_name + "_user_stats_" + std::to_string(curr_time) + ".csv";
   user_stats_file.open(user_stats_fname);
-  user_stats_file << "cluster_id,theta_uc,theta_b,num_items_visited"
+  user_stats_file << "cluster_id,theta_uc,theta_b,num_items_visited,query_time"
                   << std::endl;
 #endif
   dsecnd();
