@@ -7,62 +7,7 @@ import os
 import glob
 from itertools import cycle
 
-NETFLIX_MODELS = [
-    'lemp-paper-Netflix-noav-10',
-    'lemp-paper-Netflix-50',
-    'lemp-paper-Netflix-noav-50',
-    'lemp-paper-Netflix-noav-100',
-
-    #'sigmod-deadline-Netflix-50',
-    #'pb-new-Netflix-10',
-    #'sigmod-deadline-Netflix-10',
-    #'pb-new-Netflix-25',
-    #'sigmod-deadline-Netflix-25',
-]
-
-KDD_MODELS = [
-    'lemp-paper-KDD-50',
-    'nomad-KDD-100-gold-standard',
-    'nomad-KDD-100-reg-0.001',
-    'nomad-KDD-100-reg-0.01',
-    'nomad-KDD-100-reg-0.1',
-    'nomad-KDD-10-reg-0.001',
-    'nomad-KDD-10-reg-0.01',
-    'nomad-KDD-10-reg-0.1',
-    'nomad-KDD-10-reg-1',
-    'nomad-KDD-25-reg-0.001',
-    'nomad-KDD-25-reg-0.01',
-    'nomad-KDD-25-reg-0.1',
-    'nomad-KDD-25-reg-1',
-    'nomad-KDD-50-reg-0.1',
-    'nomad-KDD-50-reg-1',
-
-    #'pb-new-kdd-10',
-    #'sigmod-deadline-kdd-10',
-    #'pb-new-kdd-25',
-    #'sigmod-deadline-kdd-25',
-    #'pb-new-kdd-50',
-    #'sigmod-deadline-kdd-50',
-]
-
-R2_MODELS = [
-    'nomad-R2-10-reg-0.001',
-    'nomad-R2-10-reg-0.01',
-    'nomad-R2-10-reg-0.1',
-    'nomad-R2-10-reg-1',
-    'nomad-R2-25-reg-0.001',
-    'nomad-R2-25-reg-0.01',
-    'nomad-R2-25-reg-0.1',
-    'nomad-R2-25-reg-1',
-    'nomad-R2-50-reg-0.001',
-    'nomad-R2-50-reg-0.01',
-    'nomad-R2-50-reg-0.1',
-    'nomad-R2-50-reg-1',
-    'nomad-R2-100-reg-0.001',
-    'nomad-R2-100-reg-0.01',
-    'nomad-R2-100-reg-0.1',
-    'nomad-R2-100-reg-1',
-]
+from models import *
 
 FIGURES_DIR = 'figures/'
 if not os.path.exists(FIGURES_DIR):
@@ -97,29 +42,24 @@ def fix_legend(legend):
             continue
 
 
+#sns.set_palette('colorblind', n_colors=7)
 def plot_cdf(values_labels_and_colors,
              xlabel,
              title=None,
-             xlim=None,
-             ylim=None,
              log=False,
              show=True,
              fname=None):
-    linestyles = cycle(['-', '--', '-.', ':'])
+    #linestyles = cycle(['-', '--', '-.', ':'])
     for (_x_values, label, color) in values_labels_and_colors:
         x_values = sorted(_x_values)
         N = len(x_values)
         y_values = np.arange(N) / float(N)
-        plt.plot(
-            x_values,
-            y_values,
-            label=label,
-            color=color,
-            linestyle=next(linestyles))
+        plt.plot(x_values, y_values, label=label, color=color)
+        #linestyle=next(linestyles))
     if log:
         plt.xscale('log')
-    if xlim:
-        plt.xlim(xlim)
+    xlim = plt.xlim()
+    plt.xlim([0.0, xlim[-1]])
     plt.ylim([0.0, 1.0])
     if title:
         plt.title(title)
@@ -180,7 +120,7 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df=None, models=NETFLIX_MODELS):
         plt.show()
 
 
-def runtime_vs_num_clusters(simdex_df, models):
+def num_clusters_vs_runtime(simdex_df, models):
     for model in models:
         table = simdex_df.query('model == "%s"' % model)
         if len(table) == 0: continue
@@ -214,7 +154,7 @@ def runtime_vs_num_clusters(simdex_df, models):
         plt.show()
 
 
-def runtime_vs_num_bins(simdex_df, models):
+def num_bins_vs_runtime(simdex_df, models):
     best_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
     for model in models:
@@ -247,45 +187,109 @@ def runtime_vs_num_bins(simdex_df, models):
         save_figure('runtime-vs-n-bins-%s' % model, legend)
         plt.show()
 
+def reg_vs_runtime(simdex_df, blocked_mm_df, model_prefixes, regs):
+    simdex_rt = simdex_df.sort_values(by='comp_time').groupby(
+        ['model', 'K'], as_index=False).first()[['model', 'K', 'comp_time']]
+    blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
+    blocked_mm_rt['algo'] = 'Blocked Matrix Multiply'
 
-def theta_uc_cdf(simdex_df, blocked_mm_df, models=NETFLIX_MODELS):
-    COLORS = ['red', 'orange', 'green', 'blue', 'black']
+    for model_prefix in model_prefixes:
+        data = []
+        for reg in regs:
+            if reg == 'gold-standard':
+                model = model_prefix + '-' + reg
+                if 'Netflix' in model_prefix:
+                    reg = '0.05'
+                else:
+                    reg = '1'
+            else:
+                model = model_prefix + '-reg-' + reg
+
+            simdex_result = simdex_rt.query('model == "%s"' % model)
+            simdex_result['reg'] = reg
+            data.append(simdex_result)
+
+            blocked_mm_result = blocked_mm_rt.query('model == "%s"' % model)
+            blocked_mm_result['reg'] = 'Blocked Matrix Multiply'
+            data.append(blocked_mm_result)
+
+        data = pd.concat(data)
+
+        if len(data) == 0: continue
+        max_runtime = data['comp_time'].max()
+        sns.barplot(
+            x='K',
+            y='comp_time',
+            hue='reg',
+            data=data,
+            linewidth=1.25,
+            edgecolor='black')
+        legend = plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        start, end = plt.ylim()
+        plt.title(model_prefix)
+        plt.ylim([start, max_runtime * 1.1])
+        plt.minorticks_on()
+        plt.xlabel('K')
+        plt.ylabel('Time (s)')
+        sns.despine()
+        save_figure('reg-%s' % model_prefix, legend)
+        plt.show()
+
+
+def cdf(simdex_df,
+        blocked_mm_df,
+        models,
+        K,
+        column='theta_uc',
+        num_clusters_to_plot=None,
+        title=None,
+        fname=None,
+        csv_dir='items-visited'):
     best_simdex_rts = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K', 'num_clusters'], as_index=False).first()
 
-    def _theta_uc_cdf(model):
+    #COLORS = cycle(['red', 'blue', 'orange', 'green', 'purple', 'black'])
+    #COLORS = {
+    #    256: 'red',
+    #    512: 'blue',
+    #    1024: 'orange',
+    #    2048: 'green',
+    #    4096: 'brown',
+    #    8192: 'black'
+    #}
+
+    def get_vals(model):
         vals = []
-        for filename in glob.iglob('theta-ucs/%s_*' % model):
+        for filename in glob.iglob('%s/%s_items_visited_*' % (csv_dir, model)):
             df = pd.read_csv(filename)
             num_clusters = df['cluster_id'].max() + 1
-            theta_ucs = df['theta_uc'].dropna()
-            simdex_faster = []
-            for K in [1, 5, 10, 50]:
-                simdex_rt = best_simdex_rts.query(
-                    'model == "%s" and K == %d and num_clusters == %d' %
-                    (model, K, num_clusters))['comp_time']
-                blocked_mm_rt = blocked_mm_df.query(
-                    'model == "%s" and K == %d' % (model, K))['comp_time']
-                simdex_faster.append(simdex_rt.values[0] <= blocked_mm_rt.values[0])
-            color = COLORS[np.count_nonzero(simdex_faster)]
-            vals.append((theta_ucs, 'C=%d' % num_clusters, color))
-        plot_cdf(
-            vals, 'Theta_UC', model, log=False, fname='theta-ucs-%s' % model)
+            if num_clusters_to_plot and num_clusters not in num_clusters_to_plot:
+                continue
+            #if num_clusters != df['cluster_id'].max() + 1:
+            #    continue
+            theta_bs = df[column].fillna(0.0)
+            simdex_rt = best_simdex_rts.query(
+                'model == "%s" and K == %d and num_clusters == %d' %
+                (model, K, num_clusters))['comp_time']
+            if len(simdex_rt) == 0: continue
+            blocked_mm_rt = blocked_mm_df.query('model == "%s" and K == %d' %
+                                                (model, K))['comp_time']
+            if len(blocked_mm_rt) == 0: continue
+            #color = COLORS[
+            #    num_clusters]  #next(COLORS)
+            color = 'red' if blocked_mm_rt.values[0] < simdex_rt.values[0] else 'black'
+            vals.append((theta_bs, '%s, C=%d' % (model, num_clusters), color))
+        return vals
 
+    vals = []
     for model in models:
-        _theta_uc_cdf(model)
-
-
-def items_visited_cdf(df, filename):
-    items_visited = df[['K', 'ItemsVisited']].groupby(
-        ['K'], as_index=False).aggregate(lambda x: list(x))
-    x_values = items_visited['ItemsVisited']
-    labels = ['K=%d' % val for val in items_visited['K']]
-    vals = zip(x_values, labels)
-    sns.set_palette('colorblind', n_colors=7)
-    plot_cdf(vals, '# items visited', title, log=True)
-    save_figure(filename)
-    sns.despine()
+        for val in get_vals(model):
+            vals.append(val)
+    if fname:
+        fname = 'cdf-%s' % fname
+    if title:
+        title = title + ' ' + csv_dir
+    plot_cdf(vals, column, title=title, log=False, fname=fname, show=True)
 
 
 def theta_uc_items_visited_scatter(df, filename):
