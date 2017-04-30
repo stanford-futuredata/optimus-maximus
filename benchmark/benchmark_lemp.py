@@ -58,9 +58,13 @@ def main():
     parser.add_argument('--icc', dest='icc', action='store_true')
     parser.add_argument('--no-icc', dest='icc', action='store_false')
     parser.set_defaults(icc=False)
+    parser.add_argument(
+        '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
-    TOP_K = [1, 5, 10, 50]
+    TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
+        1, 5, 10, 50
+    ]
     NUM_THREADS = [1]
 
     output_suffix = 'lemp-%s-%s' % (('icc' if args.icc else 'no-icc'),
