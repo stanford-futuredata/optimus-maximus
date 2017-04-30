@@ -56,9 +56,10 @@ def main():
 
     runner = '../cpp/simdex_stats' if args.stats else '../cpp/simdex'
 
-    BUILD_COMMAND = 'cd ../cpp/ && make clean && make -j5 && cd -'
+    BUILD_COMMAND = 'cd ../cpp/ && make clean && make -j5' 
     if args.stats:
         BUILD_COMMAND += ' STATS=1'
+    BUILD_COMMAND += ' && cd -'
     subprocess.call(BUILD_COMMAND, shell=True)
 
     output_dir = args.output_dir
