@@ -22,19 +22,19 @@
 
 #include <mkl.h>
 
-// Return float array of weights of length [num_rows*num_cols]
-float *parse_weights_csv(const std::string filename, const int num_rows,
-                         const int num_cols) {
+// Return double array of weights of length [num_rows*num_cols]
+double *parse_weights_csv(const std::string filename, const int num_rows,
+                          const int num_cols) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream weight_file(filename.c_str(), std::ios_base::in);
-  float *weights = (float *)_malloc(sizeof(float) * num_rows * num_cols);
+  double *weights = (double *)_malloc(sizeof(double) * num_rows * num_cols);
 
   std::string buffer;
   if (weight_file) {
     for (int i = 0; i < num_rows; i++) {
-      float *d = &weights[i * num_cols];
+      double *d = &weights[i * num_cols];
       for (int j = 0; j < num_cols; j++) {
-        float f;
+        double f;
         weight_file >> f;
         if (j != num_cols - 1) {
           std::getline(weight_file, buffer, ',');

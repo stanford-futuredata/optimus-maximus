@@ -38,7 +38,8 @@ bool print_theta_bs = false;
  * resorted in cluster order (same pointer as before)
  **/
 std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
-                                      float*& user_weights, const int num_users,
+                                      double*& user_weights,
+                                      const int num_users,
                                       const int num_latent_factors,
                                       const int num_clusters,
                                       int* num_users_so_far_arr) {
@@ -48,8 +49,8 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
     cluster_index[user_id_cluster_ids[user_id]].push_back(user_id);
   }
 
-  float* user_weights_new =
-      (float*)_malloc(sizeof(float) * num_users * num_latent_factors);
+  double* user_weights_new =
+      (double*)_malloc(sizeof(double) * num_users * num_latent_factors);
 
   int new_user_ind = 0;
   int num_users_so_far = 0;
@@ -63,7 +64,7 @@ std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
       const int user_id = user_ids_for_cluster[j];
       std::memcpy(&user_weights_new[new_user_ind * num_latent_factors],
                   &user_weights[user_id * num_latent_factors],
-                  sizeof(float) * num_latent_factors);
+                  sizeof(double) * num_latent_factors);
       ++new_user_ind;
     }
   }
@@ -167,9 +168,9 @@ int main(int argc, const char* argv[]) {
   dsecnd();
   time_start = dsecnd();
 
-  float* item_weights =
+  double* item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
-  float* user_weights =
+  double* user_weights =
       parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
 
   time_end = dsecnd();
@@ -178,7 +179,7 @@ int main(int argc, const char* argv[]) {
   dsecnd();
   time_start = dsecnd();
 
-  float* centroids;
+  double* centroids;
   int* user_id_cluster_ids;
   if (args.count("clusters-dir")) {
     user_id_cluster_ids =
@@ -222,9 +223,9 @@ int main(int argc, const char* argv[]) {
       }
       const int num_users_so_far = num_users_so_far_arr[cluster_id];
 
-      float* user_weights_for_centroid =
+      double* user_weights_for_centroid =
           &user_weights[num_users_so_far * num_latent_factors];
-      float* centroid = &centroids[cluster_id * num_latent_factors];
+      double* centroid = &centroids[cluster_id * num_latent_factors];
       const float centroid_norm = centroid_norms[cluster_id];
 
       float* user_norms = compute_norms_vector(
@@ -285,8 +286,8 @@ int main(int argc, const char* argv[]) {
       (int*)_malloc(num_bins * num_items * sizeof(int));
   float* sorted_upper_bounds =
       (float*)_malloc(num_bins * num_items * sizeof(float));
-  float* sorted_item_weights = (float*)_malloc(sizeof(float) * num_bins *
-                                               num_items * num_latent_factors);
+  double* sorted_item_weights = (double*)_malloc(
+      sizeof(double) * num_bins * num_items * num_latent_factors);
 
 #pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {

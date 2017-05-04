@@ -35,12 +35,12 @@ inline void remove_nans(float *arr, int num_elems) {
  * output matrix_norms[i, :] = norm(matrix_weights[i, :]) _for the entire row_
  * (Entire row contains the same value in matrix_norms.)
  **/
-float *compute_norms_matrix(const float *matrix_weights, const int num_rows,
+float *compute_norms_matrix(const double *matrix_weights, const int num_rows,
                             const int num_cols) {
   float *matrix_norms = (float *)_malloc(sizeof(float) * num_rows * num_cols);
   for (int i = 0; i < num_rows; i++) {
     matrix_norms[i * num_cols] =
-        cblas_snrm2(num_cols, &matrix_weights[i * num_cols], 1);
+        cblas_dnrm2(num_cols, &matrix_weights[i * num_cols], 1);
     for (int j = 1; j < num_cols; j++) {
       matrix_norms[(i * num_cols) + j] = matrix_norms[i * num_cols];
     }
@@ -53,12 +53,12 @@ float *compute_norms_matrix(const float *matrix_weights, const int num_rows,
  * Compute L2 norm per row for a given matrix. If the input matrix_weights is
  * num_rows x num_cols, the output will be a num_rows x 1 vector
  **/
-float *compute_norms_vector(const float *matrix_weights, const int num_rows,
+float *compute_norms_vector(const double *matrix_weights, const int num_rows,
                             const int num_cols) {
   float *norms = (float *)_malloc(sizeof(float) * num_rows);
 
   for (int i = 0; i < num_rows; i++) {
-    norms[i] = cblas_snrm2(num_cols, &matrix_weights[i * num_cols], 1);
+    norms[i] = cblas_dnrm2(num_cols, &matrix_weights[i * num_cols], 1);
   }
   return norms;
 }
@@ -67,7 +67,7 @@ float *compute_norms_vector(const float *matrix_weights, const int num_rows,
  * Compute theta_ics: the angle between every centroid and every item in the
  * dataset
  **/
-float *compute_theta_ics(const float *item_weights, const float *centroids,
+float *compute_theta_ics(const double *item_weights, const double *centroids,
                          const int num_items, const int num_latent_factors,
                          const int num_clusters, const float *item_norms,
                          const float *centroid_norms) {
@@ -133,9 +133,9 @@ float *compute_theta_ics(const float *item_weights, const float *centroids,
  * Compute theta_ucs: angle between _single_ centroid and every user in the
  * dataset
  **/
-float *compute_theta_ucs_for_centroid(const float *user_weights,
+float *compute_theta_ucs_for_centroid(const double *user_weights,
                                       const float *user_norms,
-                                      const float *centroid,
+                                      const double *centroid,
                                       const int num_users,
                                       const int num_latent_factors,
                                       const float &centroid_norm) {
@@ -182,7 +182,8 @@ float *compute_theta_ucs_for_centroid(const float *user_weights,
   return theta_ucs;
 }
 
-float *compute_all_theta_ucs(const float *user_weights, const float *centroids,
+float *compute_all_theta_ucs(const double *user_weights,
+                             const double *centroids,
                              const int num_latent_factors, const int num_users,
                              const int num_clusters,
                              const std::vector<int> *cluster_index,

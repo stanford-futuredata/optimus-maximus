@@ -51,10 +51,10 @@ int find_theta_bin_index(const float theta_uc,
 }
 
 #ifdef DEBUG
-void check_against_naive(const float *user_weight, const float *item_weights,
+void check_against_naive(const double *user_weight, const double *item_weights,
                          const int num_items, const int num_latent_factors,
                          const int *computed_top_K,
-                         const float *computed_scores, const int K) {
+                         const double *computed_scores, const int K) {
   const int m = num_items;
   const int k = num_latent_factors;
 
@@ -62,8 +62,8 @@ void check_against_naive(const float *user_weight, const float *item_weights,
   const float beta = 0.0;
   const int stride = 1;
 
-  float scores[num_items];
-  cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, item_weights, k,
+  double scores[num_items];
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, m, k, alpha, item_weights, k,
               user_weight, stride, beta, scores, stride);
 
   // Sort item ids by their associated scores in descending order
@@ -72,7 +72,7 @@ void check_against_naive(const float *user_weight, const float *item_weights,
   std::sort(v.begin(), v.end(),
             [&scores](int i1, int i2) { return scores[i1] > scores[i2]; });
   // Sort scores in descending order, too
-  std::sort(scores, scores + num_items, std::greater<float>());
+  std::sort(scores, scores + num_items, std::greater<double>());
   // First compare scores
   for (int i = 0; i < K; ++i) {
     if (scores[i] != computed_scores[i]) {
@@ -93,13 +93,13 @@ void check_against_naive(const float *user_weight, const float *item_weights,
 #endif
 
 void computeTopKForCluster(
-    const int cluster_id, const float *centroid,
-    const std::vector<int> &user_ids_in_cluster, const float *user_weights,
-    const float *item_weights, const float *item_norms, const float *theta_ics,
+    const int cluster_id, const double *centroid,
+    const std::vector<int> &user_ids_in_cluster, const double *user_weights,
+    const double *item_weights, const float *item_norms, const float *theta_ics,
     const float &centroid_norm, const int num_items,
     const int num_latent_factors, const int num_bins, const int K,
     const int batch_size, float *upper_bounds, int *sorted_upper_bounds_indices,
-    float *sorted_upper_bounds, float *sorted_item_weights,
+    float *sorted_upper_bounds, double *sorted_item_weights,
     std::ofstream &user_stats_file) {
 
 #ifdef STATS
@@ -111,7 +111,7 @@ void computeTopKForCluster(
 
   const int num_users_in_cluster = user_ids_in_cluster.size();
 
-  float *user_dot_items = (float *)_malloc(sizeof(float) * batch_size);
+  double *user_dot_items = (double *)_malloc(sizeof(double) * batch_size);
   float *user_norm_times_upper_bound =
       (float *)_malloc(sizeof(float) * batch_size);
   const int mod = batch_size - 1;  // assumes batch_size is a power of 2, so
@@ -203,7 +203,7 @@ void computeTopKForCluster(
           upper_bounds[i * num_items + item_id];
       // copy item_weights into sorted_item_weights based on order of
       // sorted_upper_bounds_indices
-      cblas_scopy(
+      cblas_dcopy(
           num_latent_factors, &item_weights[item_id * num_latent_factors], 1,
           &sorted_item_weights
                [(i * bin_offset) + (batch_counter[i] * num_latent_factors)],
@@ -234,11 +234,11 @@ void computeTopKForCluster(
     const int bin_index =
         find_theta_bin_index(theta_ucs[i], theta_bins, num_bins);
 
-    std::priority_queue<std::pair<float, int>,
-                        std::vector<std::pair<float, int> >,
-                        std::greater<std::pair<float, int> > > q;
+    std::priority_queue<std::pair<double, int>,
+                        std::vector<std::pair<double, int> >,
+                        std::greater<std::pair<double, int> > > q;
 
-    float score = 0.F;
+    double score = 0.0;
 
     int m = std::min(batch_size,
                      num_items);  // not const, because it may be adjusted later
@@ -248,7 +248,7 @@ void computeTopKForCluster(
     const float beta = 0.0f;
     const int stride = 1;
 
-    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
+    cblas_dgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
                 &sorted_item_weights[(bin_index * bin_offset)], k,
                 &user_weights[i * num_latent_factors], stride, beta,
                 user_dot_items, stride);
@@ -280,7 +280,7 @@ void computeTopKForCluster(
           sorted_upper_bounds
               [bin_index * num_items + batch_counter[bin_index]] =
                   upper_bounds[bin_index * num_items + item_id];
-          cblas_scopy(num_latent_factors,
+          cblas_dcopy(num_latent_factors,
                       &item_weights[item_id * num_latent_factors], 1,
                       &sorted_item_weights
                            [(bin_index * bin_offset) +
@@ -291,7 +291,7 @@ void computeTopKForCluster(
       }
 
       if ((j & mod) == 0) {
-        cblas_sgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
+        cblas_dgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
                     &sorted_item_weights
                          [(bin_index * bin_offset) + (j * num_latent_factors)],
                     k, &user_weights[i * num_latent_factors], stride, beta,
@@ -317,10 +317,10 @@ void computeTopKForCluster(
       }
     }
 #ifdef DEBUG
-    float top_K_scores[K];
+    double top_K_scores[K];
 #endif
     for (j = 0; j < K; j++) {
-      std::pair<float, int> p = q.top();
+      std::pair<double, int> p = q.top();
 #ifdef DEBUG
       top_K_scores[K - 1 - j] = p.first;
 #endif
