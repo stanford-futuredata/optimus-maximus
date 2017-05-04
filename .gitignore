@@ -9,7 +9,6 @@ tags
 simdex
 simdex_stats
 simdex_debug
-blocked_mm
 # Visual Studio Code
 .vscode
 # Python binary files
