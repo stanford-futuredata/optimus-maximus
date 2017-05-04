@@ -12,19 +12,20 @@
 #include "types.hpp"
 #include <vector>
 
-float *compute_norms_vector(const float *matrix_weights, const int num_rows,
+float *compute_norms_vector(const double *matrix_weights, const int num_rows,
                             const int num_cols);
-float *compute_theta_ics(const float *item_weights, const float *centroids,
+float *compute_theta_ics(const double *item_weights, const double *centroids,
                          const int num_items, const int num_latent_factors,
                          const int num_clusters, const float *item_norms,
                          const float *centroid_norms);
-float *compute_theta_ucs_for_centroid(const float *user_weights,
+float *compute_theta_ucs_for_centroid(const double *user_weights,
                                       const float *user_norms,
-                                      const float *centroid,
+                                      const double *centroid,
                                       const int num_users,
                                       const int num_latent_factors,
                                       const float &centroid_norm);
-float *compute_all_theta_ucs(const float *user_weights, const float *centroids,
+float *compute_all_theta_ucs(const double *user_weights,
+                             const double *centroids,
                              const int num_latent_factors, const int num_users,
                              const int num_clusters,
                              const std::vector<int> *cluster_index,

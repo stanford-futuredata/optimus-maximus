@@ -21,7 +21,7 @@
 
 #include <omp.h>
 
-void computeTopRating(float *ratings_matrix, const int num_users,
+void computeTopRating(double *ratings_matrix, const int num_users,
                       const int num_items) {
   int *top_K_items = new int[num_users];
 #pragma omp parallel for
@@ -29,11 +29,11 @@ void computeTopRating(float *ratings_matrix, const int num_users,
 
     unsigned long index = user_id;
     index *= num_items;
-    int best_item_id = cblas_isamax(num_items, &ratings_matrix[index], 1);
-    // float best_rating = ratings_matrix[index];
+    int best_item_id = cblas_idamax(num_items, &ratings_matrix[index], 1);
+    // double best_rating = ratings_matrix[index];
     // int best_item_id = 0;
     // for (int item_id = 1; item_id < num_items; ++item_id) {
-    //   const float curr_rating = ratings_matrix[index + item_id];
+    //   const double curr_rating = ratings_matrix[index + item_id];
     //   if (curr_rating > best_rating) {
     //     best_rating = curr_rating;
     //     best_item_id = item_id;
@@ -44,7 +44,7 @@ void computeTopRating(float *ratings_matrix, const int num_users,
   delete[] top_K_items;
 }
 
-void computeTopK(float *ratings_matrix, const int num_users,
+void computeTopK(double *ratings_matrix, const int num_users,
                  const int num_items, const int K) {
 
   int *top_K_items = new int[num_users * K];
@@ -53,9 +53,9 @@ void computeTopK(float *ratings_matrix, const int num_users,
 
     // TODO: allocate vector on the stack, reserve the size we need or use the
     // insertion-and-copy array strategy that Matei suggested
-    std::priority_queue<std::pair<float, int>,
-                        std::vector<std::pair<float, int> >,
-                        std::greater<std::pair<float, int> > > q;
+    std::priority_queue<std::pair<double, int>,
+                        std::vector<std::pair<double, int> >,
+                        std::greater<std::pair<double, int> > > q;
 
     unsigned long index = i;
     index *= num_items;
@@ -72,7 +72,7 @@ void computeTopK(float *ratings_matrix, const int num_users,
     }
 
     for (int j = 0; j < K; j++) {
-      const std::pair<float, int> p = q.top();
+      const std::pair<double, int> p = q.top();
       top_K_items[i * K + K - 1 - j] = p.second;
       q.pop();
     }
@@ -116,7 +116,7 @@ int main(int argc, const char *argv[]) {
   const std::string item_weights_filepath = weights_dir + "/item_weights.csv";
 
   const int K = args["top-k"].as<int>();
-  const int num_users = args["num-users"].as<int>();
+  const unsigned long num_users = args["num-users"].as<int>();
   const int num_items = args["num-items"].as<int>();
   const int num_latent_factors = args["num-latent-factors"].as<int>();
   const unsigned long num_users_per_block =
@@ -136,9 +136,9 @@ int main(int argc, const char *argv[]) {
 
   double time_st, time_end, gemm_time = 0, pr_queue_time = 0, compute_time = 0;
 
-  float *item_weights =
+  double *item_weights =
       parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
-  float *user_weights =
+  double *user_weights =
       parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
   mkl_free_buffers();
 
@@ -147,8 +147,8 @@ int main(int argc, const char *argv[]) {
 
   unsigned long needed = num_users_per_block;
   needed *= num_items;
-  needed *= sizeof(float);
-  float *matrix_product = (float *)_malloc(needed);
+  needed *= sizeof(double);
+  double *matrix_product = (double *)_malloc(needed);
 
   const float alpha = 1.0;
   const float beta = 0.0;
@@ -164,7 +164,7 @@ int main(int argc, const char *argv[]) {
 
     const int m = std::min(num_users_per_block, num_users - num_users_so_far);
 
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
                 user_weights, k, item_weights, k, beta, matrix_product, n);
     time_end = dsecnd();
     gemm_time += (time_end - time_st);
