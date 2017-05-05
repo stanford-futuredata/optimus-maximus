@@ -30,6 +30,6 @@ fi
 
 set -x
 
-mkdir -p $TARGET_DIR && cd $TARGET_DIR
+rm -rf $TARGET_DIR && mkdir -p $TARGET_DIR && cd $TARGET_DIR
 cmake -D CMAKE_C_COMPILER=$C_COMPILER -D CMAKE_CXX_COMPILER=$CXX_COMPILER $DEFINITION_FLAGS ../LEMP-benchmarking/
 make -j4
