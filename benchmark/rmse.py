@@ -3,6 +3,7 @@
 import pandas as pd
 import argparse
 import numpy as np
+import csv
 import os
 
 
@@ -19,16 +20,16 @@ def calculate_rmse(user_weights, item_weights, user_id_map, item_id_map, df):
     apply_fn = error_single_row_fn(user_weights, item_weights, user_id_map,
                                    item_id_map)
     df['error'] = df.apply(apply_fn, axis=1)
-    import pdb
-    pdb.set_trace()
     return np.sqrt(np.sum(np.square(df['error'])) / len(df['error']))
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights_dir', required=True)
+    parser.add_argument('--input_dir', required=True)
     parser.add_argument('--training_file', required=True)
     parser.add_argument('--test_file', required=True)
+    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--base_name', required=True)
     args = parser.parse_args()
 
     print('Loading training set...')
@@ -37,16 +38,14 @@ def main():
         delimiter='\t',
         header=None,
         names=['user_id', 'item_id', 'rating'],
-        usecols=[0, 1, 2],
-        nrows=1000)
+        usecols=[0, 1, 2])
     print('Loading test set...')
     test_df = pd.read_csv(
         args.test_file,
         delimiter='\t',
         header=None,
         names=['user_id', 'item_id', 'rating'],
-        usecols=[0, 1, 2],
-        nrows=1000)
+        usecols=[0, 1, 2])
 
     print('Creating user id map....')
     all_user_ids = sorted(
@@ -61,10 +60,10 @@ def main():
 
     print('Loading item weights...')
     item_weights = np.loadtxt(
-        '%s/item_weights.csv' % args.weights_dir, delimiter=',')
+        '%s/item_weights.csv' % args.input_dir, delimiter=',')
     print('Loading user weights...')
     user_weights = np.loadtxt(
-        '%s/user_weights.csv' % args.weights_dir, delimiter=',')
+        '%s/user_weights.csv' % args.input_dir, delimiter=',')
 
     training_rmse = calculate_rmse(user_weights, item_weights, user_id_map,
                                    item_id_map, training_df)
@@ -72,7 +71,14 @@ def main():
     test_rmse = calculate_rmse(user_weights, item_weights, user_id_map,
                                item_id_map, test_df)
     print('Test RMSE: %f' % test_rmse)
-    
+
+    csv_df = pd.DataFrame(
+        [[args.base_name, training_rmse, test_rmse]],
+        columns=['model', 'train_rmse', 'test_rmse'])
+    csv_df.to_csv(
+        os.path.join(args.output_dir, args.base_name + '_rmse.csv'),
+        index=False,
+        quoting=csv.QUOTE_MINIMAL)
 
 
 if __name__ == '__main__':

@@ -70,7 +70,7 @@ def main():
     numa_queue = get_numa_queue()
 
     for (model_dir, (num_factors, num_users, num_items,
-                     best_num_clusters)) in TO_RUN:
+                     best_num_clusters), _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         num_clusters_to_try = NUM_CLUSTERS if args.sweep else best_num_clusters

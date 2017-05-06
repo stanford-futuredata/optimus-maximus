@@ -53,7 +53,7 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    for (model_dir, (num_factors, num_users, num_items, _)) in TO_RUN:
+    for (model_dir, (num_factors, num_users, num_items, _), _) in TO_RUN:
         for K, num_threads in product(TOP_K, NUM_THREADS):
             result = run((num_factors, num_users,
                           num_items, K, num_threads, os.path.join(
