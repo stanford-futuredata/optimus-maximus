@@ -22,8 +22,8 @@ def main():
 
     df = pd.read_csv(stats_file)
     for i in range(100):
-        if (df.sample(frac=0.0001)['num_items_visited'].median() <
-                NUM_ITEMS * 0.2) != args.simdex_faster:
+        if (np.percentile(df.sample(frac=0.0001)['num_items_visited'], 75) <
+                NUM_ITEMS * 0.15) != args.simdex_faster:
             print('Trial %d failed' % i)
             return
     print('It passed!')
