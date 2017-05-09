@@ -30,7 +30,7 @@
 
 namespace opt = boost::program_options;
 
-bool print_theta_bs = false;
+bool point_queries = false;
 
 /**
  * Input: user id -> cluster id mapping (k-means assignments), user weights
@@ -103,7 +103,7 @@ int main(int argc, const char* argv[]) {
                                     "Batch size, default: 256")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
-      "print-theta-bs", opt::bool_switch(&print_theta_bs), "description")(
+      "point-queries", opt::bool_switch(&point_queries), "online point queries, instead of batch")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
 
@@ -129,7 +129,7 @@ int main(int argc, const char* argv[]) {
   const int num_clusters = args["num-clusters"].as<int>();
   const int sample_percentage = args["sample-percentage"].as<int>();
   const int num_iters = args["num-iters"].as<int>();
-  const int num_bins = args["num-bins"].as<int>();
+  const int num_bins = point_queries ? args["num-bins"].as<int>() : 1;
   const int batch_size = args["batch-size"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
@@ -204,53 +204,6 @@ int main(int argc, const char* argv[]) {
       num_clusters, num_users_so_far_arr);
   // user_weights is now sorted correctly, matches cluster_index
 
-  if (print_theta_bs) {
-    std::ofstream theta_bs_file;
-    const unsigned int curr_time =
-        std::chrono::system_clock::now().time_since_epoch().count();
-    const std::string theta_bs_fname =
-        base_name + "_theta_bs_" + std::to_string(curr_time) + ".csv";
-    theta_bs_file.open(theta_bs_fname, std::ios_base::app);
-    theta_bs_file << "cluster_id,theta_uc,theta_b" << std::endl;
-
-    float* centroid_norms =
-        compute_norms_vector(centroids, num_clusters, num_latent_factors);
-
-    for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
-      const int num_users_in_cluster = cluster_index[cluster_id].size();
-      if (num_users_in_cluster == 0) {
-        continue;
-      }
-      const int num_users_so_far = num_users_so_far_arr[cluster_id];
-
-      double* user_weights_for_centroid =
-          &user_weights[num_users_so_far * num_latent_factors];
-      double* centroid = &centroids[cluster_id * num_latent_factors];
-      const float centroid_norm = centroid_norms[cluster_id];
-
-      float* user_norms = compute_norms_vector(
-          user_weights_for_centroid, num_users_in_cluster, num_latent_factors);
-      float* theta_ucs = compute_theta_ucs_for_centroid(
-          user_weights, user_norms, centroid, num_users_in_cluster,
-          num_latent_factors, centroid_norm);
-
-      const float theta_max =
-          theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
-      const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
-      for (int i = 0; i < num_users_in_cluster; ++i) {
-        const int bin_index =
-            find_theta_bin_index(theta_ucs[i], theta_bins, num_bins);
-        const float theta_b = theta_bins[bin_index];
-        theta_bs_file << cluster_id << "," << theta_ucs[i] << "," << theta_b
-                      << std::endl;
-      }
-      _free(theta_ucs);
-      _free(user_norms);
-    }
-    theta_bs_file.close();
-    return 0;
-  }
-
   float* item_norms =
       compute_norms_vector(item_weights, num_items, num_latent_factors);
   float* centroid_norms =
@@ -277,9 +230,15 @@ int main(int argc, const char* argv[]) {
 #endif
   dsecnd();
   time_start = dsecnd();
+  if (point_queries) {
+    std::cout << "Implement Point Queries!" << std::endl;
+    exit(1);
+  }
+
+  // Batch setting: compute top K for each cluster
 
   // TODO: These buffers are reused across multiple calls to
-  // computeTopKForCluster.  For multiple threads, there will be
+  // computeTopKForCluster. For multiple threads, there will be
   // contention--need to allocate a buffer per thread.
   float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
   int* sorted_upper_bounds_indices =
@@ -303,7 +262,7 @@ int main(int argc, const char* argv[]) {
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
-        centroid_norms[cluster_id], num_items, num_latent_factors, num_bins, K,
+        centroid_norms[cluster_id], num_items, num_latent_factors, K,
         batch_size, upper_bounds, sorted_upper_bounds_indices,
         sorted_upper_bounds, sorted_item_weights, user_stats_file);
   }
