@@ -1,12 +1,14 @@
 #! /usr/bin/env bash
 
-set -x
-
 if [[ $1 == "--stats" ]]; then
   RUNNER=../cpp/simdex_stats
+elif [[ $1 == "--debug" ]]; then
+  RUNNER=../cpp/simdex_debug
 else
   RUNNER=../cpp/simdex
 fi
+
+set -x
 
 $RUNNER \
   -w $HOME/models-simdex/lemp-paper/Netflix-noav-50 \
