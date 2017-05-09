@@ -1,6 +1,5 @@
 #! /usr/bin/env bash
 
-
 if [[ $1 == "--stats" ]]; then
   RUNNER=../cpp/simdex_stats
   FLAGS="STATS=1"

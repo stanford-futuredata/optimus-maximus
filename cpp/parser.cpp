@@ -10,14 +10,14 @@
 #include "utils.hpp"
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include <iostream>
-#include <fstream>
-#include <numeric>
 #include <algorithm>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <numeric>
 #include <vector>
 
 #include <mkl.h>

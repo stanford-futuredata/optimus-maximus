@@ -6,8 +6,8 @@
 #ifndef utils_hpp
 #define utils_hpp
 
-#include <chrono>
 #include <boost/timer/timer.hpp>
+#include <chrono>
 
 #ifdef ICC
 #include <mkl.h>
