@@ -99,8 +99,8 @@ int main(int argc, const char* argv[]) {
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(5),
       "Number of bins, default: 5")("batch-size",
-                                    opt::value<int>()->default_value(256),
-                                    "Batch size, default: 256")(
+                                    opt::value<int>()->default_value(1024),
+                                    "Batch size, default: 1024")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
       "point-queries", opt::bool_switch(&point_queries), "description")(
