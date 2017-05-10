@@ -15,7 +15,7 @@
 __inline unsigned int Next_Uniform_Int(
     VSLStreamStatePtr stream, float *D_UNIFORM01_BUF,
     unsigned int *D_UNIFORM01_IDX, int M,
-    int N) {/* Return integer uniformly distributed on {0,...,m-1}. */
+    int N) { /* Return integer uniformly distributed on {0,...,m-1}. */
 #define I_RNG_BUF ((unsigned int *)D_UNIFORM01_BUF)
   unsigned int i, j, k;
   int RNGBUFSIZE = M * 255;
@@ -92,8 +92,8 @@ int *randomArray(int max, int size) {
   VSLStreamStatePtr stream; /* Each thread has its own RNG stream */
   unsigned int *PERMUT_BUF; /* Each thread has its own buffer of length N to
                                keep partial permutations */
-  float *D_UNIFORM01_BUF; /* Each thread has its own buffer of intermediate
-                             uniforms */
+  float *D_UNIFORM01_BUF;   /* Each thread has its own buffer of intermediate
+                               uniforms */
   unsigned int D_UNIFORM01_IDX = 0; /* Index of current uniform in the buffer
                                        (each thread has its own index) */
 

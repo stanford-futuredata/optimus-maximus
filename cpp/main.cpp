@@ -7,20 +7,20 @@
 //
 
 #include "algo.hpp"
-#include "parser.hpp"
 #include "arith.hpp"
-#include "utils.hpp"
 #include "clustering/cluster.hpp"
+#include "parser.hpp"
+#include "utils.hpp"
 
 #include <chrono>
-#include <utility>
+#include <fstream>
+#include <iostream>
 #include <numeric>
 #include <string>
-#include <iostream>
-#include <fstream>
+#include <utility>
 
-#include <boost/format.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/format.hpp>
 #include <boost/program_options.hpp>
 
 #include <mkl.h>
@@ -30,7 +30,7 @@
 
 namespace opt = boost::program_options;
 
-bool print_theta_bs = false;
+bool point_queries = false;
 
 /**
  * Input: user id -> cluster id mapping (k-means assignments), user weights
@@ -98,12 +98,12 @@ int main(int argc, const char* argv[]) {
       "num-iters,i", opt::value<int>()->default_value(3),
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(5),
-      "Number of bins, default: 1")("batch-size",
+      "Number of bins, default: 5")("batch-size",
                                     opt::value<int>()->default_value(256),
                                     "Batch size, default: 256")(
       "num-threads,t", opt::value<int>()->default_value(1),
       "Number of threads, default: 1")(
-      "print-theta-bs", opt::bool_switch(&print_theta_bs), "description")(
+      "point-queries", opt::bool_switch(&point_queries), "description")(
       "base-name", opt::value<std::string>()->required(),
       "Base name for file output to record stats");
 
@@ -129,7 +129,7 @@ int main(int argc, const char* argv[]) {
   const int num_clusters = args["num-clusters"].as<int>();
   const int sample_percentage = args["sample-percentage"].as<int>();
   const int num_iters = args["num-iters"].as<int>();
-  const int num_bins = args["num-bins"].as<int>();
+  int num_bins = point_queries ? args["num-bins"].as<int>() : 1;
   const int batch_size = args["batch-size"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
@@ -204,53 +204,6 @@ int main(int argc, const char* argv[]) {
       num_clusters, num_users_so_far_arr);
   // user_weights is now sorted correctly, matches cluster_index
 
-  if (print_theta_bs) {
-    std::ofstream theta_bs_file;
-    const unsigned int curr_time =
-        std::chrono::system_clock::now().time_since_epoch().count();
-    const std::string theta_bs_fname =
-        base_name + "_theta_bs_" + std::to_string(curr_time) + ".csv";
-    theta_bs_file.open(theta_bs_fname, std::ios_base::app);
-    theta_bs_file << "cluster_id,theta_uc,theta_b" << std::endl;
-
-    float* centroid_norms =
-        compute_norms_vector(centroids, num_clusters, num_latent_factors);
-
-    for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
-      const int num_users_in_cluster = cluster_index[cluster_id].size();
-      if (num_users_in_cluster == 0) {
-        continue;
-      }
-      const int num_users_so_far = num_users_so_far_arr[cluster_id];
-
-      double* user_weights_for_centroid =
-          &user_weights[num_users_so_far * num_latent_factors];
-      double* centroid = &centroids[cluster_id * num_latent_factors];
-      const float centroid_norm = centroid_norms[cluster_id];
-
-      float* user_norms = compute_norms_vector(
-          user_weights_for_centroid, num_users_in_cluster, num_latent_factors);
-      float* theta_ucs = compute_theta_ucs_for_centroid(
-          user_weights, user_norms, centroid, num_users_in_cluster,
-          num_latent_factors, centroid_norm);
-
-      const float theta_max =
-          theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
-      const std::vector<float> theta_bins = linspace(0.F, theta_max, num_bins);
-      for (int i = 0; i < num_users_in_cluster; ++i) {
-        const int bin_index =
-            find_theta_bin_index(theta_ucs[i], theta_bins, num_bins);
-        const float theta_b = theta_bins[bin_index];
-        theta_bs_file << cluster_id << "," << theta_ucs[i] << "," << theta_b
-                      << std::endl;
-      }
-      _free(theta_ucs);
-      _free(user_norms);
-    }
-    theta_bs_file.close();
-    return 0;
-  }
-
   float* item_norms =
       compute_norms_vector(item_weights, num_items, num_latent_factors);
   float* centroid_norms =
@@ -303,7 +256,7 @@ int main(int argc, const char* argv[]) {
         cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
-        centroid_norms[cluster_id], num_items, num_latent_factors, num_bins, K,
+        centroid_norms[cluster_id], num_items, num_latent_factors, K,
         batch_size, upper_bounds, sorted_upper_bounds_indices,
         sorted_upper_bounds, sorted_item_weights, user_stats_file);
   }
@@ -326,13 +279,15 @@ int main(int argc, const char* argv[]) {
          "clusters,sample_"
          "percentage,"
          "num_iters,"
-         "parse_time,cluster_time,index_time,algo_time,comp_time" << std::endl;
+         "parse_time,cluster_time,index_time,algo_time,comp_time"
+      << std::endl;
   const std::string timing_stats =
       (boost::format(
            "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%") %
        base_name % K % num_latent_factors % num_threads % num_bins %
        batch_size % num_clusters % sample_percentage % num_iters % parse_time %
-       cluster_time % index_time % algo_time % compute_time).str();
+       cluster_time % index_time % algo_time % compute_time)
+          .str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
