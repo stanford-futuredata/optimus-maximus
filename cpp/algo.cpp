@@ -182,7 +182,6 @@ void computeTopKForCluster(
     cblas_dcopy(num_latent_factors, &item_weights[item_id * num_latent_factors],
                 1, &sorted_item_weights[j * num_latent_factors], 1);
   }
-  int batch_counter = item_batch_size;
 
 #ifdef STATS
   time_end = dsecnd();
@@ -198,7 +197,7 @@ void computeTopKForCluster(
 #endif
 
   const int m = num_users_to_compute;
-  const int n = std::min(item_batch_size, num_items);
+  int n = std::min(item_batch_size, num_items);  // may be changed later
   const int k = num_latent_factors;
 
   const float alpha = 1.0f;
@@ -215,20 +214,15 @@ void computeTopKForCluster(
     time_start = dsecnd();
 #endif
 
-    // find_theta_bin_index(theta_ucs[i], theta_bins, 1);
+    // set the batch counter to be initial item_batch_size
+    // for every user, since we already did dgemm
+    int batch_counter = item_batch_size;
 
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
                         std::greater<std::pair<double, int> > >
         q;
-
     double score = 0.0;
-    // int m = std::min(item_batch_size, num_items);  // not const, because it
-    // may be adjusted later
-    // cblas_dgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
-    // sorted_item_weights,
-    //             k, &user_weights[i * num_latent_factors], stride, beta,
-    //             &users_dot_items[i * item_batch_size], stride);
 
     for (j = 0; j < K; j++) {
       item_id = sorted_upper_bounds_indices[j];
@@ -237,7 +231,6 @@ void computeTopKForCluster(
     }
 
     int num_items_visited = K;
-    int m;
 
 #pragma simd
     for (j = K; j < item_batch_size; j++) {
@@ -247,22 +240,22 @@ void computeTopKForCluster(
     for (j = K; j < num_items; j++) {
       if (batch_counter == j) {
         // previous batches exhausted, need to add an additional batch
-        const int true_batch_size =
-            std::min(item_batch_size, num_items - batch_counter);
         // if we're at the very end, we may not need a full batch
-        m = true_batch_size;  // change for upcoming sgemv operation
-        for (int l = 0; l < true_batch_size; l++) {
+        n = std::min(
+            item_batch_size,
+            num_items - batch_counter);  // change for upcoming dgemv operation
+        for (int l = 0; l < n; l++) {
           item_id = sorted_upper_bounds_indices[batch_counter];
           sorted_upper_bounds[batch_counter] = upper_bounds[item_id];
           cblas_dcopy(
               num_latent_factors, &item_weights[item_id * num_latent_factors],
-              1, &sorted_item_weights[(batch_counter * num_latent_factors)], 1);
+              1, &sorted_item_weights[batch_counter * num_latent_factors], 1);
           batch_counter++;
         }
       }
 
       if ((j & mod) == 0) {
-        cblas_dgemv(CblasRowMajor, CblasNoTrans, m, k, alpha,
+        cblas_dgemv(CblasRowMajor, CblasNoTrans, n, k, alpha,
                     &sorted_item_weights[j * num_latent_factors], k,
                     &user_weights[i * num_latent_factors], stride, beta,
                     &users_dot_items[i * item_batch_size], stride);
