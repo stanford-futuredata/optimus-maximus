@@ -10,7 +10,7 @@ import subprocess
 
 def run(run_args):
     numa_queue, num_factors, num_users, num_items, K, num_clusters, sample_percentage, \
-            num_iters, num_threads, num_bins, input_dir, base_name, output_dir, runner = run_args
+            num_iters, num_threads, batch_size, input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
         print("Can't find %s" % input_dir)
@@ -24,7 +24,8 @@ def run(run_args):
         'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
         str(num_users), '-n', str(num_items), '-f', str(num_factors), '-c',
         str(num_clusters), '-s', str(sample_percentage), '-i', str(num_iters),
-        '-b', str(num_bins), '-t', str(num_threads), '--base-name', base_name
+        '-b', '1', '-t', str(num_threads), '--batch-size', str(batch_size),
+        '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     subprocess.call(cmd)
@@ -49,14 +50,14 @@ def main():
         1, 5, 10, 50
     ]
     NUM_THREADS = [1]
-    NUM_BINS = [1, 3, 5, 10] if args.sweep else [5]
-    NUM_CLUSTERS = [64, 128, 256, 512, 1024, 2048, 4096]
+    BATCH_SIZES = [256, 512, 1024, 2048, 4096] if args.sweep else [1024]
+    NUM_CLUSTERS = [1, 8, 64, 128, 256, 512, 1024, 2048, 4096]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
 
     runner = '../cpp/simdex_stats' if args.stats else '../cpp/simdex'
 
-    BUILD_COMMAND = 'cd ../cpp/ && make clean && make -j5' 
+    BUILD_COMMAND = 'cd ../cpp/ && make clean && make -j5'
     if args.stats:
         BUILD_COMMAND += ' STATS=1'
     BUILD_COMMAND += ' && cd -'
@@ -69,18 +70,18 @@ def main():
     run_args = []
     numa_queue = get_numa_queue()
 
-    for (model_dir, (num_factors, num_users, num_items,
-                     best_num_clusters), _) in TO_RUN:
+    for (model_dir, (num_factors, num_users, num_items, best_num_clusters),
+         _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         num_clusters_to_try = NUM_CLUSTERS if args.sweep else best_num_clusters
-        for K, num_threads, num_bins, num_clusters, sample_percentage, num_iters in product(
-                TOP_K, NUM_THREADS, NUM_BINS, num_clusters_to_try,
+        for K, num_threads, batch_size, num_clusters, sample_percentage, num_iters in product(
+                TOP_K, NUM_THREADS, BATCH_SIZES, num_clusters_to_try,
                 SAMPLE_PERCENTAGES, NUM_ITERS):
             run_args.append(
                 (numa_queue, num_factors, num_users, num_items, K,
                  num_clusters, sample_percentage, num_iters, num_threads,
-                 num_bins, input_dir, base_name, output_dir, runner))
+                 batch_size, input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.ProcessPool(
         NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
