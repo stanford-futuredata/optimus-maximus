@@ -103,8 +103,12 @@ void computeTopKForCluster(
 
   const int num_users_in_cluster = user_ids_in_cluster.size();
 
-  double *users_dot_items = (double *)_malloc(
-      sizeof(double) * num_users_in_cluster * item_batch_size);
+  const int num_item_batches = num_items / item_batch_size;
+  double *users_dot_items[num_item_batches];
+  for (int i = 0; i < num_item_batches; ++i) {
+    users_dot_items[i] = (double *)_malloc(
+        sizeof(double) * num_users_in_cluster * item_batch_size);
+  }
   float *user_norm_times_upper_bound =
       (float *)_malloc(sizeof(float) * item_batch_size);
   const int mod =
@@ -182,6 +186,8 @@ void computeTopKForCluster(
     cblas_dcopy(num_latent_factors, &item_weights[item_id * num_latent_factors],
                 1, &sorted_item_weights[j * num_latent_factors], 1);
   }
+  // set the initial batch counter to be item_batch_size
+  int batch_counter = item_batch_size;
 
 #ifdef STATS
   time_end = dsecnd();
@@ -196,16 +202,21 @@ void computeTopKForCluster(
   const int num_users_to_compute = num_users_in_cluster;
 #endif
 
-  const int m = num_users_to_compute;
-  int n = std::min(item_batch_size, num_items);  // may be changed later
+  // m and n will change depending on how many users and items
+  // we want to block
+  int m = num_users_to_compute;
+  int n = std::min(item_batch_size, num_items);
   const int k = num_latent_factors;
 
   const float alpha = 1.0f;
   const float beta = 0.0f;
-  const int stride = 1;
+  // const int stride = 1;
 
+  // populate the first users_dot_items matrix with [num_users_to_compute x
+  // item_batch_size] dot products; i.e., all users have the first
+  // item_batch_size dot products computed
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
-              user_weights, k, sorted_item_weights, k, beta, users_dot_items,
+              user_weights, k, sorted_item_weights, k, beta, users_dot_items[0],
               n);
 
   for (i = 0; i < num_users_to_compute; i++) {
@@ -214,19 +225,18 @@ void computeTopKForCluster(
     time_start = dsecnd();
 #endif
 
-    // set the batch counter to be initial item_batch_size
-    // for every user, since we already did dgemm
-    int batch_counter = item_batch_size;
-
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
                         std::greater<std::pair<double, int> > >
         q;
     double score = 0.0;
+    int batch_index = 0;
+    double * current_users_dot_items = users_dot_items[batch_index];
 
     for (j = 0; j < K; j++) {
       item_id = sorted_upper_bounds_indices[j];
-      score = users_dot_items[i * item_batch_size + j];
+      // note: this assumes that K < item_batch_size is always true
+      score = current_users_dot_items[i * item_batch_size + j];
       q.push(std::make_pair(score, item_id));
     }
 
@@ -238,28 +248,33 @@ void computeTopKForCluster(
     }
 
     for (j = K; j < num_items; j++) {
-      if (batch_counter == j) {
-        // previous batches exhausted, need to add an additional batch
-        // if we're at the very end, we may not need a full batch
-        n = std::min(
-            item_batch_size,
-            num_items - batch_counter);  // change for upcoming dgemv operation
-        for (int l = 0; l < n; l++) {
-          item_id = sorted_upper_bounds_indices[batch_counter];
-          sorted_upper_bounds[batch_counter] = upper_bounds[item_id];
-          cblas_dcopy(
-              num_latent_factors, &item_weights[item_id * num_latent_factors],
-              1, &sorted_item_weights[batch_counter * num_latent_factors], 1);
-          batch_counter++;
+      if ((j & mod) == 0) { // same as j % batch_counter == 0
+        batch_index++;
+        current_users_dot_items = users_dot_items[batch_index];
+        if (batch_counter == j) {
+          // previous batches exhausted, need to add an additional batch of items
+          // don't compute dgemm for users we've already computed the top K for
+          m = num_users_to_compute - i;
+          // if we're at the very end, we may not need a full batch of items
+          n = std::min(item_batch_size, num_items - batch_counter);
+          for (int l = 0; l < n; l++) {
+            const int new_batch_counter = batch_counter + l;
+            item_id = sorted_upper_bounds_indices[new_batch_counter];
+            sorted_upper_bounds[new_batch_counter] = upper_bounds[item_id];
+            cblas_dcopy(
+                num_latent_factors, &item_weights[item_id * num_latent_factors],
+                1, &sorted_item_weights[new_batch_counter * num_latent_factors],
+                1);
+          }
+          // do blocked matrix multiply for all future users that will be
+          // processed in this cluster with all items in this new batch
+          cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
+                      &user_weights[i * num_latent_factors], k,
+                      &sorted_item_weights[batch_counter * num_latent_factors], k,
+                      beta, &current_users_dot_items[i * item_batch_size],
+                      n);
+          batch_counter += n;
         }
-      }
-
-      if ((j & mod) == 0) {
-        cblas_dgemv(CblasRowMajor, CblasNoTrans, n, k, alpha,
-                    &sorted_item_weights[j * num_latent_factors], k,
-                    &user_weights[i * num_latent_factors], stride, beta,
-                    &users_dot_items[i * item_batch_size], stride);
-
 #pragma simd
         for (l = 0; l < item_batch_size; l++) {
           user_norm_times_upper_bound[l] =
@@ -271,7 +286,7 @@ void computeTopKForCluster(
         break;
       }
       item_id = sorted_upper_bounds_indices[j];
-      score = users_dot_items[i * item_batch_size + (j & mod)];
+      score = current_users_dot_items[i * item_batch_size + (j & mod)];
       num_items_visited++;
       if (q.top().first < score) {
         q.pop();
@@ -316,7 +331,9 @@ void computeTopKForCluster(
   _free(top_K_items);
   _free(user_norms);
   _free(theta_ucs);
-  _free(users_dot_items);
+  for (int i = 0; i < num_item_batches; ++i) {
+    _free(users_dot_items[i]);
+  }
   _free(user_norm_times_upper_bound);
   MKL_Free_Buffers();
 }
