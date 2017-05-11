@@ -88,30 +88,33 @@ def add_hatches(bar, num_groups):
 def plot_cdf(values_labels_and_lines,
              xlabel,
              x_line=None,
+             y_line=None,
              title=None,
              log=False,
              show=True,
              fname=None):
     #linestyles = cycle(['-', '--', '-.', ':'])
+    if x_line:
+        plt.axvline(x=x_line, color='black', linestyle='-', linewidth=2.5)
+    if y_line:
+        plt.axhline(y=y_line, color='black', linestyle='-', linewidth=2.5)
     for (_x_values, label, line_style) in values_labels_and_lines:
         x_values = sorted(_x_values)
         N = len(x_values)
         y_values = np.arange(N) / float(N)
         plt.plot(x_values, y_values, label=label, linestyle=line_style)
-    if x_line:
-        plt.axvline(x=x_line, color='black', linestyle='-', linewidth=2.5)
     if log:
         plt.xscale('log')
     xlim = plt.xlim()
     plt.xlim([0.0, xlim[-1]])
-    yticks = np.arange(0.0, 1.05, 0.15)
-    yticks[-1] = 1.0
+    yticks = np.arange(0.0, 1.1, 0.1)
     plt.yticks(yticks)
     plt.ylim([0.0, 1.0])
     plt.minorticks_on()
     if title:
-        plt.title(title)
-    legend = plt.legend(bbox_to_anchor=(0.5, -0.17), loc='upper center', borderaxespad=0.)
+        plt.title(title, y=1.05)
+    legend = plt.legend(bbox_to_anchor=(0.5, -0.19), loc='upper center',
+            borderaxespad=0., frameon=True, edgecolor='black', framealpha=0.6)
     replace_legend_labels(legend)
     plt.xlabel(xlabel)
     plt.ylabel('CDF')
@@ -123,17 +126,12 @@ def plot_cdf(values_labels_and_lines,
         plt.show()
 
 
-def get_theta_b(df):
-    return df.query('K == 1')[['Cluster', 'ThetaUC']].groupby(
-        'Cluster', as_index=False).aggregate(max)['ThetaUC']
-
-
 ###########
 ## PLOTS ##
 ###########
 def f_u_plots(simdex_df, lemp_df, blocked_mm_df, models, nrows=1):
     if len(models) == 5:
-        fig = plt.figure(figsize=(28, 15))
+        fig = plt.figure(figsize=(22, 10))
         gs = gridspec.GridSpec(2, 6)
 
         ax1 = plt.subplot(gs[0, 0:2])
@@ -142,7 +140,6 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, models, nrows=1):
         ax4 = plt.subplot(gs[1, 1:3])
         ax5 = plt.subplot(gs[1, 3:5])
 
-        gs.tight_layout(fig, h_pad=4.25)
         ax_arr = [ax1,ax2,ax3,ax4,ax5]
     else:
         fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows), figsize=(28, 6.5))
@@ -199,20 +196,29 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, models, nrows=1):
         else:
             ax_arr[i].set_ylabel('')
         ax_arr[i].grid(True)
-        ax_arr[i].set_title(LABEL_DICT[model], y=-0.22)
+        ax_arr[i].set_title(LABEL_DICT[model], y=-0.35)
         sns.despine()
+
+    gs.tight_layout(fig)
     save_figure('f-u-plot', legend)
     plt.show()
 
 
-def num_clusters_vs_runtime(simdex_df, models, nrows=1, filter_value=4096):
-    fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows), figsize=(28, 6.5))
+def num_clusters_vs_runtime(simdex_df, models, nrows=1, filter_value=4096,
+        figsize=(28, 6.5), bbox_to_anchor=(0,0,1,1), y_title=-0.25):
+
+    num_legend_entries = -1
+    fig, ax_arr = plt.subplots(sharey=True, nrows=nrows, ncols=int(len(models) /
+        nrows), figsize=figsize)
+
     for i, model in enumerate(models):
         table = simdex_df.query('model == "%s" and num_clusters < %d' % (model,
             filter_value))
         if len(table) == 0: continue
         data = table.groupby(
             ['num_clusters', 'K'], as_index=False).aggregate(min)
+        num_legend_entries = max(num_legend_entries,
+                len(data['num_clusters'].unique()))
         sns.barplot(
             x='K',
             y='comp_time',
@@ -221,29 +227,10 @@ def num_clusters_vs_runtime(simdex_df, models, nrows=1, filter_value=4096):
             linewidth=1.25,
             edgecolor='black',
             ax=ax_arr[i])
-        sns.barplot(
-            x='K',
-            y='cluster_time',
-            hue='num_clusters',
-            data=data,
-            linewidth=1.25,
-            edgecolor='black',
-            color='#ffffff',
-            hatch='x',
-            ax=ax_arr[i])
-        if i < len(models)-1:
-            ax_arr[i].legend_.remove()
-        else:
-            handles, labels = ax_arr[i].get_legend_handles_labels()
-            num_legend_entries = int(len(handles) / 2) + 1
-            labels[num_legend_entries - 1] = ''
-            legend = ax_arr[i].legend(handles[:num_legend_entries], labels[:num_legend_entries],
-                               bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            modify_legend(legend, [('$C=', '$') for j in range(num_legend_entries -
-                1)] + [(r'$K$-means', '')])
 
+        ax_arr[i].legend_.remove()
         sns.despine()
-        ax_arr[i].set_title(LABEL_DICT[model], y=-0.25)
+        ax_arr[i].set_title(LABEL_DICT[model], y=y_title)
         ax_arr[i].set_xlabel('K')
         if i == 0:
             ax_arr[i].set_ylabel('Time (s)')
@@ -252,15 +239,24 @@ def num_clusters_vs_runtime(simdex_df, models, nrows=1, filter_value=4096):
         ax_arr[i].grid(True)
         ax_arr[i].minorticks_on()
 
+    legend = plt.legend(loc='upper center', bbox_to_anchor=bbox_to_anchor,
+            bbox_transform=plt.gcf().transFigure, ncol=num_legend_entries)
+    modify_legend(legend, [('$C=', '$')])
+    #modify_legend(legend, [('$C=', '$') for j in range(num_legend_entries -
+    #    1)] + [(r'$K$-means', '')])
+
     save_figure('n-clusters-vs-runtime', legend)
     plt.show()
 
 
-def num_bins_vs_runtime(simdex_df, models, nrows=1):
+def num_bins_vs_runtime(simdex_df, models, nrows=1, figsize=(28, 6.5),
+        bbox_to_anchor=(0,0,1,1), y_title=-0.25):
     best_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
+    num_legend_entries = len(best_rt['num_bins'].unique())
+    fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows),
+            sharey=True, figsize=figsize)
 
-    fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows), figsize=(28, 6.5))
     for i, model in enumerate(models):
         best_rt_model = best_rt.query('model == "%s"' % model)
         if len(best_rt_model) == 0: continue
@@ -283,13 +279,9 @@ def num_bins_vs_runtime(simdex_df, models, nrows=1):
             ci=None,
             ax=ax_arr[i])
 
-        if i < len(models)-1:
-            ax_arr[i].legend_.remove()
-        else:
-            legend = ax_arr[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            modify_legend(legend, [('$B=', '$')])
+        ax_arr[i].legend_.remove()
         sns.despine()
-        ax_arr[i].set_title(LABEL_DICT[model], y=-0.25)
+        ax_arr[i].set_title(LABEL_DICT[model], y=y_title)
         ax_arr[i].set_xlabel('K')
         if i == 0:
             ax_arr[i].set_ylabel('Time (s)')
@@ -298,15 +290,25 @@ def num_bins_vs_runtime(simdex_df, models, nrows=1):
         ax_arr[i].grid(True)
         ax_arr[i].minorticks_on()
 
+    legend = plt.legend(loc='upper center', bbox_to_anchor=bbox_to_anchor,
+            bbox_transform=plt.gcf().transFigure, ncol=num_legend_entries)
+    modify_legend(legend, [('$B=', '$')])
+
+    #fig.subplots_adjust(hspace=0)
     save_figure('n-bins-vs-runtime', legend)
     plt.show()
 
 
-def query_time_histogram(models, csv_dir='user-stats/K-1', sample_size=10000, bins=10, nrows=1):
+def point_query_time(models, csv_dir='user-stats/K-1', sample_size=15000,
+        bins=10, nrows=1, figsize=(32, 4.5), y_title=-0.40):
     color = sns.color_palette()[1]
-    if len(models) == 5:
-        fig = plt.figure(figsize=(28, 15))
-        gs = gridspec.GridSpec(2, 6)
+    if nrows == 1:
+        fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows),
+                figsize=figsize)
+    else:
+        fig = plt.figure(figsize=figsize)
+        gs = gridspec.GridSpec(2, 6) # hard-coded to 6 columns for now,
+                                     # optimized for the 5-suplot case
 
         ax1 = plt.subplot(gs[0, 0:2])
         ax2 = plt.subplot(gs[0, 2:4])
@@ -315,38 +317,46 @@ def query_time_histogram(models, csv_dir='user-stats/K-1', sample_size=10000, bi
         ax5 = plt.subplot(gs[1, 3:5])
 
         ax_arr = [ax1,ax2,ax3,ax4,ax5]
-    else:
-        fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows), figsize=(28, 6.5))
 
     for i, model in enumerate(models):
         for filename in glob.iglob('%s/%s_user_stats_*' % (csv_dir, model)):
             df = pd.read_csv(filename)
-            x = df.query('cluster_id > 0')['query_time'].sample(sample_size)
-            sns.distplot(x, kde=False, rug=False, bins=bins, color=color,
-                    hist_kws={'alpha': 0.8,}, ax=ax_arr[i])
-            sns.despine()
+            x = df.query('cluster_id > 0')['query_time']
+            print np.mean(x), len(x)
+            sorted_x = sorted(x.sample(sample_size))
+            N = len(sorted_x)
+            y_values = np.arange(N) / float(N)
+            ax_arr[i].plot(sorted_x, y_values, color=color)
+            #sns.distplot(x, kde=False, rug=False, bins=bins, color=color,
+            #        hist_kws={'alpha': 0.8,}, ax=ax_arr[i])
+            #sns.despine()
             xlim = ax_arr[i].get_xlim()
             if xlim[0] < 0:
                 ax_arr[i].set_xlim([0, xlim[-1]])
-            ax_arr[i].set_title(LABEL_DICT[model], y=-0.25)
+            ax_arr[i].set_title(LABEL_DICT[model], y=y_title)
             ax_arr[i].grid(True)
             ax_arr[i].minorticks_on()
-            ax_arr[i].set_yscale('log')
+            ax_arr[i].set_ylim([0, 1.05])
             if i == 0:
-                ax_arr[i].set_ylabel('Frequency')
+                ax_arr[i].set_ylabel('CDF')
             ax_arr[i].set_xlabel('Query time per user (ms)')
             break
-    gs.tight_layout(fig, h_pad=4.75)
-    save_figure('query-time', tight=False)
+    if nrows == 2:
+        gs.tight_layout(fig)
+        save_figure('point-query-time', tight=False)
+    else:
+        save_figure('point-query-time')
     plt.show()
 
 
-def reg_vs_runtime(simdex_df, blocked_mm_df, model_prefixes, regs, fname, nrows=1):
+def reg_vs_runtime(simdex_df, blocked_mm_df, model_prefixes, regs, fname,
+        nrows=1, figsize=(28, 6.5), y_title=-0.25):
     simdex_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()[['model', 'K', 'comp_time']]
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
 
-    fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(model_prefixes) / nrows), figsize=(28, 6.5))
+    fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(model_prefixes) /
+        nrows), figsize=figsize)
     for i, model_prefix in enumerate(model_prefixes):
         simdex_data = []
         blocked_mm_data = []
@@ -381,7 +391,7 @@ def reg_vs_runtime(simdex_df, blocked_mm_df, model_prefixes, regs, fname, nrows=
             edgecolor='black',
             ci=None,
             ax=ax_arr[i])
-        #add_hatches(bar, num_groups=4)
+        # add_hatches(bar, num_groups=4)
 
         if i < len(model_prefixes)-1:
             ax_arr[i].legend_.remove()
@@ -403,7 +413,7 @@ all $\lambda$''')
             modify_legend(legend, legend_pref_suf)
 
         sns.despine()
-        ax_arr[i].set_title(LABEL_DICT[model_prefix], y=-0.25)
+        ax_arr[i].set_title(LABEL_DICT[model_prefix], y=y_title)
         ax_arr[i].set_xlabel('K')
         if i == 0:
             ax_arr[i].set_ylabel('Time (s)')
@@ -418,13 +428,14 @@ all $\lambda$''')
     plt.show()
 
 
-def cdf(simdex_df,
+def decision_rule(simdex_df,
         blocked_mm_df,
         models,
         K,
         column='theta_uc',
         num_clusters_to_plot=None,
         x_line=None,
+        y_line=None,
         xlabel=None,
         title=None,
         fname=None,
@@ -475,11 +486,9 @@ def cdf(simdex_df,
             vals.append(val)
     if fname:
         fname = 'cdf-%s' % fname
-    if title:
-        title = title + ' ' + csv_dir
     if not xlabel:
         xlabel = column
-    plot_cdf(vals, xlabel, x_line=x_line, title=title, log=log, fname=fname, show=True)
+    plot_cdf(vals, xlabel, x_line=x_line, y_line=y_line, title=title, log=log, fname=fname, show=True)
 
 
 def dataset_size_vs_runtime(simdex_df, lemp_df,
