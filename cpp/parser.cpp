@@ -26,7 +26,7 @@
 // [num_rows*num_cols]
 template <typename T>
 T *parse_weights_csv(const std::string filename, const int num_rows,
-                          const int num_cols) {
+                     const int num_cols) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream weight_file(filename.c_str(), std::ios_base::in);
   T *weights = (T *)_malloc(sizeof(T) * num_rows * num_cols);
@@ -68,3 +68,10 @@ int *parse_ids_csv(const std::string filename, const int num_rows) {
   in.close();
   return ids;
 }
+
+template float *parse_weights_csv<float>(const std::string filename,
+                                         const int num_rows,
+                                         const int num_cols);
+template double *parse_weights_csv<double>(const std::string filename,
+                                           const int num_rows,
+                                           const int num_cols);

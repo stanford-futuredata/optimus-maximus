@@ -13,7 +13,7 @@
 
 template <typename T>
 T *parse_weights_csv(const std::string filename, const int num_rows,
-                          const int num_cols);
+                     const int num_cols);
 int *parse_ids_csv(const std::string filename, const int num_rows);
 
 #endif /* parser_hpp */
