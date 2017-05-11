@@ -7,11 +7,11 @@
 #include "../parser.hpp"
 #include "../utils.hpp"
 
-#include <chrono>
-#include <queue>
 #include <algorithm>
-#include <iostream>
+#include <chrono>
 #include <fstream>
+#include <iostream>
+#include <queue>
 
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
@@ -55,7 +55,8 @@ void computeTopK(double *ratings_matrix, const int num_users,
     // insertion-and-copy array strategy that Matei suggested
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
-                        std::greater<std::pair<double, int> > > q;
+                        std::greater<std::pair<double, int> > >
+        q;
 
     unsigned long index = i;
     index *= num_items;
@@ -120,8 +121,8 @@ int main(int argc, const char *argv[]) {
   const int num_items = args["num-items"].as<int>();
   const int num_latent_factors = args["num-latent-factors"].as<int>();
   const unsigned long num_users_per_block =
-      args["block-size"]
-          .as<long>();  // TODO: calculate this based on available memory
+      args["block-size"].as<long>();  // TODO: calculate this based on available
+                                      // memory
   const int num_threads = args["num-threads"].as<int>();
   const std::string base_name = args["base-name"].as<std::string>();
 
@@ -165,7 +166,8 @@ int main(int argc, const char *argv[]) {
     const int m = std::min(num_users_per_block, num_users - num_users_so_far);
 
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
-                user_weights, k, item_weights, k, beta, matrix_product, n);
+                &user_weights[num_users_so_far * num_latent_factors], k,
+                item_weights, k, beta, matrix_product, n);
     time_end = dsecnd();
     gemm_time += (time_end - time_st);
 
@@ -195,11 +197,13 @@ int main(int argc, const char *argv[]) {
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   timing_stats_file
       << "model,K,num_latent_factors,num_threads,block_size,gemm_time,pr_"
-         "queue_time,comp_time" << std::endl;
+         "queue_time,comp_time"
+      << std::endl;
   const std::string timing_stats =
       (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%") % base_name %
        num_latent_factors % num_threads % K % num_users_per_block % gemm_time %
-       pr_queue_time % compute_time).str();
+       pr_queue_time % compute_time)
+          .str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
