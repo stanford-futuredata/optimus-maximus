@@ -138,9 +138,9 @@ int main(int argc, const char *argv[]) {
   double time_st, time_end, gemm_time = 0, pr_queue_time = 0, compute_time = 0;
 
   double *item_weights =
-      parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
+      parse_weights_csv<double>(item_weights_filepath, num_items, num_latent_factors);
   double *user_weights =
-      parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
+      parse_weights_csv<double>(user_weights_filepath, num_users, num_latent_factors);
   mkl_free_buffers();
 
   // unsigned long available_mem = 1024 * 1024 * 1024;

@@ -169,9 +169,9 @@ int main(int argc, const char* argv[]) {
   time_start = dsecnd();
 
   double* item_weights =
-      parse_weights_csv(item_weights_filepath, num_items, num_latent_factors);
+      parse_weights_csv<double>(item_weights_filepath, num_items, num_latent_factors);
   double* user_weights =
-      parse_weights_csv(user_weights_filepath, num_users, num_latent_factors);
+      parse_weights_csv<double>(user_weights_filepath, num_users, num_latent_factors);
 
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
@@ -185,7 +185,7 @@ int main(int argc, const char* argv[]) {
     user_id_cluster_ids =
         parse_ids_csv(user_id_cluster_ids_filepath, num_users);
     centroids =
-        parse_weights_csv(centroids_filepath, num_clusters, num_latent_factors);
+        parse_weights_csv<double>(centroids_filepath, num_clusters, num_latent_factors);
   } else {
     kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
                       num_iters, sample_percentage, num_threads, centroids,
