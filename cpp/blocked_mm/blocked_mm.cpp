@@ -176,9 +176,9 @@ int main(int argc, const char *argv[]) {
     time_st = dsecnd();
 
     if (K == 1) {
-      computeTopRating(matrix_product, num_users_per_block, num_items);
+      computeTopRating(matrix_product, m, num_items);
     } else {
-      computeTopK(matrix_product, num_users_per_block, num_items, K);
+      computeTopK(matrix_product, m, num_items, K);
     }
     time_end = dsecnd();
     pr_queue_time += (time_end - time_st);
