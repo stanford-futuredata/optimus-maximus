@@ -1,4 +1,4 @@
-model,K,num_latent_factors,num_threads,block_size,gemm_time,pr_queue_time,comp_time
+model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
 nomad-R2-10-reg-0.001,10,1,1,25000,309.404,278.245,587.649
 nomad-R2-10-reg-0.001,10,1,5,25000,308.014,309.462,617.476
 nomad-R2-10-reg-0.001,10,1,10,25000,303.143,310.142,613.285

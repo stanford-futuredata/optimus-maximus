@@ -196,7 +196,7 @@ int main(int argc, const char *argv[]) {
       base_name + "_timing_" + std::to_string(curr_time) + ".csv";
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   timing_stats_file
-      << "model,K,num_latent_factors,num_threads,block_size,gemm_time,pr_"
+      << "model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_"
          "queue_time,comp_time"
       << std::endl;
   const std::string timing_stats =
