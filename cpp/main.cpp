@@ -343,6 +343,7 @@ int main(int argc, const char* argv[]) {
   printf("algo time: %f secs\n", algo_time);
   printf("total comp time: %f secs\n", compute_time);
 
+  _free(top_K_items);
   _free(upper_bounds);
   _free(sorted_upper_bounds_indices);
   _free(sorted_upper_bounds);
