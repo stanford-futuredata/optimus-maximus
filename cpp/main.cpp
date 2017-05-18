@@ -168,10 +168,10 @@ int main(int argc, const char* argv[]) {
   dsecnd();
   time_start = dsecnd();
 
-  double* item_weights =
-      parse_weights_csv<double>(item_weights_filepath, num_items, num_latent_factors);
-  double* user_weights =
-      parse_weights_csv<double>(user_weights_filepath, num_users, num_latent_factors);
+  double* item_weights = parse_weights_csv<double>(
+      item_weights_filepath, num_items, num_latent_factors);
+  double* user_weights = parse_weights_csv<double>(
+      user_weights_filepath, num_users, num_latent_factors);
 
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
@@ -184,8 +184,8 @@ int main(int argc, const char* argv[]) {
   if (args.count("clusters-dir")) {
     user_id_cluster_ids =
         parse_ids_csv(user_id_cluster_ids_filepath, num_users);
-    centroids =
-        parse_weights_csv<double>(centroids_filepath, num_clusters, num_latent_factors);
+    centroids = parse_weights_csv<double>(centroids_filepath, num_clusters,
+                                          num_latent_factors);
   } else {
     kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
                       num_iters, sample_percentage, num_threads, centroids,
@@ -281,6 +281,7 @@ int main(int argc, const char* argv[]) {
   // TODO: These buffers are reused across multiple calls to
   // computeTopKForCluster.  For multiple threads, there will be
   // contention--need to allocate a buffer per thread.
+  int* top_K_items = (int*)_malloc(num_users * K * sizeof(int));
   float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
   int* sorted_upper_bounds_indices =
       (int*)_malloc(num_bins * num_items * sizeof(int));
@@ -299,8 +300,8 @@ int main(int argc, const char* argv[]) {
 #endif
     const int num_users_so_far = num_users_so_far_arr[cluster_id];
     computeTopKForCluster(
-        cluster_id, &centroids[cluster_id * num_latent_factors],
-        cluster_index[cluster_id],
+        &top_K_items[num_users_so_far * K], cluster_id,
+        &centroids[cluster_id * num_latent_factors], cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
         centroid_norms[cluster_id], num_items, num_latent_factors, num_bins, K,

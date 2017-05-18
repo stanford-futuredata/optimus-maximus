@@ -93,7 +93,7 @@ void check_against_naive(const double *user_weight, const double *item_weights,
 #endif
 
 void computeTopKForCluster(
-    const int cluster_id, const double *centroid,
+    int *top_K_items, const int cluster_id, const double *centroid,
     const std::vector<int> &user_ids_in_cluster, const double *user_weights,
     const double *item_weights, const float *item_norms, const float *theta_ics,
     const float &centroid_norm, const int num_items,
@@ -117,8 +117,6 @@ void computeTopKForCluster(
   const int mod = batch_size - 1;  // assumes batch_size is a power of 2, so
   // mod is all 1's in binary, therefore
   // ind % batch_size == ind & mod
-
-  int *top_K_items = (int *)_malloc(num_users_in_cluster * K * sizeof(int));
 
   // compute user_norms and theta_ucs for every user assigned to this cluster
   float *user_norms = compute_norms_vector(user_weights, num_users_in_cluster,
@@ -351,7 +349,6 @@ void computeTopKForCluster(
   // ----------Free Allocated Memory Below-------
   _free(pBufSize);
   _free(pBuffer);
-  _free(top_K_items);
   _free(user_norms);
   _free(theta_ucs);
   _free(user_dot_items);

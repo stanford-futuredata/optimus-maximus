@@ -21,33 +21,21 @@
 
 #include <omp.h>
 
-void computeTopRating(double *ratings_matrix, const int num_users,
-                      const int num_items) {
-  int *top_K_items = new int[num_users];
+void computeTopRating(double *ratings_matrix, int *top_K_items,
+                      const int num_users, const int num_items) {
 #pragma omp parallel for
   for (int user_id = 0; user_id < num_users; user_id++) {
 
     unsigned long index = user_id;
     index *= num_items;
     int best_item_id = cblas_idamax(num_items, &ratings_matrix[index], 1);
-    // double best_rating = ratings_matrix[index];
-    // int best_item_id = 0;
-    // for (int item_id = 1; item_id < num_items; ++item_id) {
-    //   const double curr_rating = ratings_matrix[index + item_id];
-    //   if (curr_rating > best_rating) {
-    //     best_rating = curr_rating;
-    //     best_item_id = item_id;
-    //   }
-    // }
     top_K_items[user_id] = best_item_id;
   }
-  delete[] top_K_items;
 }
 
-void computeTopK(double *ratings_matrix, const int num_users,
+void computeTopK(double *ratings_matrix, int *top_K_items, const int num_users,
                  const int num_items, const int K) {
 
-  int *top_K_items = new int[num_users * K];
 #pragma omp parallel for
   for (int i = 0; i < num_users; i++) {
 
@@ -55,8 +43,7 @@ void computeTopK(double *ratings_matrix, const int num_users,
     // insertion-and-copy array strategy that Matei suggested
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
-                        std::greater<std::pair<double, int> > >
-        q;
+                        std::greater<std::pair<double, int> > > q;
 
     unsigned long index = i;
     index *= num_items;
@@ -78,7 +65,6 @@ void computeTopK(double *ratings_matrix, const int num_users,
       q.pop();
     }
   }
-  delete[] top_K_items;
 }
 
 namespace opt = boost::program_options;
@@ -137,10 +123,10 @@ int main(int argc, const char *argv[]) {
 
   double time_st, time_end, gemm_time = 0, pr_queue_time = 0, compute_time = 0;
 
-  double *item_weights =
-      parse_weights_csv<double>(item_weights_filepath, num_items, num_latent_factors);
-  double *user_weights =
-      parse_weights_csv<double>(user_weights_filepath, num_users, num_latent_factors);
+  double *item_weights = parse_weights_csv<double>(
+      item_weights_filepath, num_items, num_latent_factors);
+  double *user_weights = parse_weights_csv<double>(
+      user_weights_filepath, num_users, num_latent_factors);
   mkl_free_buffers();
 
   // unsigned long available_mem = 1024 * 1024 * 1024;
@@ -155,6 +141,8 @@ int main(int argc, const char *argv[]) {
   const float beta = 0.0;
   const int n = num_items;
   const int k = num_latent_factors;
+
+  int *top_K_items = new int[num_users * K];
 
   for (unsigned long num_users_so_far = 0; num_users_so_far < num_users;
        num_users_so_far += num_users_per_block) {
@@ -176,15 +164,18 @@ int main(int argc, const char *argv[]) {
     time_st = dsecnd();
 
     if (K == 1) {
-      computeTopRating(matrix_product, m, num_items);
+      computeTopRating(matrix_product, &top_K_items[num_users_so_far], m,
+                       num_items);
     } else {
-      computeTopK(matrix_product, m, num_items, K);
+      computeTopK(matrix_product, &top_K_items[num_users_so_far * K], m,
+                  num_items, K);
     }
     time_end = dsecnd();
     pr_queue_time += (time_end - time_st);
   }
   compute_time = gemm_time + pr_queue_time;
 
+  delete[] top_K_items;
   _free(item_weights);
   _free(user_weights);
   _free(matrix_product);
@@ -197,13 +188,11 @@ int main(int argc, const char *argv[]) {
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   timing_stats_file
       << "model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_"
-         "queue_time,comp_time"
-      << std::endl;
+         "queue_time,comp_time" << std::endl;
   const std::string timing_stats =
       (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%") % base_name %
        num_latent_factors % num_threads % K % num_users_per_block % gemm_time %
-       pr_queue_time % compute_time)
-          .str();
+       pr_queue_time % compute_time).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
