@@ -317,7 +317,7 @@ void computeTopKForCluster(
     const double total_user_time_ms =
         1000 * (user_top_K_time + batch_time + sort_time + upper_bounds_time);
     user_stats_file << cluster_id << "," << theta_ucs[i] << ","
-                    << theta_bins[bin_index] << "," << num_items_visited << ","
+                    << theta_max << "," << num_items_visited << ","
                     << total_user_time_ms << std::endl;
 #endif
   }
