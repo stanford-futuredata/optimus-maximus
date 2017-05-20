@@ -1,15 +1,23 @@
 
 #include "../utils.hpp"
-#include "service.h"
-
 #include <random>
-
-#include <daal.h>
+#include <armadillo>
 #include <mkl.h>
 
-using namespace daal;
-using namespace daal::algorithms;
-using namespace data_management;
+using namespace arma;
+
+// For debugging purposes in gdb, since we can't use overloaded operators
+#ifdef DEBUG
+void print(const vec& v) { v.print(); }
+void print(const ivec& v) { v.print(); }
+void print(const mat& v) { v.print(); }
+void print(const urowvec& v) { v.print(); }
+double get_elem(const mat& m, int i, int j) { return m(i, j); }
+double get_elem(const vec& v, int i) { return v(i); }
+int get_elem(const uvec& v, int i) { return v(i); }
+double get_norm(const vec& v) { return norm(v, 2); }
+double get_dot(const vec& u, const vec& v) { return dot(u, v); }
+#endif
 
 double* get_random_samples(double* input_weights, const int num_rows,
                            const int num_cols, const int sample_percentage,
@@ -34,184 +42,83 @@ double* get_random_samples(double* input_weights, const int num_rows,
   return sample_input_weights;
 }
 
-double* computeCentroids(double* sample_users, const int num_cols,
-                         const int num_clusters, const int num_iters,
-                         const int num_samples) {
-  double time_st, time_end, time_avg;
-
-  kmeans::init::Batch<double, kmeans::init::randomDense> init(num_clusters);
-
-  services::SharedPtr<NumericTable> sampleTablePtr =
-      services::SharedPtr<NumericTable>(
-          new HomogenNumericTable<double>(sample_users, num_cols, num_samples));
-
-  init.input.set(kmeans::init::data, sampleTablePtr);
-#ifdef DEBUG
-  time_st = dsecnd();
-  time_st = dsecnd();
-#endif
-  init.compute();
-#ifdef DEBUG
-  time_end = dsecnd();
-  time_avg = (time_end - time_st);
-#endif
-
-#ifdef DEBUG
-  printf("time taken to compute initial centroids: %f secs \n", time_avg);
-#endif
-
-  services::SharedPtr<NumericTable> centroids =
-      init.getResult()->get(kmeans::init::centroids);
-
-  kmeans::Batch<double> algorithm(num_clusters, num_iters);
-
-  algorithm.input.set(kmeans::data, sampleTablePtr);
-  algorithm.input.set(kmeans::inputCentroids, centroids);
-
-#ifdef DEBUG
-  time_st = dsecnd();
-  time_st = dsecnd();
-#endif
-  algorithm.compute();
-#ifdef DEBUG
-  time_end = dsecnd();
-  time_avg = (time_end - time_st);
-#endif
-
-#ifdef DEBUG
-  printf("time taken to compute clusters: %f secs \n", time_avg);
-  printNumericTable(algorithm.getResult()->get(kmeans::assignments),
-                    "First 10 cluster assignments:", 10);
-  printNumericTable(algorithm.getResult()->get(kmeans::centroids),
-                    "First 10 dimensions of centroids:", 20, 10);
-#endif
-
-  services::SharedPtr<NumericTable> endCentroids =
-      algorithm.getResult()->get(kmeans::centroids);
-  int nRows = endCentroids->getNumberOfRows();
-  if (nRows != num_clusters) {
-    std::cout << "ERROR!! first round of kmeans centroids rows don't match num "
-                 "clusters" << std::endl;
-  }
-  BlockDescriptor<double> cent_block;
-  endCentroids->getBlockOfRows(0, nRows, readOnly, cent_block);
-  double* centArray = cent_block.getBlockPtr();
-  double* returnArray =
-      (double*)_malloc(sizeof(double) * num_cols * num_clusters);
-  cblas_dcopy(num_cols * num_clusters, centArray, 1, returnArray, 1);
-  return returnArray;
-}
-
-int* assignment(double* input_weights, double* centroids, int num_clusters,
-                int num_cols, int num_rows) {
-#ifdef DEBUG
-  double time_st, time_end, time_avg;
-#endif
-
-  services::SharedPtr<NumericTable> centroidTablePtr =
-      services::SharedPtr<NumericTable>(
-          new HomogenNumericTable<double>(centroids, num_cols, num_clusters));
-
-  services::SharedPtr<NumericTable> dataTablePtr =
-      services::SharedPtr<NumericTable>(
-          new HomogenNumericTable<double>(input_weights, num_cols, num_rows));
-
-  printNumericTable(centroidTablePtr, "Input Centroids:", 20, 10);
-
-  kmeans::Batch<> algorithm2(num_clusters, 0);
-  algorithm2.input.set(kmeans::data, dataTablePtr);
-  algorithm2.input.set(kmeans::inputCentroids, centroidTablePtr);
-
-#ifdef DEBUG
-  time_st = dsecnd();
-  time_st = dsecnd();
-#endif
-  algorithm2.compute();
-#ifdef DEBUG
-  time_end = dsecnd();
-  time_avg = (time_end - time_st);
-#endif
-
-#ifdef DEBUG
-  printf("time taken to assign clusters: %f secs \n", time_avg);
-  printNumericTable(algorithm2.getResult()->get(kmeans::assignments),
-                    "First 10 cluster assignments:", 10);
-  printNumericTable(algorithm2.getResult()->get(kmeans::centroids),
-                    "First 10 dimensions of centroids:", 20, 10);
-#endif
-
-  services::SharedPtr<NumericTable> assignments =
-      algorithm2.getResult()->get(kmeans::assignments);
-  size_t num_users = assignments->getNumberOfRows();
-
-#ifdef DEBUG
-  size_t cols = assignments->getNumberOfColumns();
-  std::cout << "Num Assignments: " << num_users << "\t" << cols << std::endl;
-#endif
-
-  BlockDescriptor<int> assign_block;
-  assignments->getBlockOfRows(0, num_users, readOnly, assign_block);
-  int* assignArray = assign_block.getBlockPtr();
-  int* returnArray = (int*)_malloc(sizeof(int) * num_users);
-  cblas_scopy(num_users, (float*)assignArray, 1, (float*)returnArray, 1);
-
-#ifdef DEBUG
-  for (int i = 0; i < 50; i++) {
-    std::cout << "user: " << i << " assignment: " << returnArray[i]
-              << std::endl;
-  }
-#endif
-
-  return returnArray;
-}
-
-void kmeans_clustering(double* input_weights, const int num_rows,
+double kmeans_clustering(double* all_user_weights, const int num_rows,
                        const int num_cols, const int num_clusters,
                        const int num_iters, const int sample_percentage,
-                       const int num_threads, double*& centroids,
-                       int*& user_id_cluster_ids) {
-  MKL_Free_Buffers();
-  services::Environment::getInstance()->setNumberOfThreads(num_threads);
-  daal::services::interface1::LibraryVersionInfo info_obj;
-#ifdef DEBUG
-  std::cout << info_obj.majorVersion << "\t" << info_obj.minorVersion << "\t"
-            << info_obj.build << std::endl;
-#endif
-
+                       double*& centroids, uint32_t*& user_id_cluster_ids) {
   int num_samples = 0;
-
-  double* sampled_input_weights = get_random_samples(
-      input_weights, num_rows, num_cols, sample_percentage, &num_samples);
-
-  centroids = computeCentroids(sampled_input_weights, num_cols, num_clusters,
-                               num_iters, num_samples);
-  user_id_cluster_ids =
-      assignment(input_weights, centroids, num_clusters, num_cols, num_rows);
-  _free(sampled_input_weights);
-}
-
-void random_clustering(double* input_weights, const int num_rows,
-                       const int num_cols, const int num_clusters,
-                       const int num_threads, double*& centroids,
-                       int*& user_id_cluster_ids) {
-
-  MKL_Free_Buffers();
-  services::Environment::getInstance()->setNumberOfThreads(num_threads);
-  daal::services::interface1::LibraryVersionInfo info_obj;
+  auto start = Time::now();
+  double* sampled_user_weights = get_random_samples(
+      all_user_weights, num_rows, num_cols, sample_percentage, &num_samples);
+  mat input_mat(sampled_user_weights, num_samples, num_cols, false, true);
+  const fsec random_s = Time::now() - start;
 #ifdef DEBUG
-  std::cout << info_obj.majorVersion << "\t" << info_obj.minorVersion << "\t"
-            << info_obj.build << std::endl;
+  std::cout << "Random samples time: " << random_s.count() << std::endl;
 #endif
 
-  std::default_random_engine generator;
-  std::normal_distribution<double> distribution(0.0, 1.0);
+#ifdef DEBUG
+  start = Time::now();
+#endif
+  input_mat = input_mat.t();
+#ifdef DEBUG
+  const fsec transpose_input_s = Time::now() - start;
+  std::cout << "Transpose input time: " << transpose_input_s.count() << std::endl;
+#endif
 
-  double* centroids_arr =
-      (double*)_malloc(sizeof(double) * num_cols * num_clusters);
-  centroids = centroids_arr;
-  for (int i = 0; i < (num_clusters * num_cols); i++) {
-    centroids_arr[i] = distribution(generator);
+  start = Time::now();
+  gmm_diag model;
+#ifdef DEBUG
+  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters,
+              0, 0, true);
+#else
+  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters,
+              0, 0, false);
+#endif
+  const fsec clustering_s = Time::now() -start;
+#ifdef DEBUG
+  std::cout << "Clustering time: " << clustering_s.count() << std::endl;
+  model.means.head_rows(std::min(num_cols, 5)).print();
+  start = Time::now();
+#endif
+  mat means = model.means.t();
+#ifdef DEBUG
+  const fsec transpose_centroids_s = Time::now() - start;
+  std::cout << "Transpose centroids time: " << transpose_centroids_s.count() << std::endl;
+#endif
+
+  centroids = means.memptr();
+
+#ifdef DEBUG
+  start = Time::now();
+#endif
+  mat all_users_mat(all_user_weights, num_rows, num_cols, false, true);
+  all_users_mat = all_users_mat.t();
+#ifdef DEBUG
+  const fsec transpose_all_users_s = Time::now() - start;
+  std::cout << "Transpose all users time: " << transpose_all_users_s.count() << std::endl;
+#endif
+
+  start = Time::now();
+  urowvec assignments = model.assign(all_users_mat, eucl_dist);
+  const fsec assignments_s = Time::now() - start;
+#ifdef DEBUG
+  assignments.head(50).print();
+  std::cout << "Assignment time: " << assignments_s.count() << std::endl;
+#endif
+
+  // we have to copy elements of `assignments` to `user_id_cluster_ids`,
+  // individually, because `urowvec` in Armadillo is `unsigned long long`
+#ifdef DEBUG
+  start = Time::now();
+#endif
+  user_id_cluster_ids = (uint32_t *) _malloc(sizeof(uint32_t) * assignments.n_elem);
+  for (uint32_t i = 0; i < assignments.n_elem; ++i) {
+    user_id_cluster_ids[i] = assignments[i];
   }
-  user_id_cluster_ids =
-      assignment(input_weights, centroids, num_clusters, num_cols, num_rows);
+#ifdef DEBUG
+  const fsec copy_s = Time::now() - start;
+  std::cout << "Copy time: " << copy_s.count() << std::endl;
+#endif
+  _free(sampled_user_weights);
+  return random_s.count() + clustering_s.count() + assignments_s.count();
 }

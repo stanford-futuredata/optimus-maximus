@@ -10,10 +10,10 @@ ifeq ($(STATS), 1)
 endif
 
 CXX := icc
-CXX_FLAGS += -std=c++11 -D ICC -mkl -daal -ipp -qopenmp
-INCLUDE_DIRS := /usr/include/boost
-LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
-LIBRARIES := boost_system boost_program_options
+CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp
+INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include
+LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib
+LIBRARIES := boost_system boost_program_options armadillo
 
 INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \

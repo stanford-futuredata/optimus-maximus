@@ -51,17 +51,17 @@ T *parse_weights_csv(const std::string filename, const int num_rows,
 }
 
 // Assume user ids are consecutively numbered, with no gaps
-int *parse_ids_csv(const std::string filename, const int num_rows) {
+uint32_t *parse_ids_csv(const std::string filename, const int num_rows) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream in(filename.c_str());
   if (!in.is_open()) {
     std::cout << "Unable to open " << filename << std::endl;
     exit(1);
   }
-  int *ids = (int *)mkl_malloc(sizeof(int) * num_rows, 64);
+  uint32_t *ids = (uint32_t *)mkl_malloc(sizeof(uint32_t) * num_rows, 64);
 
   std::string line;
-  int i = 0;
+  uint32_t i = 0;
   while (getline(in, line)) {
     ids[i++] = std::stoi(line);
   }

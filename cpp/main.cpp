@@ -26,8 +26,6 @@
 #include <mkl.h>
 #include <mkl_scalapack.h>
 
-#include <omp.h>
-
 namespace opt = boost::program_options;
 
 bool print_theta_bs = false;
@@ -37,7 +35,7 @@ bool print_theta_bs = false;
  * Output: array of vectors: cluster_id -> vector of user ids, user weights
  * resorted in cluster order (same pointer as before)
  **/
-std::vector<int>* build_cluster_index(const int* user_id_cluster_ids,
+std::vector<int>* build_cluster_index(const uint32_t* user_id_cluster_ids,
                                       double*& user_weights,
                                       const int num_users,
                                       const int num_latent_factors,
@@ -157,10 +155,8 @@ int main(int argc, const char* argv[]) {
 
 #ifdef DEBUG
   MKL_Set_Num_Threads(1);
-  omp_set_num_threads(1);
 #else
   MKL_Set_Num_Threads(num_threads);
-  omp_set_num_threads(num_threads);
 #endif
 
   double time_start, time_end;  // used for timing throughout
@@ -176,24 +172,25 @@ int main(int argc, const char* argv[]) {
   time_end = dsecnd();
   const double parse_time = (time_end - time_start);
 
-  dsecnd();
-  time_start = dsecnd();
 
   double* centroids;
-  int* user_id_cluster_ids;
+  uint32_t* user_id_cluster_ids;
+  double cluster_time;
   if (args.count("clusters-dir")) {
+    dsecnd();
+    time_start = dsecnd();
     user_id_cluster_ids =
         parse_ids_csv(user_id_cluster_ids_filepath, num_users);
     centroids = parse_weights_csv<double>(centroids_filepath, num_clusters,
                                           num_latent_factors);
+  time_end = dsecnd();
+  cluster_time = time_end - time_start;
   } else {
-    kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
-                      num_iters, sample_percentage, num_threads, centroids,
+    cluster_time = kmeans_clustering(user_weights, num_users, num_latent_factors, num_clusters,
+                      num_iters, sample_percentage, centroids,
                       user_id_cluster_ids);
   }
 
-  time_end = dsecnd();
-  const double cluster_time = (time_end - time_start);
 
   dsecnd();
   time_start = dsecnd();
@@ -241,7 +238,6 @@ int main(int argc, const char* argv[]) {
   double* sorted_item_weights = (double*)_malloc(
       sizeof(double) * num_bins * num_items * num_latent_factors);
 
-#pragma omp parallel for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
       continue;

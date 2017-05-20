@@ -1,6 +1,7 @@
 *.sw*
 *.csv
 *.txt
+.ycm_extra_conf.py
 # ctags
 tags
 # C++ object files
