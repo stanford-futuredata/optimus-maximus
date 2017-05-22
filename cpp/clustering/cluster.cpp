@@ -43,9 +43,9 @@ double* get_random_samples(double* input_weights, const int num_rows,
 }
 
 double kmeans_clustering(double* all_user_weights, const int num_rows,
-                       const int num_cols, const int num_clusters,
-                       const int num_iters, const int sample_percentage,
-                       double*& centroids, uint32_t*& user_id_cluster_ids) {
+                         const int num_cols, const int num_clusters,
+                         const int num_iters, const int sample_percentage,
+                         double*& centroids, uint32_t*& user_id_cluster_ids) {
   int num_samples = 0;
   auto start = Time::now();
   double* sampled_user_weights = get_random_samples(
@@ -62,19 +62,20 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   input_mat = input_mat.t();
 #ifdef DEBUG
   const fsec transpose_input_s = Time::now() - start;
-  std::cout << "Transpose input time: " << transpose_input_s.count() << std::endl;
+  std::cout << "Transpose input time: " << transpose_input_s.count()
+            << std::endl;
 #endif
 
   start = Time::now();
   gmm_diag model;
 #ifdef DEBUG
-  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters,
-              0, 0, true);
+  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters, 0,
+              0, true);
 #else
-  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters,
-              0, 0, false);
+  model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters, 0,
+              0, false);
 #endif
-  const fsec clustering_s = Time::now() -start;
+  const fsec clustering_s = Time::now() - start;
 #ifdef DEBUG
   std::cout << "Clustering time: " << clustering_s.count() << std::endl;
   model.means.head_rows(std::min(num_cols, 5)).print();
@@ -83,10 +84,20 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   mat means = model.means.t();
 #ifdef DEBUG
   const fsec transpose_centroids_s = Time::now() - start;
-  std::cout << "Transpose centroids time: " << transpose_centroids_s.count() << std::endl;
+  std::cout << "Transpose centroids time: " << transpose_centroids_s.count()
+            << std::endl;
 #endif
 
-  centroids = means.memptr();
+#ifdef DEBUG
+  start = Time::now();
+#endif
+  // Copy centroids to separate array; means is on the stack
+  centroids = (double*)_malloc(sizeof(double) * means.n_elem);
+  std::memcpy(centroids, means.memptr(), sizeof(double) * means.n_elem);
+#ifdef DEBUG
+  const fsec copy_centroids_s = Time::now() - start;
+  std::cout << "Copy centroids time: " << copy_centroids_s.count() << std::endl;
+#endif
 
 #ifdef DEBUG
   start = Time::now();
@@ -95,7 +106,8 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   all_users_mat = all_users_mat.t();
 #ifdef DEBUG
   const fsec transpose_all_users_s = Time::now() - start;
-  std::cout << "Transpose all users time: " << transpose_all_users_s.count() << std::endl;
+  std::cout << "Transpose all users time: " << transpose_all_users_s.count()
+            << std::endl;
 #endif
 
   start = Time::now();
@@ -106,18 +118,19 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   std::cout << "Assignment time: " << assignments_s.count() << std::endl;
 #endif
 
-  // we have to copy elements of `assignments` to `user_id_cluster_ids`,
-  // individually, because `urowvec` in Armadillo is `unsigned long long`
+// we have to copy elements of `assignments` to `user_id_cluster_ids`,
+// individually, because `urowvec` in Armadillo is `unsigned long long`
 #ifdef DEBUG
   start = Time::now();
 #endif
-  user_id_cluster_ids = (uint32_t *) _malloc(sizeof(uint32_t) * assignments.n_elem);
+  user_id_cluster_ids =
+      (uint32_t*)_malloc(sizeof(uint32_t) * assignments.n_elem);
   for (uint32_t i = 0; i < assignments.n_elem; ++i) {
     user_id_cluster_ids[i] = assignments[i];
   }
 #ifdef DEBUG
-  const fsec copy_s = Time::now() - start;
-  std::cout << "Copy time: " << copy_s.count() << std::endl;
+  const fsec copy_assignments_s = Time::now() - start;
+  std::cout << "Copy assignments time: " << copy_assignments_s.count() << std::endl;
 #endif
   _free(sampled_user_weights);
   return random_s.count() + clustering_s.count() + assignments_s.count();
