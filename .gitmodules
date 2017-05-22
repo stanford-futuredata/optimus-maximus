@@ -1,3 +1,6 @@
 [submodule "LEMP-benchmarking"]
 	path = LEMP-benchmarking
 	url = git@github.com:stanford-futuredata/LEMP-benchmarking.git
+[submodule "fexipro"]
+	path = fexipro
+	url = git@github.com:stanford-futuredata/fexipro-benchmarking
