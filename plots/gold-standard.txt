@@ -6,7 +6,7 @@ lemp-paper-KDD-50
 nomad-Netflix-10-reg-0-05
 nomad-Netflix-25-reg-0-05
 nomad-Netflix-50-reg-0-05
-nomad-Netflix-100-gold-standard
+nomad-Netflix-100-reg-0-05
 nomad-R2-10-reg-0-001
 nomad-R2-25-reg-0-001
 nomad-R2-50-reg-0-001

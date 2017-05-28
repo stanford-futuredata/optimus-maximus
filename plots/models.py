@@ -1,6 +1,7 @@
-NETFLIX_REGS = ['0.0005', '0.005', '0.05', 'gold-standard', '0.5']
+
+NETFLIX_REGS = ['0.0005', '0.005', '0.05', '0.5']
 KDD_REGS = ['0.001', '0.01', '0.1', 'gold-standard', '1']
-R2_REGS = ['0.001', '0.01', '0.1', 'gold-standard', '1']
+R2_REGS = ['0.001', '0.01', '0.1', '1']
 
 NETFLIX_10_MODELS = [
     'lemp-paper-Netflix-noav-10',
@@ -32,7 +33,7 @@ NETFLIX_100_MODELS = [
     'lemp-paper-Netflix-noav-100',
     'nomad-Netflix-100-reg-0.0005',
     'nomad-Netflix-100-reg-0.005',
-    'nomad-Netflix-100-gold-standard',
+    'nomad-Netflix-100-reg-0.05',
     'nomad-Netflix-100-reg-0.5',
 ]
 NETFLIX_MODELS = NETFLIX_10_MODELS + NETFLIX_25_MODELS + NETFLIX_50_MODELS + NETFLIX_100_MODELS
@@ -45,7 +46,21 @@ NETFLIX_GOLD_STANDARD_MODELS = [
 'lemp-paper-Netflix-noav-50',
 'nomad-Netflix-50-reg-0.05',
 'lemp-paper-Netflix-noav-100',
-'nomad-Netflix-100-gold-standard',
+'nomad-Netflix-100-reg-0.05',
+]
+
+LEMP_NETFLIX_MODELS = [
+    'lemp-paper-Netflix-noav-10',
+    'lemp-paper-Netflix-noav-50',
+    'lemp-paper-Netflix-50',
+    'lemp-paper-Netflix-noav-100',
+]
+
+NOMAD_NETFLIX_GOLD_STANDARD_MODELS = [
+    'nomad-Netflix-10-reg-0.05',
+    'nomad-Netflix-25-reg-0.05',
+    'nomad-Netflix-50-reg-0.05',
+    'nomad-Netflix-100-reg-0.05',
 ]
 
 
