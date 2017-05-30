@@ -50,7 +50,7 @@ def main():
         1, 5, 10, 50
     ]
     NUM_THREADS = [1]
-    BATCH_SIZES = [256, 512, 1024, 2048, 4096] if args.sweep else [1024]
+    BATCH_SIZES = [256, 512, 1024, 2048, 4096] if args.sweep else [4096]
     NUM_CLUSTERS = [1, 8, 64, 128, 256, 512, 1024, 2048, 4096]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
