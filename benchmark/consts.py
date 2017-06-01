@@ -99,11 +99,11 @@ NOMAD_NETFLIX_MODELS = [
      NETFLIX_DATASET),
     ('nomad/Netflix-50-reg-0.5', (50, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('nomad/Netflix-100-gold-standard', (100, 480189, 17770, (256, 512), 1),
-     NETFLIX_DATASET),
     ('nomad/Netflix-100-reg-0.0005', (100, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
     ('nomad/Netflix-100-reg-0.005', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
     ('nomad/Netflix-100-reg-0.5', (100, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
@@ -188,6 +188,33 @@ NOMAD_R2_MODELS = [
 ]
 
 NOMAD_MODELS = NOMAD_NETFLIX_MODELS + NOMAD_KDD_MODELS + NOMAD_R2_MODELS
+
+GOLD_STANDARD_MODELS = LEMP_MODELS + [
+    ('nomad/Netflix-10-reg-0.05', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('nomad/Netflix-25-reg-0.05', (25, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('nomad/Netflix-50-reg-0.05', (50, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736, (1024, 2048), 1),
+     YAHOO_R2_DATASET),
+    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (1024, 2048), 1),
+     YAHOO_R2_DATASET),
+    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736, (1024, 2048), 1),
+     YAHOO_R2_DATASET),
+    ('nomad/R2-100-reg-0.001', (100, 1823179, 136736, (1024, 2048), 1),
+     YAHOO_R2_DATASET),
+    ('nomad/KDD-10-reg-1', (10, 1000990, 624961, (512, 1024), 20),
+     YAHOO_KDD_DATASET),
+    ('nomad/KDD-25-reg-0.001', (25, 1000990, 624961, (512, 1024), 20),
+     YAHOO_KDD_DATASET),
+    ('nomad/KDD-50-reg-1', (50, 1000990, 624961, (512, 1024), 20),
+     YAHOO_KDD_DATASET),
+    ('nomad/KDD-100-reg-1', (100, 1000990, 624961, (512, 1024), 20),
+     YAHOO_KDD_DATASET),
+        ]
 
 INTERPOLATION_MODELS = [
     ('interpolation/KDD-100-reg-1-0.1-items',
