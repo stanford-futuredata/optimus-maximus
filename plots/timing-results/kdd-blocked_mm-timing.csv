@@ -1,4 +1,4 @@
-model,K,num_latent_factors,num_threads,block_size,gemm_time,pr_queue_time,comp_time
+model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
 lemp-paper-KDD-50,50,1,1,25000,3025.19,854.224,3879.41
 lemp-paper-KDD-50,50,1,5,25000,3092.91,947.113,4040.02
 lemp-paper-KDD-50,50,1,10,25000,3017.49,941.872,3959.36
