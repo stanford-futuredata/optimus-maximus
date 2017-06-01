@@ -85,11 +85,11 @@ void check_against_naive(const double *user_weight, const double *item_weights,
 #endif
 
 void computeTopKForCluster(
-    int *top_K_items, const size_t cluster_id, const double *centroid,
+    int *top_K_items, const int cluster_id, const double *centroid,
     const std::vector<int> &user_ids_in_cluster, const double *user_weights,
     const double *item_weights, const float *item_norms, const float *theta_ics,
-    const float &centroid_norm, const size_t num_items,
-    const size_t num_latent_factors, const size_t K, const size_t item_batch_size,
+    const float &centroid_norm, const int num_items,
+    const int num_latent_factors, const int K, const int item_batch_size,
     float *upper_bounds, int *sorted_upper_bounds_indices,
     float *sorted_upper_bounds, double *sorted_item_weights,
     std::ofstream &user_stats_file) {
@@ -101,13 +101,18 @@ void computeTopKForCluster(
   time_start = dsecnd();
 #endif
 
-  const size_t num_users_in_cluster = user_ids_in_cluster.size();
+  const int num_users_in_cluster = user_ids_in_cluster.size();
+
+  if (num_users_in_cluster*item_batch_size < 0) {
+    std::cout << "ERROR! num_users_in_cluster*item_batch_size overflowed!" << std::endl;
+    exit(1);
+  }
 
   double *users_dot_items = (double *)_malloc(
       sizeof(double) * num_users_in_cluster * item_batch_size);
   float *user_norm_times_upper_bound =
       (float *)_malloc(sizeof(float) * item_batch_size);
-  const size_t mod =
+  const int mod =
       item_batch_size - 1;  // assumes item_batch_size is a power of 2, so
   // mod is all 1's in binary, therefore
   // ind % item_batch_size == ind & mod
@@ -126,7 +131,7 @@ void computeTopKForCluster(
       theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
   // theta_bins is correct
 
-  size_t i, j, l;
+  int i, j, l;
 
   std::fill(upper_bounds, &upper_bounds[num_items], theta_max);
   vsSub(num_items, theta_ics, upper_bounds, upper_bounds);
@@ -187,6 +192,7 @@ void computeTopKForCluster(
     cblas_dcopy(num_latent_factors, &item_weights[item_id * num_latent_factors],
                 1, &sorted_item_weights[j * num_latent_factors], 1);
   }
+  int batch_counter = item_batch_size;
 
 #ifdef STATS
   time_end = dsecnd();
@@ -195,20 +201,20 @@ void computeTopKForCluster(
 
 // ----------Computer Per User TopK Below------------------
 #ifdef DEBUG
-  const size_t num_users_to_compute =
+  const int num_users_to_compute =
       num_users_in_cluster < 40 ? num_users_in_cluster : 40;
 #else
-  const size_t num_users_to_compute = num_users_in_cluster;
+  const int num_users_to_compute = num_users_in_cluster;
 #endif
 
-  const size_t m = num_users_to_compute;
-  size_t n = std::min(item_batch_size,
+  const int m = num_users_to_compute;
+  int n = std::min(item_batch_size,
                    num_items);  // not const, because it may be adjusted later
-  const size_t k = num_latent_factors;
+  const int k = num_latent_factors;
 
   const float alpha = 1.0f;
   const float beta = 0.0f;
-  const size_t stride = 1;
+  const int stride = 1;
 
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
               user_weights, k, sorted_item_weights, k, beta, users_dot_items,
@@ -241,7 +247,6 @@ void computeTopKForCluster(
 #ifdef STATS
     int num_items_visited = K;
 #endif
-    size_t batch_counter = item_batch_size;
 
     for (j = K; j < num_items; j++) {
       if ((j & mod) == 0) {  // same as j % item_batch_size == 0
@@ -251,7 +256,7 @@ void computeTopKForCluster(
           n = std::min(item_batch_size,
                        num_items - batch_counter);  // change for upcoming sgemv
                                                     // operation
-          for (l = 0; l < n; l++) {
+          for (int l = 0; l < n; l++) {
             item_id = sorted_upper_bounds_indices[batch_counter + l];
             sorted_upper_bounds[batch_counter + l] = upper_bounds[item_id];
             cblas_dcopy(
