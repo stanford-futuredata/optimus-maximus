@@ -70,7 +70,7 @@ def main():
     run_args = []
     numa_queue = get_numa_queue()
 
-    for (model_dir, (num_factors, num_users, num_items, best_num_clusters),
+    for (model_dir, (num_factors, num_users, num_items, best_num_clusters, _),
          _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')

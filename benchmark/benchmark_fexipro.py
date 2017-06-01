@@ -9,7 +9,7 @@ import subprocess
 
 
 def run(run_args):
-    numa_queue, num_factors, num_users, num_items, K, \
+    numa_queue, num_factors, num_users, num_items, K, scale, \
             input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
@@ -22,7 +22,7 @@ def run(run_args):
     cpu_ids = numa_queue.get()
     cmd = [
         'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
-        str(num_users), '-n', str(num_items), '-f', str(num_factors),
+        str(num_users), '-n', str(num_items), '-f', str(num_factors), '-s', str(scale),
         '--base-name', base_name
     ]
     print('Running ' + str(cmd))
@@ -57,12 +57,12 @@ def main():
     run_args = []
     numa_queue = get_numa_queue()
 
-    for (model_dir, (num_factors, num_users, num_items, best_num_clusters),
+    for (model_dir, (num_factors, num_users, num_items, _, scale),
          _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         for K in TOP_K:
-            run_args.append((numa_queue, num_factors, num_users, num_items, K,
+            run_args.append((numa_queue, num_factors, num_users, num_items, K, scale,
                              input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.ProcessPool(
