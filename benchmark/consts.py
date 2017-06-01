@@ -59,19 +59,19 @@ YAHOO_R2_DATASET = (DATASET_DIR_BASE + 'yahoo-r2/yahoo_R2_train_full.txt',
 
 MODEL_DIR_BASE = '%s/models-simdex' % os.getenv('HOME')
 LEMP_NETFLIX_MODELS = [
-    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (256, 512), 1),
+    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-50', (50, 480189, 17770, (256, 512), 1),
+    ('lemp-paper/Netflix-50', (50, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (256, 512), 1),
+    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (256, 512), 1),
+    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
 ]
 
 LEMP_MODELS = LEMP_NETFLIX_MODELS + [
     ('lemp-paper/KDD-50', (51, 1000990, 624961,
-                           (512, 1024), 20), YAHOO_KDD_DATASET),
+                           (8,), 20), YAHOO_KDD_DATASET),
 ]
 
 NOMAD_NETFLIX_MODELS = [
@@ -190,29 +190,29 @@ NOMAD_R2_MODELS = [
 NOMAD_MODELS = NOMAD_NETFLIX_MODELS + NOMAD_KDD_MODELS + NOMAD_R2_MODELS
 
 GOLD_STANDARD_MODELS = LEMP_MODELS + [
-    ('nomad/Netflix-10-reg-0.05', (10, 480189, 17770, (256, 512), 1),
+    ('nomad/Netflix-10-reg-0.05', (10, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('nomad/Netflix-25-reg-0.05', (25, 480189, 17770, (256, 512), 1),
+    ('nomad/Netflix-25-reg-0.05', (25, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('nomad/Netflix-50-reg-0.05', (50, 480189, 17770, (256, 512), 1),
+    ('nomad/Netflix-50-reg-0.05', (50, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770, (256, 512), 1),
+    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770, (8,), 1),
      NETFLIX_DATASET),
-    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736, (1024, 2048), 1),
+    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
-    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (1024, 2048), 1),
+    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
-    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736, (1024, 2048), 1),
+    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
-    ('nomad/R2-100-reg-0.001', (100, 1823179, 136736, (1024, 2048), 1),
+    ('nomad/R2-100-reg-0.001', (100, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
-    ('nomad/KDD-10-reg-1', (10, 1000990, 624961, (512, 1024), 20),
+    ('nomad/KDD-10-reg-1', (10, 1000990, 624961, (8,), 20),
      YAHOO_KDD_DATASET),
-    ('nomad/KDD-25-reg-0.001', (25, 1000990, 624961, (512, 1024), 20),
+    ('nomad/KDD-25-reg-0.001', (25, 1000990, 624961, (8,), 20),
      YAHOO_KDD_DATASET),
-    ('nomad/KDD-50-reg-1', (50, 1000990, 624961, (512, 1024), 20),
+    ('nomad/KDD-50-reg-1', (50, 1000990, 624961, (8,), 20),
      YAHOO_KDD_DATASET),
-    ('nomad/KDD-100-reg-1', (100, 1000990, 624961, (512, 1024), 20),
+    ('nomad/KDD-100-reg-1', (100, 1000990, 624961, (8,), 20),
      YAHOO_KDD_DATASET),
         ]
 
