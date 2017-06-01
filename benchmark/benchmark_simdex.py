@@ -10,7 +10,7 @@ import subprocess
 
 def run(run_args):
     numa_queue, num_factors, num_users, num_items, K, num_clusters, sample_percentage, \
-            num_iters, num_threads, batch_size, input_dir, base_name, output_dir, runner = run_args
+            num_iters, num_threads, batch_size, sample, input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
         print("Can't find %s" % input_dir)
@@ -27,6 +27,8 @@ def run(run_args):
         '-b', '1', '-t', str(num_threads), '--batch-size', str(batch_size),
         '--base-name', base_name
     ]
+    if sample:
+        cmd += ['--sample']
     print('Running ' + str(cmd))
     subprocess.call(cmd)
     # Add cpu ids for NUMA node back to queue
@@ -42,6 +44,9 @@ def main():
     parser.add_argument('--stats', dest='stats', action='store_true')
     parser.add_argument('--no-stats', dest='stats', action='store_false')
     parser.set_defaults(stats=False)
+    parser.add_argument('--sample', dest='sample', action='store_true')
+    parser.add_argument('--no-sample', dest='sample', action='store_false')
+    parser.set_defaults(sample=False)
     parser.add_argument(
         '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
@@ -81,7 +86,7 @@ def main():
             run_args.append(
                 (numa_queue, num_factors, num_users, num_items, K,
                  num_clusters, sample_percentage, num_iters, num_threads,
-                 batch_size, input_dir, base_name, output_dir, runner))
+                 batch_size, args.sample, input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.ProcessPool(
         NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
