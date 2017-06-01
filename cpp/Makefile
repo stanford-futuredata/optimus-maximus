@@ -10,7 +10,7 @@ ifeq ($(STATS), 1)
 endif
 
 CXX := icc
-CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp
+CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp -fp-model precise
 INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib
 LIBRARIES := boost_system boost_program_options armadillo
