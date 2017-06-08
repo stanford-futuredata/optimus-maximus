@@ -20,9 +20,8 @@ void computeTopKForCluster(
     const std::vector<int> &user_ids_in_cluster, const double *user_weights,
     const double *item_weights, const float *item_norms, const float *theta_ics,
     const float &centroid_norm, const int num_items,
-    const int num_latent_factors, const int K, const int batch_size,
-    float *upper_bounds, int *sorted_upper_bounds_indices,
+    const int num_latent_factors, const int num_bins, const int K,
+    const int batch_size, float *upper_bounds, int *sorted_upper_bounds_indices,
     float *sorted_upper_bounds, double *sorted_item_weights,
     std::ofstream &user_stats_file);
-
 #endif /* algo_hpp */

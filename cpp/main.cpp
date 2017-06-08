@@ -326,7 +326,7 @@ int main(int argc, const char* argv[]) {
         &centroids[cluster_id * num_latent_factors], cluster_index[cluster_id],
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
-        centroid_norms[cluster_id], num_items, num_latent_factors, K, batch_size,
+        centroid_norms[cluster_id], num_items, num_latent_factors, 1, K, batch_size,
         upper_bounds, sorted_upper_bounds_indices, sorted_upper_bounds,
         sorted_item_weights, user_stats_file);
   }
