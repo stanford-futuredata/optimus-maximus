@@ -19,4 +19,5 @@ lemp-icc-no-simd/
 lemp-icc-simd/
 lemp-no-icc-no-simd/
 lemp-no-icc-simd/
+fexipro-orig-build/
 exp/

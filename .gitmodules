@@ -4,3 +4,6 @@
 [submodule "fexipro"]
 	path = fexipro
 	url = git@github.com:stanford-futuredata/fexipro-benchmarking
+[submodule "fexipro-orig"]
+	path = fexipro-orig
+	url = git@github.com:stanford-futuredata/FEXIPRO-orig.git
