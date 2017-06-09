@@ -1,6 +1,6 @@
 
 NETFLIX_REGS = ['0.0005', '0.005', '0.05', '0.5']
-KDD_REGS = ['0.001', '0.01', '0.1', 'gold-standard', '1']
+KDD_REGS = ['0.001', '0.01', '0.1', '1']
 R2_REGS = ['0.001', '0.01', '0.1', '1']
 
 NETFLIX_10_MODELS = [
@@ -138,9 +138,20 @@ R2_GOLD_STANDARD_MODELS = [
 ]
 
 GOLD_STANDARD_MODELS = [
-    'lemp-paper-Netflix-noav-50',
-    'nomad-Netflix-50-reg-0.05',
-    'lemp-paper-KDD-50',
-    'nomad-KDD-50-reg-1',
-    'nomad-R2-50-reg-0.001',
+'lemp-paper-Netflix-noav-10',
+'lemp-paper-Netflix-noav-50',
+'lemp-paper-Netflix-noav-100',
+'lemp-paper-KDD-50',
+'nomad-Netflix-10-reg-0.05',
+'nomad-Netflix-25-reg-0.05',
+'nomad-Netflix-50-reg-0.05',
+'nomad-Netflix-100-reg-0.05',
+'nomad-R2-10-reg-0.001',
+'nomad-R2-25-reg-0.001',
+'nomad-R2-50-reg-0.001',
+'nomad-R2-100-reg-0.01',
+'nomad-KDD-10-reg-1',
+'nomad-KDD-25-reg-0.001',
+'nomad-KDD-50-reg-1',
+'nomad-KDD-100-reg-1',
 ]
