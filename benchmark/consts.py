@@ -74,6 +74,14 @@ LEMP_MODELS = LEMP_NETFLIX_MODELS + [
                            (8,), 20), YAHOO_KDD_DATASET),
 ]
 
+FEXIPRO_MODELS = [
+    ('fexipro-paper/Netflix-50', (50, 480189, 17770, (8,), 1),
+     NETFLIX_DATASET),
+    ('fexipro-paper/KDD-50', (50, 1000990, 624961,
+                           (8,), 20), YAHOO_KDD_DATASET),
+]
+
+
 NOMAD_NETFLIX_MODELS = [
     ('nomad/Netflix-10-reg-0.0005', (10, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
