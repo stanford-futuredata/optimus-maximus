@@ -1,5 +1,5 @@
 model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
-fexipro-paper-KDD-50,50,1,1,25000,6417.35,1662.42,8079.77
+fexipro-paper-KDD-50,50,1,1,25000,2923.32,806.683,3730
 fexipro-paper-KDD-50,50,1,10,25000,3381.28,998.531,4379.81
 fexipro-paper-KDD-50,50,1,5,25000,3580.91,995.896,4576.8
 fexipro-paper-KDD-50,50,1,50,25000,3058.56,961.476,4020.03
