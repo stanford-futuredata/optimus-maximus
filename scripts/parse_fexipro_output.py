@@ -17,7 +17,7 @@ def parse(input_dir):
         if 'result' in fname:
             continue
         with open(fname) as f:
-            fname = fname[len(input_dir)+1:]
+            fname = fname[len(input_dir):]
             model = re.search('(.+)-SI', fname).group(1)
             values_dict = {'model': model}
             for line in f:
