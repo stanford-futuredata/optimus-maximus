@@ -1,4 +1,8 @@
 model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
+fexipro-paper-Netflix-50,50,1,1,25000,27.9425,9.0725,37.015
+fexipro-paper-Netflix-50,50,1,10,25000,27.9536,12.9272,40.8807
+fexipro-paper-Netflix-50,50,1,5,25000,27.965,11.3719,39.3369
+fexipro-paper-Netflix-50,50,1,50,25000,27.9599,23.7562,51.7161
 lemp-paper-Netflix-50,50,1,1,25000,28.4386,9.10839,37.547
 lemp-paper-Netflix-50,50,1,10,25000,28.1284,12.7313,40.8598
 lemp-paper-Netflix-50,50,1,5,25000,28.0896,11.4276,39.5172

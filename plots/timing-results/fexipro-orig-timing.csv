@@ -1,4 +1,12 @@
 model,K,num_latent_factors,alg,preproc_time,comp_time
+fexipro-paper-Netflix-50,1,50,SI,0.101224,85.165645
+fexipro-paper-Netflix-50,1,50,SIR,0.131928,94.838765
+fexipro-paper-Netflix-50,10,50,SI,0.124569,132.420619
+fexipro-paper-Netflix-50,10,50,SIR,0.131278,141.481212
+fexipro-paper-Netflix-50,5,50,SI,0.120163,112.182589
+fexipro-paper-Netflix-50,5,50,SIR,0.134218,123.307285
+fexipro-paper-Netflix-50,50,50,SI,0.097749,180.665833
+fexipro-paper-Netflix-50,50,50,SIR,0.096838,206.939952
 lemp-paper-KDD-50,1,51,SI,9.053213,5603.059001
 lemp-paper-KDD-50,1,51,SIR,9.544213,57291.416243
 lemp-paper-Netflix-50,1,50,SI,0.117441,60.445736
