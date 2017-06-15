@@ -14,6 +14,8 @@ if not os.path.exists(FIGURES_DIR):
 
 
 LABEL_DICT = {
+    'fexipro-paper-Netflix-50': r'''Netflix-libPMF, $f=50$''',
+    'fexipro-paper-KDD-50': r'''KDD-libPMF, $f=50$''',
     'lemp-paper-Netflix-noav-10': r'''Netflix-DSGD, $f=10$''',
     'nomad-Netflix-10': r'Netflix-DSGD, $f=10$',
     'nomad-Netflix-10-reg-0.05': r'Netflix-NOMAD, $f=10$',
@@ -29,7 +31,7 @@ LABEL_DICT = {
     'nomad-KDD-10-reg-1': r'KDD-NOMAD, $f=10$',
     'nomad-KDD-25-reg-0.001': r'KDD-NOMAD, $f=25$',
     'nomad-KDD-50-reg-1': r'KDD-NOMAD, $f=50$',
-    'lemp-paper-KDD-50': r'KDD-DSGD, $f=50$',
+    'lemp-paper-KDD-50': r'KDD-REF, $f=51$',
     'nomad-KDD-100-reg-1': r'KDD-NOMAD, $f=100$',
     'nomad-R2-10': r'R2-NOMAD, $f=10$',
     'nomad-R2-10-reg-0.001': r'R2-NOMAD, $f=10$',
@@ -156,11 +158,6 @@ def factor_analysis(figsize=(8, 4)):
     y2 = times2
     y3 = times3
 
-    print y0
-    print y1
-    print y2
-    print y3
-
     fig, ax = plt.subplots(figsize=figsize)
     # Example data
     people = ('Netflix w/o\nWork Sharing', 'Netflix with\nWork Sharing', 'R2 w/o\nWork Sharing', 'R2 with\nWork Sharing', )
@@ -198,42 +195,55 @@ def factor_analysis(figsize=(8, 4)):
     sns.despine()
     save_figure('factor-analysis', (lgd,))
 
+def f_u_plot_single(simdex_df, lemp_df, blocked_mm_df, fexipro_df,
+        fexipro_si_df, sampling_df, model, num_clusters=8, batch_size=4096, y_title=-0.35):
 
-def f_u_plot_single(simdex_df, lemp_df, fexipro_df, blocked_mm_df, model,
-        num_clusters=8, y_title=-0.35):
+    simdex_df = simdex_df.query('num_clusters == %d and batch_size == %d' %
+            (num_clusters, batch_size))
 
-    both_df = pd.concat([simdex_df[['model', 'K', 'comp_time']], blocked_mm_df[['model', 'K', 'comp_time']]])
-    both_rt = both_df.sort_values(by='comp_time').groupby( ['model', 'K'], as_index=False).first()
+    both_df = pd.concat([simdex_df[['model', 'K', 'comp_time']],
+        blocked_mm_df[['model', 'K', 'comp_time']].query('model != "nomad-Netflix-25-reg-0.05"')])
+    both_rt = both_df.sort_values(by='comp_time').groupby(['model', 'K'], as_index=False).first()
     both_rt['algo'] = 'SimDex'
 
     simdex_rt = simdex_df.sort_values(by='comp_time').groupby( ['model', 'K'], as_index=False).first()
     simdex_rt['algo'] = 'SimDex-Index Only'
 
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
-    blocked_mm_rt['algo'] = 'Blocked MM'
+    blocked_mm_rt['algo'] = 'Blocked MM Only'
 
     lemp_rt = lemp_df[['model', 'K', 'comp_time']]
     lemp_rt['algo'] = 'LEMP'
 
     fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
-    fexipro_rt['algo'] = 'Fexipro'
+    fexipro_rt['algo'] = 'FEXIPRO'
+
+    fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
+    fexipro_si_rt['algo'] = 'FEXIPRO-SI'
 
     both_model_rt = both_rt.query('model == "%s"' %
             model).sort_values(by='K')
     lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(by='K')
     fexipro_model_rt = fexipro_rt.query('model == "%s"' % model).sort_values(by='K')
-    simdex_model_rt = simdex_rt.query('model == "%s" and num_clusters == %d' % (model, num_clusters)).sort_values(by='K')
+    fexipro_si_model_rt = fexipro_si_rt.query('model == "%s"' % model).sort_values(by='K')
+    simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(by='K')
     blocked_mm_model_rt = blocked_mm_rt.query('model == "%s"' % model).sort_values(by='K')
+    sampling_model_rt = sampling_df.query('model == "%s"' % model).sort_values(by='K')
 
-    # speed_ups = lemp_model_rt['comp_time'] / both_model_rt['comp_time']
-    # print model
-    # print speed_ups
+    if len(sampling_model_rt) > 0:
+        both_model_rt['comp_time'] += sampling_model_rt['comp_time'].values
+
     data = pd.concat([both_model_rt, blocked_mm_model_rt, simdex_model_rt,
-        lemp_model_rt, fexipro_model_rt,])
-    print model
+        lemp_model_rt, fexipro_model_rt, fexipro_si_model_rt])
     if len(data) == 0: return
-    max_runtime = max(lemp_model_rt['comp_time'].max(),
-            blocked_mm_model_rt['comp_time'].max())
+    max_runtime = sorted([
+        lemp_model_rt['comp_time'].max(),
+        simdex_model_rt['comp_time'].max(),
+        blocked_mm_model_rt['comp_time'].max(),
+        fexipro_model_rt['comp_time'].max(),
+        fexipro_si_model_rt['comp_time'].max()
+    ])[1]
+
     sns.barplot(
         x='K',
         y='comp_time',
@@ -241,23 +251,24 @@ def f_u_plot_single(simdex_df, lemp_df, fexipro_df, blocked_mm_df, model,
         data=data,
         linewidth=1.25,
         edgecolor='black')
-    #add_hatches(bar, num_groups=4)
-
-    legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), borderaxespad=0.)
 
     start, end = plt.ylim()
-    plt.ylim([start, max_runtime * 1.1])
+    if not np.isnan(max_runtime):
+        plt.ylim([start, max_runtime * 1.1])
     plt.minorticks_on()
-    plt.xlabel('K')
     plt.ylabel('Time (s)')
+    plt.xlabel('K')
+
     plt.grid(True)
     plt.title(LABEL_DICT[model], y=y_title)
     sns.despine()
 
-    save_figure('f-u-plot', (legend,))
+    legend = plt.legend(loc='2', bbox_to_anchor=(1, 1.05))
+    save_figure('f-u-plot-single', (legend,))
     plt.show()
 
-def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, sampling_df, models, nrows=4,
+
+def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, fexipro_si_df, sampling_df, models, nrows=4,
         num_clusters=8, batch_size=4096, figsize=(28, 28), y_title=1.05, bbox_to_anchor=(0,0,1,1)):
     legend = None # save for later
     # if len(models) == 5:
@@ -296,6 +307,9 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, sampling_df, models
     fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
     fexipro_rt['algo'] = 'FEXIPRO'
 
+    fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
+    fexipro_si_rt['algo'] = 'FEXIPRO-SI'
+
     all_speedups = []
     all_percent_overheads = []
     all_overheads = []
@@ -305,33 +319,34 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, sampling_df, models
                 model).sort_values(by='K')
         lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(by='K')
         fexipro_model_rt = fexipro_rt.query('model == "%s"' % model).sort_values(by='K')
-        if num_clusters:
-            simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(by='K')
-        else:
-            simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(by='K')
+        fexipro_si_model_rt = fexipro_si_rt.query('model == "%s"' % model).sort_values(by='K')
+        simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(by='K')
         blocked_mm_model_rt = blocked_mm_rt.query('model == "%s"' % model).sort_values(by='K')
         sampling_model_rt = sampling_df.query('model == "%s"' % model).sort_values(by='K')
 
         # add sampling overhead
-
-        if model != 'nomad-KDD-100-reg-1':
-            overheads = simdex_model_rt['cluster_time'].values + \
-                simdex_model_rt['index_time'].values + \
-                sampling_model_rt['comp_time'].values
-            all_overheads.append(overheads)
-            percent_overheads = overheads / (both_model_rt['comp_time'].values + overheads)
-            print model, percent_overheads
-            all_percent_overheads.append(percent_overheads)
+        overheads = simdex_model_rt['cluster_time'].values + \
+            simdex_model_rt['index_time'].values + \
+            sampling_model_rt['comp_time'].values
+        all_overheads.append(overheads)
+        percent_overheads = overheads / (both_model_rt['comp_time'].values + overheads)
+        print model, percent_overheads
+        all_percent_overheads.append(percent_overheads)
 
         both_model_rt['comp_time'] += sampling_model_rt['comp_time'].values
         speed_ups = lemp_model_rt['comp_time'].values / both_model_rt['comp_time'].values
         all_speedups.append(speed_ups)
         # print model
         data = pd.concat([both_model_rt, blocked_mm_model_rt, simdex_model_rt,
-            lemp_model_rt, fexipro_model_rt,])
+            lemp_model_rt, fexipro_model_rt, fexipro_si_model_rt])
         if len(data) == 0: continue
-        max_runtime = max(lemp_model_rt['comp_time'].max(),
-                blocked_mm_model_rt['comp_time'].max())
+        max_runtime = sorted([
+            lemp_model_rt['comp_time'].max(),
+            simdex_model_rt['comp_time'].max(),
+            blocked_mm_model_rt['comp_time'].max(),
+            fexipro_model_rt['comp_time'].max(),
+            fexipro_si_model_rt['comp_time'].max()
+        ])[1]
 
         sns.barplot(
             x='K',
@@ -377,10 +392,8 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, sampling_df, models
     print 'Min percent overhead: ' + str(np.min(all_percent_overheads))
     print 'Max percent overhead: ' + str(np.max(all_percent_overheads))
 
-
-
     legend = ax_arr[0].legend(loc='upper center', bbox_to_anchor=bbox_to_anchor,
-            bbox_transform=plt.gcf().transFigure, ncol=5)
+            bbox_transform=plt.gcf().transFigure, ncol=6)
     plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     save_figure('f-u-plot', (legend,))
     plt.show()
@@ -439,7 +452,7 @@ def appetizer_bar_plots(simdex_df, lemp_df, blocked_mm_df, models, model_labels,
 def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
                         simdex_df=None, fexipro_df=None, K=1, fname=None,
                         figsize=(28, 6.5), bbox_to_anchor=(0,0,1,1), title=False,
-                        y_title=1.05, annotate=True, xy_text=(15, 150)):
+                        y_title=-0.4, annotate=True, xy_text=(15, 150)):
     blocked_mm_rt = blocked_mm_df.query('K == %d' % K)[['model', 'comp_time']]
     lemp_rt = lemp_df.query('K == %d' % K)[['model', 'comp_time']]
 
@@ -499,8 +512,6 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
     ax1.set_xscale('log')
     ax1.set_ylabel('Test RMSE')
     ax1.grid(True)
-    if title:
-        ax1.set_title(LABEL_DICT[model_prefix], y=y_title)
     ax1.minorticks_on()
     if annotate:
         ax1.annotate('best model',
@@ -531,6 +542,8 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
                     horizontalalignment='center', verticalalignment='bottom',
                     fontsize=30)
 
+    if title:
+        ax2.set_title(LABEL_DICT[model_prefix], y=y_title)
     sns.despine()
     ax2.set_xscale('log')
     ax2.set_xlabel(r'Regularization')
@@ -789,7 +802,7 @@ def num_bins_vs_runtime(simdex_df, models, nrows=1, figsize=(28, 6.5),
     plt.show()
 
 
-def point_query_time(models, csv_dir='user-stats/K-1', sample_size=15000,
+def point_query_time(models, csv_dir='user-stats/K-1', sample_fraction=0.1,
         bins=10, nrows=1, figsize=(32, 4.5), y_title=-0.40):
     if nrows == 1:
         fig, ax_arr = plt.subplots(nrows=nrows, ncols=int(len(models) / nrows),
@@ -810,9 +823,9 @@ def point_query_time(models, csv_dir='user-stats/K-1', sample_size=15000,
     for i, model in enumerate(models):
         for filename in glob.iglob('%s/%s_user_stats_*' % (csv_dir, model)):
             df = pd.read_csv(filename)
-            x = df.query('cluster_id > 0')['query_time']
+            x = df['query_time']
             print np.mean(x), len(x)
-            sorted_x = sorted(x.sample(sample_size))
+            sorted_x = sorted(x.sample(int(len(x)*sample_fraction)))
             N = len(sorted_x)
             y_values = np.arange(N) / float(N)
             ax_arr[i].plot(sorted_x, y_values)
@@ -820,8 +833,7 @@ def point_query_time(models, csv_dir='user-stats/K-1', sample_size=15000,
             #        hist_kws={'alpha': 0.8,}, ax=ax_arr[i])
             #sns.despine()
             xlim = ax_arr[i].get_xlim()
-            if xlim[0] < 0:
-                ax_arr[i].set_xlim([0, xlim[-1]])
+            ax_arr[i].set_xlim([0, xlim[-1]])
             ax_arr[i].set_title(LABEL_DICT[model], y=y_title)
             ax_arr[i].grid(True)
             ax_arr[i].minorticks_on()
