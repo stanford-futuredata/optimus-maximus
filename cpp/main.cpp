@@ -295,7 +295,7 @@ int main(int argc, const char* argv[]) {
     std::chrono::system_clock::now().time_since_epoch().count();
 #ifdef STATS
   const std::string user_stats_fname =
-    base_name + "_user_stats_" + std::to_string(curr_time) + ".csv";
+    base_name + "_user_stats_K-" + std::to_string(K) + "_" + std::to_string(curr_time) + ".csv";
   user_stats_file.open(user_stats_fname);
   user_stats_file << "cluster_id,theta_uc,theta_b,num_items_visited,query_time"
     << std::endl;
