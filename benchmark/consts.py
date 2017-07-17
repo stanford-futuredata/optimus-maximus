@@ -210,7 +210,7 @@ GOLD_STANDARD_MODELS = LEMP_MODELS + [
      YAHOO_R2_DATASET),
     ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
-    ('nomad/R2-50-reg-0.001', (50, 1823179, 136736, (8,), 1),
+    ('nomad/R2-50-reg-0.0001', (50, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),
     ('nomad/R2-100-reg-0.0001', (100, 1823179, 136736, (8,), 1),
      YAHOO_R2_DATASET),

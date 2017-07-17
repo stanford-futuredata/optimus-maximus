@@ -7,6 +7,7 @@ import pandas as pd
 import pylab
 import os
 import glob
+import itertools
 
 FIGURES_DIR = 'figures/'
 if not os.path.exists(FIGURES_DIR):
@@ -43,6 +44,27 @@ LABEL_DICT = {
     'nomad-R2-100-reg-0.01': r'R2-NOMAD, $f=100$',
 }
 
+BLOG_POST_LABEL_DICT = {
+    'nomad-Netflix-10-reg-0.05': r'Netflix Prize, $f=10$',
+    'nomad-Netflix-25': r'Netflix Prize, $f=25$',
+    'nomad-Netflix-25-reg-0.05': r'Netflix Prize, $f=25$',
+    'nomad-Netflix-50': r'Netflix Prize, $f=50$',
+    'nomad-Netflix-50-reg-0.05': r'Netflix Prize, $f=50$',
+    'nomad-Netflix-100': r'Netflix Prize, $f=100$',
+    'nomad-Netflix-100-reg-0.05': r'Netflix Prize, $f=100$',
+    'nomad-KDD-10-reg-1': r'Yahoo Music KDD, $f=10$',
+    'nomad-KDD-25-reg-0.001': r'Yahoo Music KDD, $f=25$',
+    'nomad-KDD-50-reg-1': r'Yahoo Music KDD, $f=50$',
+    'nomad-KDD-100-reg-1': r'Yahoo Music KDD, $f=100$',
+    'nomad-R2-10': r'Yahoo Music R2, $f=10$',
+    'nomad-R2-10-reg-0.001': r'Yahoo Music R2, $f=10$',
+    'nomad-R2-25': r'Yahoo Music R2, $f=25$',
+    'nomad-R2-25-reg-0.001': r'Yahoo Music R2, $f=25$',
+    'nomad-R2-50': r'Yahoo Music R2, $f=50$',
+    'nomad-R2-50-reg-0.001': r'Yahoo Music R2, $f=50$',
+    'nomad-R2-100': r'Yahoo Music R2, $f=100$',
+    'nomad-R2-100-reg-0.01': r'Yahoo Music R2, $f=100$',
+}
 
 HATCHES = ['0', '-', '/', 'x', '.', '|', '+', '//', '\\', 'o', '*']
 
@@ -135,6 +157,62 @@ def plot_cdf(values_labels_and_lines,
 ###########
 ## PLOTS ##
 ###########
+def blocked_mm_lemp_fexipro_plot(blocked_mm_df, lemp_df, fexipro_df,
+        fexipro_si_df, model, title, y_title=-0.35, figsize=(8, 8)):
+    plt.figure(figsize=figsize)
+
+    blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
+    blocked_mm_rt['algo'] = 'Blocked MM'
+
+    lemp_rt = lemp_df[['model', 'K', 'comp_time']]
+    lemp_rt['algo'] = 'LEMP'
+
+    fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
+    fexipro_rt['algo'] = 'FEXIPRO'
+
+    fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
+    fexipro_si_rt['algo'] = 'FEXIPRO-SI'
+
+    lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(by='K')
+    fexipro_model_rt = fexipro_rt.query('model == "%s"' % model).sort_values(by='K')
+    fexipro_si_model_rt = fexipro_si_rt.query('model == "%s"' % model).sort_values(by='K')
+    blocked_mm_model_rt = blocked_mm_rt.query('model == "%s"' % model).sort_values(by='K')
+
+    data = pd.concat([blocked_mm_model_rt,
+        lemp_model_rt, fexipro_model_rt, fexipro_si_model_rt])
+    if len(data) == 0: return
+
+    max_runtime = max([
+        lemp_model_rt['comp_time'].max(),
+        blocked_mm_model_rt['comp_time'].max(),
+        fexipro_model_rt['comp_time'].max(),
+        fexipro_si_model_rt['comp_time'].max(),
+    ])
+
+    sns.barplot(
+        x='K',
+        y='comp_time',
+        hue='algo',
+        data=data,
+        linewidth=1.25,
+        edgecolor='black')
+
+    start, end = plt.ylim()
+    if not np.isnan(max_runtime):
+        plt.ylim([start, max_runtime * 1.1])
+    plt.minorticks_on()
+    plt.ylabel('Time (s)')
+    plt.xlabel('K')
+
+    plt.grid(True)
+    plt.title(title, y=y_title)
+    sns.despine()
+
+    legend = plt.legend(loc='2', bbox_to_anchor=(1, 1.05))
+    save_figure('blocked_mm-lemp-fexipro', (legend,))
+    plt.show()
+
+
 def factor_analysis(figsize=(8, 4)):
     labels = 'Cluster', 'Index Construction', 'Cost Estimation', 'Index Traversal'
 
@@ -325,16 +403,16 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, fexipro_si_df, samp
         sampling_model_rt = sampling_df.query('model == "%s"' % model).sort_values(by='K')
 
         # add sampling overhead
-        overheads = simdex_model_rt['cluster_time'].values + \
-            simdex_model_rt['index_time'].values + \
-            sampling_model_rt['comp_time'].values
+        overheads = simdex_model_rt['cluster_time'].min() + \
+            simdex_model_rt['index_time'].min() + \
+            sampling_model_rt['comp_time'].min()
         all_overheads.append(overheads)
-        percent_overheads = overheads / (both_model_rt['comp_time'].values + overheads)
+        percent_overheads = overheads / (both_model_rt['comp_time'].min() + overheads)
         print model, percent_overheads
         all_percent_overheads.append(percent_overheads)
 
-        both_model_rt['comp_time'] += sampling_model_rt['comp_time'].values
-        speed_ups = lemp_model_rt['comp_time'].values / both_model_rt['comp_time'].values
+        both_model_rt['comp_time'] += sampling_model_rt['comp_time'].min()
+        speed_ups = lemp_model_rt['comp_time'].min() / both_model_rt['comp_time'].min()
         all_speedups.append(speed_ups)
         # print model
         data = pd.concat([both_model_rt, blocked_mm_model_rt, simdex_model_rt,
@@ -368,7 +446,7 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, fexipro_si_df, samp
             ax_arr[i].set_ylabel('Time (s)')
         else:
             ax_arr[i].set_ylabel('')
-        if int(i / nrows) == 3:
+        if int(i / ncols) == nrows-1:
             ax_arr[i].set_xlabel('K')
         else:
             ax_arr[i].set_xlabel('')
@@ -450,9 +528,10 @@ def appetizer_bar_plots(simdex_df, lemp_df, blocked_mm_df, models, model_labels,
 
 
 def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
-                        simdex_df=None, fexipro_df=None, K=1, fname=None,
-                        figsize=(28, 6.5), bbox_to_anchor=(0,0,1,1), title=False,
-                        y_title=-0.4, annotate=True, xy_text=(15, 150)):
+                        simdex_df=None, fexipro_df=None, fexipro_si_df=None, K=1,
+                        fname=None, figsize=(28, 6.5), bbox_to_anchor=(0,0,1,1),
+                        title=False, title_text=None, y_title=-0.4, annotate=True, xy_text=(15,
+                            150), linestyle='--', include_legend=False):
     blocked_mm_rt = blocked_mm_df.query('K == %d' % K)[['model', 'comp_time']]
     lemp_rt = lemp_df.query('K == %d' % K)[['model', 'comp_time']]
 
@@ -461,6 +540,8 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
             ['model', 'K'], as_index=False).first()[['model', 'comp_time']]
     if fexipro_df is not None:
         fexipro_rt = fexipro_df.query('K == %d' % K)[['model', 'comp_time']]
+    if fexipro_si_df is not None:
+        fexipro_si_rt = fexipro_si_df.query('K == %d' % K)[['model', 'comp_time']]
 
     fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=figsize)
     blocked_mm_data = []
@@ -469,6 +550,8 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
         simdex_data = []
     if fexipro_df is not None:
         fexipro_data = []
+    if fexipro_si_df is not None:
+        fexipro_si_data = []
     rmse_data = []
 
     for reg in regs:
@@ -479,36 +562,43 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
             model = model_prefix + '-reg-' + reg
 
         test_rmse = rmse_df.query('model == "%s"' %
-                model)['test_rmse'].values[0]
+                model)['test_rmse'].min()
         rmse_data.append(test_rmse)
 
         blocked_mm_result = blocked_mm_rt.query('model == "%s"' %
-        model)['comp_time'].values[0]
+        model)['comp_time'].min()
         blocked_mm_data.append(blocked_mm_result)
 
         lemp_result = lemp_rt.query('model == "%s"' %
-                model)['comp_time'].values[0]
+                model)['comp_time'].min()
         lemp_data.append(lemp_result)
 
         if simdex_df is not None:
             simdex_result = simdex_rt.query('model == "%s"' %
-                    model)['comp_time'].values[0]
+                    model)['comp_time'].min()
             simdex_data.append(simdex_result)
 
         if fexipro_df is not None:
-            fexipro_result = fexipro_rt.query('model == "%s"' % model)['comp_time'].values[0]
+            fexipro_result = fexipro_rt.query('model == "%s"' %
+                    model)['comp_time'].min()
             fexipro_data.append(fexipro_result)
 
-    if fexipro_df is not None:
-        max_runtime = min(fexipro_data) # Fexipro will be cut off, except for the smallest value
-    else:
-        max_runtime = max([max(blocked_mm_data), max(lemp_data),])
+        if fexipro_si_df is not None:
+            fexipro_si_result = fexipro_si_rt.query('model == "%s"' %
+                    model)['comp_time'].min()
+            fexipro_si_data.append(fexipro_si_result)
+
+
+    #if fexipro_df is not None:
+    #    max_runtime = min(fexipro_data) # Fexipro will be cut off, except for the smallest value
+    #else:
+    #    max_runtime = max([max(blocked_mm_data), max(lemp_data),])
 
     min_rmse = min(rmse_data)
     best_reg_index = rmse_data.index(min_rmse)
     best_reg = regs[best_reg_index]
 
-    ax1.plot(regs, rmse_data, color='black', marker='o')
+    ax1.plot(regs, rmse_data, color='black', linestyle=linestyle, marker='o')
     ax1.set_xscale('log')
     ax1.set_ylabel('Test RMSE')
     ax1.grid(True)
@@ -525,37 +615,45 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
     min_rt = min([blocked_mm_data[best_reg_index], lemp_data[best_reg_index]])
 
     num_legend_entries = 2
-    ax2.plot(regs, blocked_mm_data, label='Blocked MM', marker='o')
+    ax2.plot(regs, blocked_mm_data, label='Blocked MM', linestyle=linestyle, marker='o')
     if simdex_df is not None:
         num_legend_entries += 1
-        ax2.plot(regs, simdex_data, label='SimDex\'s Index', marker='o')
-    ax2.plot(regs, lemp_data, label='LEMP', marker='o')
+        ax2.plot(regs, simdex_data, label='SimDex-Index Only', linestyle=linestyle, marker='o')
+
+    ax2.plot(regs, lemp_data, label='LEMP', linestyle=linestyle, marker='o')
     if fexipro_df is not None:
         num_legend_entries += 1
-        ax2.plot(regs, fexipro_data, label='Fexipro', marker='o')
-    #legend = ax2.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        ax2.plot(regs, fexipro_data, label='FEXIPRO', linestyle=linestyle, marker='o')
+    if fexipro_si_df is not None:
+        num_legend_entries += 1
+        ax2.plot(regs, fexipro_si_data, label='FEXIPRO-SI', linestyle=linestyle, marker='o')
     if annotate:
         ax2.annotate('best runtime\non best model',
-                    xy=(best_reg, min_rt*1.09), xycoords='data',
+                    xy=(best_reg, min_rt*1.07), xycoords='data',
                     xytext=xy_text, textcoords='offset points',
                     arrowprops=dict(facecolor='black', shrink=0.03),
                     horizontalalignment='center', verticalalignment='bottom',
                     fontsize=30)
+    if include_legend:
+        ax2.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
     if title:
-        ax2.set_title(LABEL_DICT[model_prefix], y=y_title)
+        if title_text is None:
+            title_text = LABEL_DICT[model_prefix]
+        if y_title < 0.0:
+            ax2.set_title(title_text, y=y_title)
+        else:
+            fig.suptitle(title_text, x=0.6, y=y_title)
+
     sns.despine()
     ax2.set_xscale('log')
     ax2.set_xlabel(r'Regularization')
     ax2.set_ylabel('Time (s)')
     start, end = ax2.get_ylim()
-    ax2.set_ylim([start, max_runtime * 1.1])
+    #ax2.set_ylim([start, max_runtime * 1.1])
     ax2.grid(True)
     ax2.minorticks_on()
 
-    #legend = plt.legend(loc='upper center', bbox_to_anchor=bbox_to_anchor,
-    #        bbox_transform=plt.gcf().transFigure, ncol=num_legend_entries)
-    #sup_title = fig.suptitle(title, y=y_title)
     fig.tight_layout()
     if fname:
         save_figure(fname)
@@ -563,22 +661,39 @@ def rmse_and_reg_plots(blocked_mm_df, lemp_df, rmse_df, model_prefix, regs,
         save_figure('rmse-reg-' + model_prefix)
     plt.show()
 
-def rmse_and_reg_legend(add_simdex=False):
-    # save legend separately
-    fig = pylab.figure()
-    figlegend = pylab.figure(figsize=(15, 1.5))
-    ax = fig.add_subplot(111)
+# save legend separately
+def rmse_and_reg_legend(add_simdex=False, linestyle='--'):
+    def flip(items, ncol):
+        return itertools.chain(*[items[i::ncol] for i in range(ncol)])
+
+    labels = ['Model Error', 'Blocked MM', 'LEMP', 'FEXIPRO', 'FEXIPRO-SI']
+    ncol = len(labels)
     if add_simdex:
-        lines = ax.plot(range(10), pylab.randn(10), 'black', range(10), pylab.randn(10),
-                range(10), pylab.randn(10), range(10), pylab.randn(10), marker='o')
-        figlegend.legend(lines, ('Model Error', 'Blocked MM',
-            'SimDex-Index Only', 'LEMP'), loc='center', ncol=4)
+
+        labels = labels[:2] + ['SimDex-Index Only'] + labels[2:]
+        ncol = int(len(labels)/2)
+
+        fig = pylab.figure()
+        figlegend = pylab.figure(figsize=(14, 1.5))
+        ax = fig.add_subplot(111)
+        lines = ax.plot(range(10), pylab.randn(10), 'black', range(10),
+                pylab.randn(10), range(10), pylab.randn(10), range(10),
+                pylab.randn(10), range(10), pylab.randn(10), range(10),
+                pylab.randn(10), linestyle=linestyle, marker='o')
+        figlegend.legend(flip(lines, ncol), flip(labels, ncol), loc='center',
+            ncol=ncol, columnspacing=None, labelspacing=None)
         figlegend.savefig(FIGURES_DIR + 'rmse-reg-legend.pdf')
 
     else:
+        fig = pylab.figure()
+        figlegend = pylab.figure(figsize=(18, 1.5))
+        ax = fig.add_subplot(111)
         lines = ax.plot(range(10), pylab.randn(10), 'black',
-                range(10), pylab.randn(10), range(10), pylab.randn(10), marker='o')
-        figlegend.legend(lines, ('Model Error', 'Blocked MM', 'LEMP'), loc='center', ncol=4)
+                range(10), pylab.randn(10), range(10), pylab.randn(10),
+                range(10), pylab.randn(10), range(10), pylab.randn(10),
+                linestyle=linestyle, marker='o')
+        figlegend.legend(lines, labels, loc='center', ncol=ncol,
+                columnspacing=None, labelspacing=None)
         figlegend.savefig(FIGURES_DIR + 'appetizer-legend.pdf')
 
 
