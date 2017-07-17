@@ -403,9 +403,7 @@ def f_u_plots(simdex_df, lemp_df, blocked_mm_df, fexipro_df, fexipro_si_df, samp
         sampling_model_rt = sampling_df.query('model == "%s"' % model).sort_values(by='K')
 
         # add sampling overhead
-        overheads = simdex_model_rt['cluster_time'].min() + \
-            simdex_model_rt['index_time'].min() + \
-            sampling_model_rt['comp_time'].min()
+        overheads = sampling_model_rt['comp_time'].min()
         all_overheads.append(overheads)
         percent_overheads = overheads / (both_model_rt['comp_time'].min() + overheads)
         print model, percent_overheads
