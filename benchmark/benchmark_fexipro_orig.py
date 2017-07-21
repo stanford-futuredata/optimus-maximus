@@ -10,7 +10,7 @@ import subprocess
 
 
 def run(run_args):
-    numa_queue, K, alg, input_dir, base_name, output_dir, runner = run_args
+    numa_queue, K, alg, scaling_value, sigma, input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
         print("Can't find %s" % input_dir)
@@ -28,6 +28,10 @@ def run(run_args):
         runner,
         '--alg',
         alg,
+        '--scalingValue',
+        str(scaling_value),
+        '--SIGMA',
+        str(sigma),
         '--logPathPrefix',
         output_dir,
         '--resultPathPrefix',
@@ -51,8 +55,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_dir', required=True)
     parser.add_argument(
+        '--scaling_value',
+        type=int,
+        help='maximum value for scaling in FEXIPRO')
+    parser.add_argument(
+        '--sigma',
+        type=float,
+        help='percentage of SIGMA for SVD incremental prune')
+    parser.add_argument(
         '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
+
+    scaling_value = args.scaling_value if args.scaling_value else 127
+    sigma = args.sigma if args.sigma else 0.8
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
         1, 5, 10, 50
@@ -74,8 +89,8 @@ def main():
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         for K, alg in product(TOP_K, ALGS):
-            run_args.append((numa_queue, K, alg, input_dir, base_name,
-                             output_dir, runner))
+            run_args.append((numa_queue, K, alg, scaling_value, sigma,
+                             input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.Pool(
         NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes

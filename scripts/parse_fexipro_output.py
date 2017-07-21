@@ -7,7 +7,8 @@ import pandas as pd
 
 OUTPUT_CSV_FNAME = 'fexipro-orig-timing.csv'
 HEADERS = [
-    'model', 'K', 'num_latent_factors', 'alg', 'preproc_time', 'comp_time'
+    'model', 'K', 'num_latent_factors', 'alg', 'scaling_value', 'sigma',
+    'preproc_time', 'comp_time'
 ]
 
 
@@ -30,6 +31,10 @@ def parse(input_dir):
                     values_dict['num_latent_factors'] = value.split(',')[-1]
                 elif header == 'k':
                     values_dict['K'] = value
+                elif header == 'SIGMA':
+                    values_dict['sigma'] = value
+                elif header == 'Scaling Value':
+                    values_dict['scaling_value'] = value
                 elif header == 'preprocess time':
                     values_dict['preproc_time'] = value.split(' ')[0]
                 elif header == 'online time':
