@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# Run this inside of nomad/Code/nomad after compiling nomad
 if [ "$#" -ne 1 ]; then
     echo "One argument required: [nomad output file]"
     exit 1
