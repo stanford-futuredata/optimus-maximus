@@ -49,7 +49,7 @@ def parse(input_dir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dir', required=True)
+    parser.add_argument('--input-dir', required=True)
     args = parser.parse_args()
     parse(args.input_dir)
 

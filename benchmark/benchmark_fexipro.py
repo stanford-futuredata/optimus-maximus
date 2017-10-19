@@ -33,12 +33,12 @@ def run(run_args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--output-dir', required=True)
     parser.add_argument('--stats', dest='stats', action='store_true')
     parser.add_argument('--no-stats', dest='stats', action='store_false')
     parser.set_defaults(stats=False)
     parser.add_argument(
-        '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
+        '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [

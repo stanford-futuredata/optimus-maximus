@@ -34,7 +34,7 @@ def run(run_args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--output-dir', required=True)
     args = parser.parse_args()
 
     runner = './rmse.py'

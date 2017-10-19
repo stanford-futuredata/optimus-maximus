@@ -49,7 +49,7 @@ def run(run_args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--output-dir', required=True)
     # These flags determine what version of Lemp to use: with/without SIMD,
     # with/without ICC compiler (defaults to g++-4.8)
     parser.add_argument('--simd', dest='simd', action='store_true')
@@ -59,7 +59,7 @@ def main():
     parser.add_argument('--no-icc', dest='icc', action='store_false')
     parser.set_defaults(icc=False)
     parser.add_argument(
-        '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
+        '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [

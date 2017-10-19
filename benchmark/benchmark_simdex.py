@@ -37,7 +37,7 @@ def run(run_args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--output-dir', required=True)
     parser.add_argument('--sweep', dest='sweep', action='store_true')
     parser.add_argument('--no-sweep', dest='sweep', action='store_false')
     parser.set_defaults(sweep=False)
@@ -48,15 +48,16 @@ def main():
     parser.add_argument('--no-sample', dest='sample', action='store_false')
     parser.set_defaults(sample=False)
     parser.add_argument(
-        '--top_K', help='list of comma-separated integers, e.g., 1,5,10,50')
+        '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
         1, 5, 10, 50
     ]
     NUM_THREADS = [1]
-    BATCH_SIZES = [256, 512, 1024, 2048, 4096] if args.sweep else [4096]
-    NUM_CLUSTERS = [1, 8, 64, 128, 256, 512, 1024, 2048, 4096]
+    BATCH_SIZES = [256, 512, 1024] if args.sweep else [4096]
+    # NUM_CLUSTERS = [1, 8, 64, 128, 256, 512, 1024, 2048, 4096]
+    NUM_CLUSTERS = [1, 2, 4]
     SAMPLE_PERCENTAGES = [10]
     NUM_ITERS = [3]
 
@@ -79,7 +80,7 @@ def main():
          _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
-        num_clusters_to_try = NUM_CLUSTERS if args.sweep else best_num_clusters
+        num_clusters_to_try = NUM_CLUSTERS
         for K, num_threads, batch_size, num_clusters, sample_percentage, num_iters in product(
                 TOP_K, NUM_THREADS, BATCH_SIZES, num_clusters_to_try,
                 SAMPLE_PERCENTAGES, NUM_ITERS):
