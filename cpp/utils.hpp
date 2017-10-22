@@ -8,7 +8,12 @@
 
 #include <chrono>
 #include <stdio.h>
+#include <sys/time.h>
+#ifdef MKL_ILP64
 #include <mkl.h>
+#endif
+
+typedef struct timeval bench_timer_t;
 
 typedef std::chrono::high_resolution_clock Time;
 typedef std::chrono::milliseconds ms;
@@ -19,7 +24,7 @@ typedef chrono::time_point<chrono::system_clock> sys_time;
 typedef unsigned long long u64;
 
 inline void _free(void *ptr) {
-#ifdef ICC
+#ifdef MKL_ILP64
   mkl_free(ptr);
 #else
   free(ptr);
@@ -28,7 +33,7 @@ inline void _free(void *ptr) {
 
 inline const void *_malloc(const size_t size) {
   void *ptr = NULL;
-#ifdef ICC
+#ifdef MKL_ILP64
   ptr = mkl_malloc(size, 64);
 #else
   ptr = malloc(size);

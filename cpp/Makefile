@@ -10,7 +10,7 @@ ifeq ($(STATS), 1)
 endif
 
 CXX := g++-4.8
-CXX_FLAGS += -std=c++11 -DMKL_ILP64 -m64
+CXX_FLAGS += -std=c++11 -march=native -DMKL_ILP64 -m64
 INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include ${MKLROOT}/include ${IPPROOT}/include
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib ${MKLROOT}/lib/intel64 ${IPPROOT}/lib/intel64
 LIBRARIES := boost_system boost_program_options armadillo mkl_intel_ilp64 mkl_sequential mkl_core pthread m dl ipps

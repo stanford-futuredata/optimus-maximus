@@ -2,8 +2,6 @@
 //  main.cpp
 //  SimDex
 //
-//  Created by Geet Sethi on 10/24/16.
-//  Copyright © 2016 Geet Sethi. All rights reserved.
 //
 
 #include "algo.hpp"
@@ -25,8 +23,9 @@
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 
+#ifdef MKL_ILP64
 #include <mkl.h>
-#include <mkl_scalapack.h>
+#endif
 
 namespace opt = boost::program_options;
 
@@ -223,10 +222,12 @@ int main(int argc, const char* argv[]) {
       "_user_cluster_ids";
   }
 
+#ifdef MKL_ILP64
 #ifdef DEBUG
   MKL_Set_Num_Threads(1);
 #else
   MKL_Set_Num_Threads(num_threads);
+#endif
 #endif
 
   double time_start, time_end;  // used for timing throughout

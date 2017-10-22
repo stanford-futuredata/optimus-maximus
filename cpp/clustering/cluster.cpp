@@ -2,7 +2,6 @@
 #include "../utils.hpp"
 #include <random>
 #include <armadillo>
-#include <mkl.h>
 
 using namespace arma;
 

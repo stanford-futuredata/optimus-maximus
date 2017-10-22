@@ -21,7 +21,11 @@
 #include <queue>
 
 #include <ipps.h>
+#ifdef MKL_ILP64
 #include <mkl.h>
+#else
+#include <cblas.h>
+#endif
 
 std::vector<float> linspace(const float start, const float end, const int num) {
   float delta = (end - start) / num;
@@ -334,5 +338,7 @@ void computeTopKForCluster(
   _free(theta_ucs);
   _free(users_dot_items);
   _free(user_norm_times_upper_bound);
+#ifdef MKL_ILP64
   MKL_Free_Buffers();
+#endif
 }
