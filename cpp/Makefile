@@ -9,15 +9,16 @@ ifeq ($(STATS), 1)
   CXX_FLAGS += -D STATS
 endif
 
-CXX := icc
-CXX_FLAGS += -std=c++11 -D ICC -mkl -ipp -fp-model precise
-INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include
-LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib
-LIBRARIES := boost_system boost_program_options armadillo
+CXX := g++-4.8
+CXX_FLAGS += -std=c++11 -DMKL_ILP64 -m64
+INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include ${MKLROOT}/include ${IPPROOT}/include
+LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib ${MKLROOT}/lib/intel64 ${IPPROOT}/lib/intel64
+LIBRARIES := boost_system boost_program_options armadillo mkl_intel_ilp64 mkl_sequential mkl_core pthread m dl ipps
+
 
 INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \
-                $(foreach library,$(LIBRARIES),-l$(library))
+                -Wl,--no-as-needed $(foreach library,$(LIBRARIES),-l$(library))
 
 SRCS = main.cpp algo.cpp arith.cpp parser.cpp clustering/cluster.cpp
 OBJS = $(SRCS:.cpp=.o)
