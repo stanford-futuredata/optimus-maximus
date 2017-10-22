@@ -46,26 +46,25 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
                          const int num_iters, const int sample_percentage,
                          double*& centroids, uint32_t*& user_id_cluster_ids) {
   int num_samples = 0;
-  auto start = Time::now();
+  bench_timer_t random_start = time_start();
   double* sampled_user_weights = get_random_samples(
       all_user_weights, num_rows, num_cols, sample_percentage, &num_samples);
   mat input_mat(sampled_user_weights, num_samples, num_cols, false, true);
-  const fsec random_s = Time::now() - start;
+  const double random_s = time_stop(random_start);
 #ifdef DEBUG
-  std::cout << "Random samples time: " << random_s.count() << std::endl;
+  std::cout << "Random samples time: " << random_s << std::endl;
 #endif
 
 #ifdef DEBUG
-  start = Time::now();
+  bench_timer_t transpose_start = time_start();
 #endif
   input_mat = input_mat.t();
 #ifdef DEBUG
-  const fsec transpose_input_s = Time::now() - start;
-  std::cout << "Transpose input time: " << transpose_input_s.count()
-            << std::endl;
+  const double transpose_input_s = time_stop(transpose_start);
+  std::cout << "Transpose input time: " << transpose_input_s << std::endl;
 #endif
 
-  start = Time::now();
+  bench_timer_t clustering_start = time_start();
   gmm_diag model;
 #ifdef DEBUG
   model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters, 0,
@@ -74,53 +73,53 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   model.learn(input_mat, num_clusters, eucl_dist, static_subset, num_iters, 0,
               0, false);
 #endif
-  const fsec clustering_s = Time::now() - start;
+  const double clustering_s = time_stop(clustering_start);
 #ifdef DEBUG
-  std::cout << "Clustering time: " << clustering_s.count() << std::endl;
+  std::cout << "Clustering time: " << clustering_s << std::endl;
   model.means.head_rows(std::min(num_cols, 5)).print();
-  start = Time::now();
+  bench_timer_t transpose_start = time_start();
 #endif
   mat means = model.means.t();
 #ifdef DEBUG
-  const fsec transpose_centroids_s = Time::now() - start;
-  std::cout << "Transpose centroids time: " << transpose_centroids_s.count()
+  const double transpose_centroids_s = time_stop(transpose_start);
+  std::cout << "Transpose centroids time: " << transpose_centroids_s
             << std::endl;
 #endif
 
 #ifdef DEBUG
-  start = Time::now();
+  bench_timer_t copy_centroids_start = time_start();
 #endif
   // Copy centroids to separate array; means is on the stack
   centroids = (double*)_malloc(sizeof(double) * means.n_elem);
   std::memcpy(centroids, means.memptr(), sizeof(double) * means.n_elem);
 #ifdef DEBUG
-  const fsec copy_centroids_s = Time::now() - start;
-  std::cout << "Copy centroids time: " << copy_centroids_s.count() << std::endl;
+  const double copy_centroids_s = time_stop(copy_centroids_start);
+  std::cout << "Copy centroids time: " << copy_centroids_s << std::endl;
 #endif
 
 #ifdef DEBUG
-  start = Time::now();
+  bench_timer_t transpose_all_users_start = time_start();
 #endif
   mat all_users_mat(all_user_weights, num_rows, num_cols, false, true);
   all_users_mat = all_users_mat.t();
 #ifdef DEBUG
-  const fsec transpose_all_users_s = Time::now() - start;
-  std::cout << "Transpose all users time: " << transpose_all_users_s.count()
+  const double transpose_all_users_s = time_stop(transpose_all_users_start);
+  std::cout << "Transpose all users time: " << transpose_all_users_s
             << std::endl;
 #endif
 
-  start = Time::now();
+  bench_timer_t assignments_start = time_start();
   urowvec assignments = model.assign(all_users_mat, eucl_dist);
-  const fsec assignments_s = Time::now() - start;
+  const double assignments_s = time_stop(assignments_start);
 #ifdef DEBUG
   assignments.head(50).print();
-  std::cout << "Assignment time: " << assignments_s.count() << std::endl;
+  std::cout << "Assignment time: " << assignments_s << std::endl;
 #endif
 
 // we have to copy elements of `assignments` to `user_id_cluster_ids`,
 // individually, because `urowvec` in Armadillo is `unsigned long long`
 #ifdef DEBUG
-  start = Time::now();
+  bench_timer_t copy_assignments_start = time_start();
 #endif
   user_id_cluster_ids =
       (uint32_t*)_malloc(sizeof(uint32_t) * assignments.n_elem);
@@ -128,9 +127,9 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
     user_id_cluster_ids[i] = assignments[i];
   }
 #ifdef DEBUG
-  const fsec copy_assignments_s = Time::now() - start;
-  std::cout << "Copy assignments time: " << copy_assignments_s.count() << std::endl;
+  const double copy_assignments_s = time_stop(copy_assignments_start);
+  std::cout << "Copy assignments time: " << copy_assignments_s << std::endl;
 #endif
   _free(sampled_user_weights);
-  return random_s.count() + clustering_s.count() + assignments_s.count();
+  return random_s + clustering_s + assignments_s;
 }

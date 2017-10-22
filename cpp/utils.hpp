@@ -6,7 +6,6 @@
 #ifndef utils_hpp
 #define utils_hpp
 
-#include <chrono>
 #include <stdio.h>
 #include <sys/time.h>
 #ifdef MKL_ILP64
@@ -15,13 +14,24 @@
 
 typedef struct timeval bench_timer_t;
 
-typedef std::chrono::high_resolution_clock Time;
-typedef std::chrono::milliseconds ms;
-typedef std::chrono::duration<float> fsec;
+/** Starts the clock for a benchmark. */
+static inline bench_timer_t time_start() {
+  bench_timer_t t;
+  gettimeofday(&t, NULL);
+  return t;
+}
 
-namespace chrono = std::chrono;
-typedef chrono::time_point<chrono::system_clock> sys_time;
-typedef unsigned long long u64;
+/**
+ * Stops the clock and returns time elapsed in seconds.
+ * Throws an error if time__start() was not called first.
+ ***/
+static inline double time_stop(bench_timer_t start) {
+  bench_timer_t end;
+  bench_timer_t diff;
+  gettimeofday(&end, NULL);
+  timersub(&end, &start, &diff);
+  return (double)diff.tv_sec + ((double)diff.tv_usec / 1000000.0);
+}
 
 inline void _free(void *ptr) {
 #ifdef MKL_ILP64

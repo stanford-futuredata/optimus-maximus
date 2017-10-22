@@ -230,39 +230,33 @@ int main(int argc, const char* argv[]) {
 #endif
 #endif
 
-  double time_start, time_end;  // used for timing throughout
 
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t parse_time_start = time_start();
 
   double* item_weights = parse_weights_csv<double>(
       item_weights_filepath, num_items, num_latent_factors);
   double* user_weights = parse_weights_csv<double>(
       user_weights_filepath, num_users, num_latent_factors);
 
-  time_end = dsecnd();
-  const double parse_time = (time_end - time_start);
+  const double parse_time = time_stop(parse_time_start);
 
   double* centroids;
   uint32_t* user_id_cluster_ids;
   double cluster_time;
   if (args.count("clusters-dir")) {
-    dsecnd();
-    time_start = dsecnd();
+    bench_timer_t cluster_start = time_start();
     user_id_cluster_ids =
       parse_ids_csv(user_id_cluster_ids_filepath, num_users);
     centroids = parse_weights_csv<double>(centroids_filepath, num_clusters,
         num_latent_factors);
-    time_end = dsecnd();
-    cluster_time = time_end - time_start;
+    cluster_time = time_stop(cluster_start);
   } else {
     cluster_time = kmeans_clustering(
         user_weights, num_users, num_latent_factors, num_clusters, num_iters,
         sample_percentage, centroids, user_id_cluster_ids);
   }
 
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t index_start = time_start();
 
 
   int num_users_so_far_arr[num_clusters];
@@ -288,8 +282,7 @@ int main(int argc, const char* argv[]) {
     compute_theta_ics(item_weights, centroids, num_items, num_latent_factors,
         num_clusters, item_norms, centroid_norms);
 
-  time_end = dsecnd();
-  const double index_time = (time_end - time_start);
+  const double index_time = time_stop(index_start);
 
   std::ofstream user_stats_file;
   const unsigned int curr_time =
@@ -301,8 +294,7 @@ int main(int argc, const char* argv[]) {
   user_stats_file << "cluster_id,theta_uc,theta_b,num_items_visited,query_time"
     << std::endl;
 #endif
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t algo_start = time_start();
 
   // TODO: These buffers are reused across multiple calls to
   // computeTopKForCluster.  For multiple threads, there will be
@@ -332,8 +324,7 @@ int main(int argc, const char* argv[]) {
         sorted_item_weights, user_stats_file);
   }
 
-  time_end = dsecnd();
-  const double algo_time = (time_end - time_start);
+  const double algo_time = time_stop(algo_start);
   const double compute_time = cluster_time + index_time + algo_time;
 
   std::ofstream timing_stats_file;
