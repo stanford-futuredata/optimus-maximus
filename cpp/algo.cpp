@@ -99,16 +99,14 @@ void computeTopKForCluster(
     std::ofstream &user_stats_file) {
 
 #ifdef STATS
-  double time_start, time_end;
-
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t upper_bounds_start = time_start();
 #endif
 
   const int num_users_in_cluster = user_ids_in_cluster.size();
 
-  if (num_users_in_cluster*item_batch_size < 0) {
-    std::cout << "ERROR! num_users_in_cluster*item_batch_size overflowed!" << std::endl;
+  if (num_users_in_cluster * item_batch_size < 0) {
+    std::cout << "ERROR! num_users_in_cluster*item_batch_size overflowed!"
+              << std::endl;
     exit(1);
   }
 
@@ -138,8 +136,16 @@ void computeTopKForCluster(
   int i, j, l;
 
   std::fill(upper_bounds, &upper_bounds[num_items], theta_max);
+#ifdef MKL_ILP64
   vsSub(num_items, theta_ics, upper_bounds, upper_bounds);
   // upper_bounds[i] = theta_ic - theta_b
+#else
+#pragma simd
+  for (int i = 0; i < num_items; ++i) {
+    upper_bounds[i] = theta_ics[i] - upper_bounds[i];
+  }
+#endif
+
   ippsThreshold_32f_I((Ipp32f *)upper_bounds, num_items, (Ipp32f)0.0f,
                       ippCmpLess);
   // all values less than 0 in upper_bounds[i] now set to 0
@@ -151,17 +157,22 @@ void computeTopKForCluster(
   //     }
   //   }
   // }
+#ifdef MKL_ILP64  //
   vsCos(num_items, upper_bounds, upper_bounds);
   // upper_bounds[i] = cos(theta_ic - theta_b)
   vsMul(num_items, item_norms, upper_bounds, upper_bounds);
-// upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
+  // upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
+#else
+#pragma simd
+  for (int i = 0; i < num_items; ++i) {
+    upper_bounds[i] = item_norms[i] * cos(upper_bounds[i]);
+  }
+#endif
 
 #ifdef STATS
-  time_end = dsecnd();
-  const double upper_bounds_time = time_end - time_start;
+  const double upper_bounds_time = time_stop(upper_bounds_start);
 
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t sort_start = time_start();
 #endif
 
   int *pBufSize = (int *)_malloc(sizeof(int));
@@ -173,11 +184,9 @@ void computeTopKForCluster(
                                 num_items, pBuffer);
 
 #ifdef STATS
-  time_end = dsecnd();
-  const double sort_time = time_end - time_start;
+  const double sort_time = time_stop(sort_start);
 
-  dsecnd();
-  time_start = dsecnd();
+  bench_timer_t batch_start = time_start();
 #endif
 
   int item_id;
@@ -199,8 +208,7 @@ void computeTopKForCluster(
   int batch_counter = item_batch_size;
 
 #ifdef STATS
-  time_end = dsecnd();
-  const double batch_time = time_end - time_start;
+  const double batch_time = time_stop(batch_start);
 #endif
 
 // ----------Computer Per User TopK Below------------------
@@ -226,14 +234,12 @@ void computeTopKForCluster(
 
   for (i = 0; i < num_users_to_compute; i++) {
 #ifdef STATS
-    dsecnd();
-    time_start = dsecnd();
+    bench_timer_t user_top_K_start = time_start();
 #endif
 
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
-                        std::greater<std::pair<double, int> > >
-        q;
+                        std::greater<std::pair<double, int> > > q;
 
     double score = 0.0;
 
@@ -312,8 +318,7 @@ void computeTopKForCluster(
       q.pop();
     }
 #ifdef STATS
-    time_end = dsecnd();
-    const double user_top_K_time = time_end - time_start;
+    const double user_top_K_time = time_stop(user_top_K_start);
 #endif
 
 #ifdef DEBUG
@@ -325,9 +330,9 @@ void computeTopKForCluster(
 #ifdef STATS
     const double total_user_time_ms =
         1000 * (user_top_K_time + batch_time + sort_time + upper_bounds_time);
-    user_stats_file << cluster_id << "," << theta_ucs[i] << ","
-                    << theta_max << "," << num_items_visited << ","
-                    << total_user_time_ms << std::endl;
+    user_stats_file << cluster_id << "," << theta_ucs[i] << "," << theta_max
+                    << "," << num_items_visited << "," << total_user_time_ms
+                    << std::endl;
 #endif
   }
 

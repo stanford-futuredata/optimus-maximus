@@ -2,8 +2,6 @@
 //  parser.cpp
 //  SimDex
 //
-//  Created by Geet Sethi on 10/24/16.
-//  Copyright © 2016 Geet Sethi. All rights reserved.
 //
 
 #include "parser.hpp"
@@ -19,8 +17,6 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
-
-#include <mkl.h>
 
 // Return array of weights of type T (either float or double) and of length
 // [num_rows*num_cols]
@@ -58,7 +54,7 @@ uint32_t *parse_ids_csv(const std::string filename, const int num_rows) {
     std::cout << "Unable to open " << filename << std::endl;
     exit(1);
   }
-  uint32_t *ids = (uint32_t *)mkl_malloc(sizeof(uint32_t) * num_rows, 64);
+  uint32_t *ids = (uint32_t *)_malloc(sizeof(uint32_t) * num_rows);
 
   std::string line;
   uint32_t i = 0;

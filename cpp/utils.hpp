@@ -10,6 +10,8 @@
 #include <sys/time.h>
 #ifdef MKL_ILP64
 #include <mkl.h>
+#else
+#include <stdlib.h>
 #endif
 
 typedef struct timeval bench_timer_t;
@@ -23,7 +25,7 @@ static inline bench_timer_t time_start() {
 
 /**
  * Stops the clock and returns time elapsed in seconds.
- * Throws an error if time__start() was not called first.
+ * Throws an error if time_start() was not called first.
  ***/
 static inline double time_stop(bench_timer_t start) {
   bench_timer_t end;

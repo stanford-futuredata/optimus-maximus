@@ -2,10 +2,16 @@
 
 if [[ $1 == "--stats" ]]; then
   RUNNER=../cpp/simdex_stats
-  FLAGS="STATS=1"
+  FLAGS="ICC=1 STATS=1"
 elif [[ $1 == "--debug" ]]; then
   RUNNER=../cpp/simdex_debug
-  FLAGS="DEBUG=1"
+  FLAGS="ICC=1 DEBUG=1"
+elif [[ $1 == "--mkl" ]]; then
+  RUNNER=../cpp/simdex
+  FLAGS="MKL=1"
+elif [[ $1 == "--icc" ]]; then
+  RUNNER=../cpp/simdex
+  FLAGS="ICC=1"
 else
   RUNNER=../cpp/simdex
 fi
@@ -19,8 +25,6 @@ fi
 set -x
 
 cd ../cpp && make clean && make -j5 $FLAGS && cd -
-# rm ~/simdex/cpp/simdex
-# ln -s $1 ~/simdex/cpp/simdex
 
 $RUNNER \
   -w $HOME/models-simdex/lemp-paper/Netflix-noav-50 \
