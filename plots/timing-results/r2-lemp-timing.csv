@@ -1,4 +1,4 @@
-model,num_threads,num_items,num_users,num_latent_factors,K,dummy_1,dummy_2,dummy_3,preproc_time,index_time,retrieval_time,comp_time
+model,num_threads,num_items,num_users,num_latent_factors,K,dummy,num_results,num_comparisons,preproc_time,index_time,retrieval_time,comp_time
 nomad-R2-10-reg-0.001,1,136736,1823179,10,1,0,1823179,6259916168,0.2656,0.120145,61.1354,61.5211
 nomad-R2-10-reg-0.001,1,136736,1823179,10,10,0,18231790,9728204035,0.294451,0.19115,96.9212,97.4068
 nomad-R2-10-reg-0.001,1,136736,1823179,10,5,0,9115895,8466319417,0.249761,0.160283,79.6658,80.0758

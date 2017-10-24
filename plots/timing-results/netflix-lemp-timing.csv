@@ -1,4 +1,4 @@
-model,num_threads,num_items,num_users,num_latent_factors,K,dummy_1,dummy_2,dummy_3,preproc_time,index_time,retrieval_time,comp_time
+model,num_threads,num_items,num_users,num_latent_factors,K,dummy,num_results,num_comparisons,preproc_time,index_time,retrieval_time,comp_time
 fexipro-paper-Netflix-50,1,17770,480189,50,1,0,480189,318554498,0.177331,0.173203,38.4196,38.7702
 fexipro-paper-Netflix-50,1,17770,480189,50,5,0,2400945,665521402,0.179891,0.251521,51.8891,52.3205
 fexipro-paper-Netflix-50,1,17770,480189,50,10,0,4801890,532724016,0.192458,0.286316,56.6148,57.0936

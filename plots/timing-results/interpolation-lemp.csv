@@ -1,4 +1,4 @@
-model,num_threads,num_items,num_users,num_latent_factors,K,dummy_1,dummy_2,dummy_3,preproc_time,index_time,retrieval_time,comp_time
+model,num_threads,num_items,num_users,num_latent_factors,K,dummy,num_results,num_comparisons,preproc_time,index_time,retrieval_time,comp_time
 interpolation-KDD-100-reg-1-0.1-items,1,62496,1000990,100,1,0,1000990,8633649246,0.861401,2.05643,836.439,839.357
 interpolation-KDD-100-reg-1-0.1-users,1,624961,100099,100,1,0,100099,5144797915,3.89657,16.1615,659.185,679.243
 interpolation-KDD-100-reg-1-0.2-items,1,124992,1000990,100,1,0,1000990,15736430428,1.23896,4.24691,1915.34,1920.82
