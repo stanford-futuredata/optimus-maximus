@@ -53,6 +53,9 @@ def main():
     parser.add_argument('--mkl', dest='mkl', action='store_true')
     parser.add_argument('--no-mkl', dest='mkl', action='store_false')
     parser.set_defaults(mkl=True)
+    parser.add_argument('--naive', dest='naive', action='store_true')
+    parser.add_argument('--no-naive', dest='naive', action='store_false')
+    parser.set_defaults(naive=False)
     parser.add_argument(
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     parser.add_argument(
@@ -84,6 +87,8 @@ def main():
         BUILD_COMMAND += ' ICC=1'
     if args.mkl:
         BUILD_COMMAND += ' MKL=1'
+    if args.naive:
+        BUILD_COMMAND += ' NAIVE=1'
     if args.stats:
         BUILD_COMMAND += ' STATS=1'
     BUILD_COMMAND += ' && cd -'

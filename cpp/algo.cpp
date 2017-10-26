@@ -138,7 +138,7 @@ void computeTopKForCluster(
   std::fill(upper_bounds, &upper_bounds[num_items], theta_max);
 #ifdef MKL_ILP64
   vsSub(num_items, theta_ics, upper_bounds, upper_bounds);
-  // upper_bounds[i] = theta_ic - theta_b
+// upper_bounds[i] = theta_ic - theta_b
 #else
 #pragma simd
   for (int i = 0; i < num_items; ++i) {
@@ -148,20 +148,20 @@ void computeTopKForCluster(
 
   ippsThreshold_32f_I((Ipp32f *)upper_bounds, num_items, (Ipp32f)0.0f,
                       ippCmpLess);
-  // all values less than 0 in upper_bounds[i] now set to 0
-  // Same as:
-  // for (i = 0; i < num_bins; ++i) {
-  //   for (j = 0; j < num_items; ++j) {
-  //     if (upper_bounds[i][j] < 0) {
-  //       upper_bounds[i][j] = 0.F;
-  //     }
-  //   }
-  // }
+// all values less than 0 in upper_bounds[i] now set to 0
+// Same as:
+// for (i = 0; i < num_bins; ++i) {
+//   for (j = 0; j < num_items; ++j) {
+//     if (upper_bounds[i][j] < 0) {
+//       upper_bounds[i][j] = 0.F;
+//     }
+//   }
+// }
 #ifdef MKL_ILP64  //
   vsCos(num_items, upper_bounds, upper_bounds);
   // upper_bounds[i] = cos(theta_ic - theta_b)
   vsMul(num_items, item_norms, upper_bounds, upper_bounds);
-  // upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
+// upper_bounds[i] = ||i|| * cos(theta_ic - theta_b)
 #else
 #pragma simd
   for (int i = 0; i < num_items; ++i) {
@@ -228,9 +228,24 @@ void computeTopKForCluster(
   const float beta = 0.0f;
   const int stride = 1;
 
+#ifndef NAIVE
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha,
               user_weights, k, sorted_item_weights, k, beta, users_dot_items,
               n);
+#else
+  // user_weights: m x k
+  // sorted_item_weights: n x k
+  // users_dot_items : m x n
+  for (int a = 0; a < m; ++a) {
+    for (int b = 0; b < n; ++b) {
+      users_dot_items[a * n + b] = 0.0;
+      for (int c = 0; c < k; ++c) {
+        users_dot_items[a * n + b] +=
+            user_weights[a * k + c] * sorted_item_weights[b * k + c];
+      }
+    }
+  }
+#endif
 
   for (i = 0; i < num_users_to_compute; i++) {
 #ifdef STATS
@@ -265,7 +280,7 @@ void computeTopKForCluster(
           // if we're at the very end, we may not need a full batch
           n = std::min(item_batch_size,
                        num_items - batch_counter);  // change for upcoming sgemv
-                                                    // operation
+          // operation
           for (int l = 0; l < n; l++) {
             item_id = sorted_upper_bounds_indices[batch_counter + l];
             sorted_upper_bounds[batch_counter + l] = upper_bounds[item_id];
@@ -278,12 +293,28 @@ void computeTopKForCluster(
           batch_counter += n;
         }
 
+#ifndef NAIVE
         // if we've gone through an entire batch, load users_dot_items and
         // user_norm_times_upper_bound with another batch
         cblas_dgemv(CblasRowMajor, CblasNoTrans, n, k, alpha,
                     &sorted_item_weights[j * num_latent_factors], k,
                     &user_weights[i * num_latent_factors], stride, beta,
                     &users_dot_items[i * item_batch_size], stride);
+#else
+        // item_weights_ptr: n * k
+        // user_weights_ptr: 1 x k
+        // users_dot_items : m x n
+        double *item_weights_ptr = &sorted_item_weights[j * num_latent_factors];
+        const double *user_weights_ptr = &user_weights[i * num_latent_factors];
+        double *users_dot_items_ptr = &users_dot_items[i * item_batch_size];
+        for (int a = 0; a < n; ++a) {
+          users_dot_items_ptr[a] = 0.0;
+          for (int b = 0; b < k; ++b) {
+            users_dot_items_ptr[a] +=
+                user_weights_ptr[b] * item_weights_ptr[a * k + b];
+          }
+        }
+#endif
 
 #pragma simd
         for (l = 0; l < item_batch_size; l++) {

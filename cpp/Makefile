@@ -9,6 +9,10 @@ ifeq ($(STATS), 1)
   CXX_FLAGS += -D STATS
 endif
 
+ifeq ($(NAIVE), 1)
+  CXX_FLAGS += -D NAIVE
+endif
+
 
 ifeq ($(ICC), 1)
   CXX := icc

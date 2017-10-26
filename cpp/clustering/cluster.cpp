@@ -77,11 +77,11 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
 #ifdef DEBUG
   std::cout << "Clustering time: " << clustering_s << std::endl;
   model.means.head_rows(std::min(num_cols, 5)).print();
-  bench_timer_t transpose_start = time_start();
+  bench_timer_t transpose_centroids_start = time_start();
 #endif
   mat means = model.means.t();
 #ifdef DEBUG
-  const double transpose_centroids_s = time_stop(transpose_start);
+  const double transpose_centroids_s = time_stop(transpose_centroids_start);
   std::cout << "Transpose centroids time: " << transpose_centroids_s
             << std::endl;
 #endif

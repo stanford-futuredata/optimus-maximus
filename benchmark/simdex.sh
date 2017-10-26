@@ -1,20 +1,30 @@
 #! /usr/bin/env bash
 
-if [[ $1 == "--stats" ]]; then
-  RUNNER=../cpp/simdex_stats
-  FLAGS="ICC=1 STATS=1"
-elif [[ $1 == "--debug" ]]; then
-  RUNNER=../cpp/simdex_debug
-  FLAGS="ICC=1 DEBUG=1"
-elif [[ $1 == "--mkl" ]]; then
-  RUNNER=../cpp/simdex
-  FLAGS="MKL=1"
-elif [[ $1 == "--icc" ]]; then
-  RUNNER=../cpp/simdex
-  FLAGS="ICC=1"
-else
-  RUNNER=../cpp/simdex
-fi
+RUNNER=../cpp/simdex # release binary by default
+FLAGS="" # No MKL or ICC by default
+
+for arg in "$@"
+do
+  case "$arg" in
+    '--stats')
+      RUNNER=../cpp/simdex_stats
+      FLAGS+=" STATS=1"
+      ;;
+    '--debug')
+      RUNNER=../cpp/simdex_debug
+      FLAGS+=" DEBUG=1"
+      ;;
+    '--mkl')
+      FLAGS+=" MKL=1"
+      ;;
+    '--icc')
+      FLAGS+=" ICC=1"
+      ;;
+    '--naive')
+      FLAGS+=" NAIVE=1"
+      ;;
+  esac
+done
 
 if [ -z "$2" ]; then
   BATCH_SIZE=1024
