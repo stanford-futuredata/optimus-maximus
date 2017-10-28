@@ -8,7 +8,8 @@ simdex_lemp_netflix_noav_10 = df.query(
 simdex_lemp_netflix_noav_50 = df.query(
     'model == "simdex-timing/lemp-paper-Netflix-noav-50" and num_threads == 1')
 simdex_lemp_netflix_noav_100 = df.query(
-    'model == "simdex-timing/lemp-paper-Netflix-noav-100" and num_threads == 1')
+    'model == "simdex-timing/lemp-paper-Netflix-noav-100" and num_threads == 1'
+)
 simdex_lemp_netflix_50 = df.query(
     'model == "simdex-timing/lemp-paper-Netflix-50" and num_threads == 1')
 simdex_pb_new_netflix_10 = df.query(

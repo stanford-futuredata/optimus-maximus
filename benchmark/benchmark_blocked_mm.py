@@ -18,9 +18,12 @@ def run(run_args):
     base_name = os.path.join(output_dir, base_name)
 
     cmd = [
-        runner, '-w', input_dir, '-k', str(K), '-m', str(num_users), '-n',
-        str(num_items), '-f', str(num_factors), '-t', str(num_threads),
-        '--base-name', base_name
+        runner, '-w', input_dir, '-k',
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
+        str(num_factors), '-t',
+        str(num_threads), '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     process = subprocess.Popen(cmd)

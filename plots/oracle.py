@@ -7,8 +7,8 @@ import pandas as pd
 from itertools import product
 from models import GOLD_STANDARD_MODELS
 
-
 pp = pprint.PrettyPrinter(indent=4, width=160)
+
 
 def load_dataframes():
     sampling_df = pd.read_csv('timing-results/sampling-time.csv')
@@ -39,15 +39,17 @@ def analyze_oracle(simdex_df,
                    blocked_mm_df,
                    lemp_df,
                    models,
-                   num_clusters=8,
-                   batch_size=4096,
                    K=[1, 5, 10, 50]):
-    simdex_df = simdex_df.query('num_clusters == %d and batch_size == %d' %
-                                (num_clusters, batch_size))
+    #simdex_df = simdex_df.query('num_clusters == 8 and batch_size == 4096')
+    simdex_df = simdex_df.sort_values(by='comp_time').groupby(
+        ['model', 'K'], as_index=False).first()
+
     blocked_mm_df = blocked_mm_df[['model', 'K', 'comp_time']]
     lemp_df = lemp_df[['model', 'K', 'comp_time']]
 
-    speedups_dict = {}
+    simdex_mm_vs_lemp_dict = {}
+    simdex_mm_vs_lemp_mm_dict = {}
+    simdex_vs_lemp_mm_dict = {}
     simdex_vs_lemp_dict = {}
     for model, K in product(models, K):
         lemp_model_K_df = lemp_df.query('model == "%s" and K == "%d"' % (model,
@@ -56,7 +58,8 @@ def analyze_oracle(simdex_df,
                                             (model, K))
         blocked_mm_model_K_df = blocked_mm_df.query(
             'model == "%s" and K == "%d"' % (model, K))
-        sampling_model_K_df = sampling_df.query('model == "%s" and K == "%d"' % (model, K))
+        sampling_model_K_df = sampling_df.query('model == "%s" and K == "%d"' %
+                                                (model, K))
 
         simdex_rt = simdex_model_K_df['comp_time'].min()
         lemp_rt = lemp_model_K_df['comp_time'].min()
@@ -66,25 +69,44 @@ def analyze_oracle(simdex_df,
         overhead = sampling_model_K_df['comp_time'].min()
 
         blocked_mm_lemp_rt = min(lemp_rt, blocked_mm_rt)
-        blocked_mm_simdex_rt = min(simdex_rt, blocked_mm_rt)
+        blocked_mm_simdex_rt = min(simdex_rt, blocked_mm_rt) + overhead
 
         global_speed_up = blocked_mm_lemp_rt / blocked_mm_simdex_rt
+        simdex_vs_lemp_mm_speed_up = blocked_mm_lemp_rt / simdex_rt
+        simdex_mm_speed_up = lemp_rt / blocked_mm_simdex_rt
         simdex_speed_up = lemp_rt / simdex_rt
-        speedups_dict[(model, K)] = global_speed_up
+
+        simdex_mm_vs_lemp_mm_dict[(model, K)] = global_speed_up
+        simdex_vs_lemp_mm_dict[(model, K)] = simdex_vs_lemp_mm_speed_up
+        simdex_mm_vs_lemp_dict[(model, K)] = simdex_mm_speed_up
         simdex_vs_lemp_dict[(model, K)] = simdex_speed_up
 
-    all_speedups = list(speedups_dict.values())
-    simdex_speedups = list(simdex_vs_lemp_dict.values())
+    pp.pprint(simdex_mm_vs_lemp_mm_dict)
 
-    print('Global Speedups: Min: %f, Max: %f, Avg: %f' %
-          (np.min(all_speedups), np.max(all_speedups), np.mean(all_speedups)))
-    print('SimDex Speedups: Min: %f, Max: %f, Avg: %f' %
-          (np.min(simdex_speedups), np.max(simdex_speedups), np.mean(simdex_speedups)))
+    simdex_mm_vs_lemp_mm = list(simdex_mm_vs_lemp_mm_dict.values())
+    simdex_mm_vs_lemp = list(simdex_mm_vs_lemp_dict.values())
+    simdex_vs_lemp_mm = list(simdex_vs_lemp_mm_dict.values())
+    simdex_vs_lemp = list(simdex_vs_lemp_dict.values())
+
+    print('SimDex + MM vs Lemp: Min: %f, Max: %f, Avg: %f, Median: %f' %
+          (np.min(simdex_mm_vs_lemp), np.max(simdex_mm_vs_lemp),
+           np.mean(simdex_mm_vs_lemp), np.median(simdex_mm_vs_lemp)))
+    print('SimDex + MM vs Lemp + MM: Min: %f, Max: %f, Avg: %f, Median: %f' %
+          (np.min(simdex_mm_vs_lemp_mm), np.max(simdex_mm_vs_lemp_mm),
+           np.mean(simdex_mm_vs_lemp_mm), np.median(simdex_mm_vs_lemp_mm)))
+    print('SimDex vs Lemp + MM: Min: %f, Max: %f, Avg: %f, Median: %f' %
+          (np.min(simdex_vs_lemp_mm), np.max(simdex_vs_lemp_mm),
+           np.mean(simdex_vs_lemp_mm), np.median(simdex_vs_lemp_mm)))
+    print('SimDex vs Lemp: Min: %f, Max: %f, Avg: %f, Median: %f' %
+          (np.min(simdex_vs_lemp), np.max(simdex_vs_lemp),
+           np.mean(simdex_vs_lemp), np.median(simdex_vs_lemp)))
 
 
 def main():
     simdex_df, sampling_df, blocked_mm_df, lemp_df = load_dataframes()
-    analyze_oracle(simdex_df, sampling_df, blocked_mm_df, lemp_df, GOLD_STANDARD_MODELS)
+    analyze_oracle(simdex_df, sampling_df, blocked_mm_df, lemp_df,
+                   GOLD_STANDARD_MODELS)
+
 
 if __name__ == '__main__':
     main()

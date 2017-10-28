@@ -21,9 +21,12 @@ def run(run_args):
     # Fetch corresponding cpu ids for available NUMA node
     cpu_ids = numa_queue.get()
     cmd = [
-        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
-        str(num_users), '-n', str(num_items), '-f', str(num_factors), '-s', str(scale),
-        '--base-name', base_name
+        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k',
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
+        str(num_factors), '-s',
+        str(scale), '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     subprocess.call(cmd)
@@ -62,8 +65,8 @@ def main():
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
         for K in TOP_K:
-            run_args.append((numa_queue, num_factors, num_users, num_items, K, scale,
-                             input_dir, base_name, output_dir, runner))
+            run_args.append((numa_queue, num_factors, num_users, num_items, K,
+                             scale, input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.ProcessPool(
         NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes

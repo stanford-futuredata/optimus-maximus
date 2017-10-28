@@ -49,10 +49,10 @@ def main():
     for (model_dir, _, (training_file, test_file)) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
-        run_args.append(
-            (numa_queue, training_file, test_file, input_dir, base_name, output_dir, runner))
+        run_args.append((numa_queue, training_file, test_file, input_dir,
+                         base_name, output_dir, runner))
 
-    pool = multiprocessing.Pool(NUM_NUMA_NODES*2)
+    pool = multiprocessing.Pool(NUM_NUMA_NODES * 2)
     pool.map(run, run_args)
 
 

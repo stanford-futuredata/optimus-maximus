@@ -17,6 +17,8 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
         for v in range(cpu_id_offsets[1], cpu_id_offsets[1] + num_cores, 2)))
 
     # From `lscpu` on raiders6:
+
+
 #   CPU(s):                112
 #   On-line CPU(s) list:   0-111
 #   Thread(s) per core:    2
@@ -27,7 +29,6 @@ def get_cpu_assignments(cpu_id_offsets, num_cores):
 #   NUMA node1 CPU(s):     14-27,70-83
 #   NUMA node2 CPU(s):     28-41,84-97
 #   NUMA node3 CPU(s):     42-55,98-111
-
 
 NUM_NUMA_NODES = 4
 NUMA_CPU_ID_OFFSETS = [(0, 56), (14, 70), (28, 84), (42, 98)]
@@ -59,28 +60,25 @@ YAHOO_R2_DATASET = (DATASET_DIR_BASE + 'yahoo-r2/yahoo_R2_train_full.txt',
 
 MODEL_DIR_BASE = '%s/models-simdex' % os.getenv('HOME')
 LEMP_NETFLIX_MODELS = [
-    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (8,), 1),
+    ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-50', (50, 480189, 17770, (8,), 1),
+    ('lemp-paper/Netflix-50', (50, 480189, 17770, (8, ), 1), NETFLIX_DATASET),
+    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (8,), 1),
-     NETFLIX_DATASET),
-    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (8,), 1),
+    ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
 ]
 
 LEMP_MODELS = LEMP_NETFLIX_MODELS + [
-    ('lemp-paper/KDD-50', (51, 1000990, 624961,
-                           (8,), 20), YAHOO_KDD_DATASET),
+    ('lemp-paper/KDD-50', (51, 1000990, 624961, (8, ), 20), YAHOO_KDD_DATASET),
 ]
 
 FEXIPRO_MODELS = [
-    ('fexipro-paper/Netflix-50', (50, 480189, 17770, (8,), 1),
+    ('fexipro-paper/Netflix-50', (50, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
-    ('fexipro-paper/KDD-50', (50, 1000990, 624961,
-                           (8,), 20), YAHOO_KDD_DATASET),
+    ('fexipro-paper/KDD-50', (50, 1000990, 624961, (8, ), 20),
+     YAHOO_KDD_DATASET),
 ]
-
 
 NOMAD_NETFLIX_MODELS = [
     ('nomad/Netflix-10-reg-0.0005', (10, 480189, 17770, (256, 512), 1),
@@ -198,31 +196,30 @@ NOMAD_R2_MODELS = [
 NOMAD_MODELS = NOMAD_NETFLIX_MODELS + NOMAD_KDD_MODELS + NOMAD_R2_MODELS
 
 GOLD_STANDARD_MODELS = LEMP_MODELS + [
-    ('nomad/Netflix-10-reg-0.05', (10, 480189, 17770, (8,), 1),
-     NETFLIX_DATASET),
-    ('nomad/Netflix-25-reg-0.05', (25, 480189, 17770, (8,), 1),
-     NETFLIX_DATASET),
-    ('nomad/Netflix-50-reg-0.05', (50, 480189, 17770, (8,), 1),
-     NETFLIX_DATASET),
-    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770, (8,), 1),
-     NETFLIX_DATASET),
-    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736, (8,), 1),
-     YAHOO_R2_DATASET),
-    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736, (8,), 1),
-     YAHOO_R2_DATASET),
-    ('nomad/R2-50-reg-0.000001', (50, 1823179, 136736, (8,), 1),
-     YAHOO_R2_DATASET),
-    ('nomad/R2-100-reg-0', (100, 1823179, 136736, (8,), 1),
-     YAHOO_R2_DATASET),
-    ('nomad/KDD-10-reg-1', (10, 1000990, 624961, (8,), 20),
-     YAHOO_KDD_DATASET),
-    ('nomad/KDD-25-reg-0.001', (25, 1000990, 624961, (8,), 20),
-     YAHOO_KDD_DATASET),
-    ('nomad/KDD-50-reg-1', (50, 1000990, 624961, (8,), 20),
-     YAHOO_KDD_DATASET),
-    ('nomad/KDD-100-reg-1', (100, 1000990, 624961, (8,), 20),
-     YAHOO_KDD_DATASET),
-        ]
+    ('nomad/Netflix-10-reg-0.05', (10, 480189, 17770,
+                                   (8, ), 1), NETFLIX_DATASET),
+    ('nomad/Netflix-25-reg-0.05', (25, 480189, 17770,
+                                   (8, ), 1), NETFLIX_DATASET),
+    ('nomad/Netflix-50-reg-0.05', (50, 480189, 17770,
+                                   (8, ), 1), NETFLIX_DATASET),
+    ('nomad/Netflix-100-reg-0.05', (100, 480189, 17770,
+                                    (8, ), 1), NETFLIX_DATASET),
+    ('nomad/R2-10-reg-0.001', (10, 1823179, 136736,
+                               (8, ), 1), YAHOO_R2_DATASET),
+    ('nomad/R2-25-reg-0.001', (25, 1823179, 136736,
+                               (8, ), 1), YAHOO_R2_DATASET),
+    ('nomad/R2-50-reg-0.000001', (50, 1823179, 136736,
+                                  (8, ), 1), YAHOO_R2_DATASET),
+    ('nomad/R2-100-reg-0', (100, 1823179, 136736, (8, ), 1), YAHOO_R2_DATASET),
+    ('nomad/KDD-10-reg-1', (10, 1000990, 624961,
+                            (8, ), 20), YAHOO_KDD_DATASET),
+    ('nomad/KDD-25-reg-0.001', (25, 1000990, 624961,
+                                (8, ), 20), YAHOO_KDD_DATASET),
+    ('nomad/KDD-50-reg-1', (50, 1000990, 624961,
+                            (8, ), 20), YAHOO_KDD_DATASET),
+    ('nomad/KDD-100-reg-1', (100, 1000990, 624961,
+                             (8, ), 20), YAHOO_KDD_DATASET),
+]
 
 INTERPOLATION_MODELS = [
     ('interpolation/KDD-100-reg-1-0.1-items',
