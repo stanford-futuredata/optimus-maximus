@@ -3,18 +3,10 @@
 import pandas as pd
 import numpy as np
 
-
 lemp_dec_rule = pd.read_csv('lemp-decision-rule.csv')
 
-lemp_truth_netflix = pd.read_csv(
-    '../plots/timing-results/netflix-lemp-timing.csv')
-lemp_truth_kdd = pd.read_csv(
-    '../plots/timing-results/kdd-lemp-timing.csv')
-lemp_truth_r2 = pd.read_csv(
-    '../plots/timing-results/r2-lemp-timing.csv')
-lemp_truth = pd.concat(
-    [lemp_truth_netflix, lemp_truth_kdd, lemp_truth_r2])
-
+lemp_truth = pd.read_csv(
+    '../plots/timing-results/lemp-gold-standard-timing.csv')
 
 blocked_mm_truth_netflix = pd.read_csv(
     '../plots/timing-results/netflix-blocked_mm-timing.csv')
@@ -39,9 +31,8 @@ for _, row in lemp_dec_rule.iterrows():
     model, K = row['model'], row['K']
     blocked_mm_sample_time, lemp_sample_time = row[
         'blocked_mm_sample_time'], row['lemp_sample_time']
-    lemp_true_rt = lemp_truth.query(
-        'model == "%s" and K == %d' %
-        (model, K))['comp_time'].min()
+    lemp_true_rt = lemp_truth.query('model == "%s" and K == %d' %
+                                    (model, K))['comp_time'].min()
     blocked_mm_true_rt = blocked_mm_truth.query('model == "%s" and K == %d' %
                                                 (model, K))['comp_time'].min()
 
@@ -63,4 +54,5 @@ for _, row in lemp_dec_rule.iterrows():
 results = pd.DataFrame.from_dict(results)
 print(results.query('correct == False'))
 print('Accuracy', np.mean(results['correct']))
-print('Percent Overhead Avg/Max', np.mean(results['overhead']), np.max(results['overhead']))
+print('Percent Overhead Avg/Max',
+      np.mean(results['overhead']), np.max(results['overhead']))

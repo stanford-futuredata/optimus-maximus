@@ -54,4 +54,5 @@ for _, row in fexipro_dec_rule.iterrows():
 results = pd.DataFrame.from_dict(results)
 print(results.query('correct == False'))
 print('Accuracy', np.mean(results['correct']))
-print('Percent Overhead Avg/Max', np.mean(results['overhead']), np.max(results['overhead']))
+print('Percent Overhead Avg/Max',
+      np.mean(results['overhead']), np.max(results['overhead']))

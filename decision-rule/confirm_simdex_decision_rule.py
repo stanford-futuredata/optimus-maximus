@@ -3,18 +3,14 @@
 import pandas as pd
 import numpy as np
 
-
 simdex_dec_rule = pd.read_csv('simdex-decision-rule.csv')
 
 simdex_truth_netflix = pd.read_csv(
     '../plots/timing-results/netflix-simdex-timing.csv')
-simdex_truth_kdd = pd.read_csv(
-    '../plots/timing-results/kdd-simdex-timing.csv')
-simdex_truth_r2 = pd.read_csv(
-    '../plots/timing-results/r2-simdex-timing.csv')
+simdex_truth_kdd = pd.read_csv('../plots/timing-results/kdd-simdex-timing.csv')
+simdex_truth_r2 = pd.read_csv('../plots/timing-results/r2-simdex-timing.csv')
 simdex_truth = pd.concat(
     [simdex_truth_netflix, simdex_truth_kdd, simdex_truth_r2])
-
 
 blocked_mm_truth_netflix = pd.read_csv(
     '../plots/timing-results/netflix-blocked_mm-timing.csv')
@@ -39,9 +35,8 @@ for _, row in simdex_dec_rule.iterrows():
     model, K = row['model'], row['K']
     blocked_mm_sample_time, simdex_sample_time = row[
         'blocked_mm_sample_time'], row['simdex_sample_time']
-    simdex_true_rt = simdex_truth.query(
-        'model == "%s" and K == %d' %
-        (model, K))['comp_time'].min()
+    simdex_true_rt = simdex_truth.query('model == "%s" and K == %d' %
+                                        (model, K))['comp_time'].min()
     blocked_mm_true_rt = blocked_mm_truth.query('model == "%s" and K == %d' %
                                                 (model, K))['comp_time'].min()
 
@@ -63,4 +58,5 @@ for _, row in simdex_dec_rule.iterrows():
 results = pd.DataFrame.from_dict(results)
 print(results.query('correct == False'))
 print('Accuracy', np.mean(results['correct']))
-print('Percent Overhead Avg/Max', np.mean(results['overhead']), np.max(results['overhead']))
+print('Percent Overhead Avg/Max',
+      np.mean(results['overhead']), np.max(results['overhead']))
