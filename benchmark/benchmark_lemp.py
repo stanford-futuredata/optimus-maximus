@@ -24,12 +24,12 @@ def run(run_args):
         user_weights = np.loadtxt(user_weights_fname, delimiter=',')
         num_users = int(len(user_weights) * 0.001)
         random_user_ids = np.random.choice(
-                len(user_weights), num_users, replace=False)
+            len(user_weights), num_users, replace=False)
         sampled_user_weights = user_weights[random_user_ids]
-        sampled_user_weights_fname = os.path.join(input_dir,
-                'sampled_user_weights_%d.csv' % curr_time)
+        sampled_user_weights_fname = os.path.join(
+            input_dir, 'sampled_user_weights_%d.csv' % curr_time)
         np.savetxt(
-                sampled_user_weights_fname, sampled_user_weights, delimiter=',')
+            sampled_user_weights_fname, sampled_user_weights, delimiter=',')
         user_weights_fname = sampled_user_weights_fname
 
     item_weights_fname = os.path.join(input_dir, 'item_weights.csv')
@@ -37,28 +37,28 @@ def run(run_args):
     # Fetch corresponding cpu ids for available NUMA node
     cpu_ids = numa_queue.get()
     cmd = [
-            'taskset',
-            '-c',
-            cpu_ids,
-            runner,
-            '--method=LEMP_LI',
-            '--cacheSizeinKB=2560',
-            '--Q^T',
-            user_weights_fname,
-            '--P',
-            item_weights_fname,
-            '--r=%d' % num_factors,
-            '--m=%d' % num_users,
-            '--n=%d' % num_items,
-            '--k=%d' % K,
-            '--t=%d' % num_threads,
-            ]
+        'taskset',
+        '-c',
+        cpu_ids,
+        runner,
+        '--method=LEMP_LI',
+        '--cacheSizeinKB=2560',
+        '--Q^T',
+        user_weights_fname,
+        '--P',
+        item_weights_fname,
+        '--r=%d' % num_factors,
+        '--m=%d' % num_users,
+        '--n=%d' % num_items,
+        '--k=%d' % K,
+        '--t=%d' % num_threads,
+    ]
     if sample:
-            cmd += '--logFile=%s' % os.path.join(output_dir, '%s_timing_K-%d_%d.csv' %
-                (base_name, K, curr_time)),
+        cmd += '--logFile=%s' % os.path.join(
+            output_dir, '%s_timing_K-%d_%d.csv' % (base_name, K, curr_time)),
     else:
-            cmd += '--logFile=%s' % os.path.join(output_dir, '%s_timing_%d.csv' %
-                (base_name, curr_time)),
+        cmd += '--logFile=%s' % os.path.join(output_dir, '%s_timing_%d.csv' %
+                                             (base_name, curr_time)),
 
     print('Running ' + str(cmd))
     subprocess.call(cmd)
@@ -81,16 +81,16 @@ def main():
     parser.add_argument('--no-sample', dest='sample', action='store_false')
     parser.set_defaults(sample=False)
     parser.add_argument(
-            '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
+        '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
-            1, 5, 10, 50
-            ]
+        1, 5, 10, 50
+    ]
     NUM_THREADS = [1]
 
     output_suffix = 'lemp-%s-%s' % (('icc' if args.icc else 'no-icc'),
-            ('simd' if args.simd else 'no-simd'))
+                                    ('simd' if args.simd else 'no-simd'))
     runner = '../%s/tools/runLemp' % output_suffix
 
     output_dir = args.output_dir
@@ -105,11 +105,11 @@ def main():
         base_name = model_dir.replace('/', '-')
         for K, num_threads in product(TOP_K, NUM_THREADS):
             run_args.append(
-                    (numa_queue, num_factors, num_users, num_items, K, num_threads,
-                        args.sample, input_dir, base_name, output_dir, runner))
+                (numa_queue, num_factors, num_users, num_items, K, num_threads,
+                 args.sample, input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.Pool(
-            NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
+        NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes
     pool.map(run, run_args)
 
 

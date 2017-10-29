@@ -13,6 +13,14 @@ ifeq ($(NAIVE), 1)
   CXX_FLAGS += -D NAIVE
 endif
 
+ifeq ($(RULE), 1)
+  CXX_FLAGS += -D ONLINE_DECISION_RULE
+endif
+
+ifeq ($(TEST_ONLY), 1)
+  CXX_FLAGS += -D TEST_ONLY
+endif
+
 
 ifeq ($(ICC), 1)
   CXX := icc

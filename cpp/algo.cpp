@@ -94,24 +94,22 @@ void computeTopKForCluster(
     const double *item_weights, const float *item_norms, const float *theta_ics,
     const float &centroid_norm, const int num_items,
     const int num_latent_factors, const int K, const int item_batch_size,
-    float *upper_bounds, int *sorted_upper_bounds_indices,
-    float *sorted_upper_bounds, double *sorted_item_weights,
-    std::ofstream &user_stats_file) {
+    int num_users_to_compute, float *upper_bounds,
+    int *sorted_upper_bounds_indices, float *sorted_upper_bounds,
+    double *sorted_item_weights, std::ofstream &user_stats_file) {
 
 #ifdef STATS
   bench_timer_t upper_bounds_start = time_start();
 #endif
 
-  const int num_users_in_cluster = user_ids_in_cluster.size();
-
-  if (num_users_in_cluster * item_batch_size < 0) {
-    std::cout << "ERROR! num_users_in_cluster*item_batch_size overflowed!"
+  if (num_users_to_compute * item_batch_size < 0) {
+    std::cout << "ERROR! num_users_to_compute*item_batch_size overflowed!"
               << std::endl;
     exit(1);
   }
 
   double *users_dot_items = (double *)_malloc(
-      sizeof(double) * num_users_in_cluster * item_batch_size);
+      sizeof(double) * num_users_to_compute * item_batch_size);
   float *user_norm_times_upper_bound =
       (float *)_malloc(sizeof(float) * item_batch_size);
   const int mod =
@@ -120,17 +118,17 @@ void computeTopKForCluster(
   // ind % item_batch_size == ind & mod
 
   // compute user_norms and theta_ucs for every user assigned to this cluster
-  float *user_norms = compute_norms_vector(user_weights, num_users_in_cluster,
+  float *user_norms = compute_norms_vector(user_weights, num_users_to_compute,
                                            num_latent_factors);
   float *theta_ucs = compute_theta_ucs_for_centroid(
-      user_weights, user_norms, centroid, num_users_in_cluster,
+      user_weights, user_norms, centroid, num_users_to_compute,
       num_latent_factors, centroid_norm);
   // NOTE: both are now already in the right order, i.e., you can access
   // them sequentially. This is because we reordered the user weights to be
   // in cluster order in main (see build_cluster_index)
 
   const float theta_max =
-      theta_ucs[cblas_isamax(num_users_in_cluster, theta_ucs, 1)];
+      theta_ucs[cblas_isamax(num_users_to_compute, theta_ucs, 1)];
   // theta_bins is correct
 
   int i, j, l;
@@ -213,10 +211,7 @@ void computeTopKForCluster(
 
 // ----------Computer Per User TopK Below------------------
 #ifdef DEBUG
-  const int num_users_to_compute =
-      num_users_in_cluster < 40 ? num_users_in_cluster : 40;
-#else
-  const int num_users_to_compute = num_users_in_cluster;
+  num_users_to_compute = num_users_to_compute < 40 ? num_users_to_compute : 40;
 #endif
 
   const int m = num_users_to_compute;

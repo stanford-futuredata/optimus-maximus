@@ -2,14 +2,33 @@
 ifeq ($(DEBUG), 1)
   CXX_FLAGS := -g -O0 -D DEBUG
 else
-  CXX_FLAGS := -g -O3
+  CXX_FLAGS := -O3
 endif
 
-CXX := icc
-CXX_FLAGS += -std=c++11 -D ICC -mkl -qopenmp
 INCLUDE_DIRS := /usr/include/boost
 LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
 LIBRARIES := boost_system boost_program_options
+
+ifeq ($(ICC), 1)
+  CXX := icc
+  CXX_FLAGS += -std=c++11 -D MKL_ILP64 -mkl -fp-model precise
+else
+  # Use g++ instead of icc
+  CXX := g++-4.8
+  CXX_FLAGS += -std=c++11 -march=native
+  ifeq ($(MKL), 1)
+    # if MKL=1 is passed in, still use MKL
+    CXX_FLAGS += -DMKL_ILP64 -m64
+    INCLUDE_DIRS += ${MKLROOT}/include
+    LIBRARY_DIRS += ${MKLROOT}/lib/intel64
+    LIBRARIES += mkl_intel_ilp64 mkl_sequential mkl_core m dl
+  else
+    # otherwise, use OpenBlas
+    LIBRARY_DIRS += /usr/lib/openblas-base
+    LIBRARIES += openblas
+  endif
+endif
+
 
 INCLUDES := $(foreach includedir,$(INCLUDE_DIRS),-I$(includedir))
 L_FLAGS := $(foreach librarydir,$(LIBRARY_DIRS),-L$(librarydir)) \

@@ -15,15 +15,15 @@ def run(run_args):
         print("Can't find %s" % input_dir)
         return
 
+    user_weights_fname = os.path.join(input_dir, 'user_weights.csv')
+    item_weights_fname = os.path.join(input_dir, 'item_weights.csv')
+
     base_name = os.path.join(output_dir, base_name)
 
     cmd = [
-        runner, '-w', input_dir, '-k',
-        str(K), '-m',
-        str(num_users), '-n',
-        str(num_items), '-f',
-        str(num_factors), '-t',
-        str(num_threads), '--base-name', base_name
+        runner, '-q', user_weights_fname, '-p', item_weights_fname, '-k',
+        str(K), '-m', str(num_users), '-n', str(num_items), '-f',
+        str(num_factors), '-t', str(num_threads), '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     process = subprocess.Popen(cmd)
@@ -40,6 +40,12 @@ def main():
     parser.add_argument('--output-dir', required=True)
     parser.add_argument(
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
+    parser.add_argument('--icc', dest='icc', action='store_true')
+    parser.add_argument('--no-icc', dest='icc', action='store_false')
+    parser.set_defaults(icc=False)
+    parser.add_argument('--mkl', dest='mkl', action='store_true')
+    parser.add_argument('--no-mkl', dest='mkl', action='store_false')
+    parser.set_defaults(mkl=False)
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
@@ -49,7 +55,12 @@ def main():
 
     runner = '../cpp/blocked_mm/blocked_mm'
 
-    BUILD_COMMAND = 'cd ../cpp/blocked_mm && make clean && make -j2 && cd -'
+    BUILD_COMMAND = 'cd ../cpp/blocked_mm && make clean && make -j2'
+    if args.icc:
+        BUILD_COMMAND += ' ICC=1'
+    if args.mkl:
+        BUILD_COMMAND += ' MKL=1'
+    BUILD_COMMAND += ' && cd -'
     subprocess.call(BUILD_COMMAND, shell=True)
 
     output_dir = args.output_dir

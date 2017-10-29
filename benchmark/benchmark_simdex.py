@@ -56,6 +56,12 @@ def main():
     parser.add_argument('--naive', dest='naive', action='store_true')
     parser.add_argument('--no-naive', dest='naive', action='store_false')
     parser.set_defaults(naive=False)
+    parser.add_argument('--decision-rule', dest='decision_rule', action='store_true')
+    parser.add_argument('--no-decision-rule', dest='decision_rule', action='store_false')
+    parser.set_defaults(decision_rule=False)
+    parser.add_argument('--test-only', dest='test_only', action='store_true')
+    parser.add_argument('--no-test-only', dest='test_only', action='store_false')
+    parser.set_defaults(test_only=False)
     parser.add_argument(
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     parser.add_argument(
@@ -91,6 +97,10 @@ def main():
         BUILD_COMMAND += ' NAIVE=1'
     if args.stats:
         BUILD_COMMAND += ' STATS=1'
+    if args.decision_rule:
+        BUILD_COMMAND += ' RULE=1'
+    if args.test_only:
+        BUILD_COMMAND += ' TEST_ONLY=1'
     BUILD_COMMAND += ' && cd -'
     subprocess.call(BUILD_COMMAND, shell=True)
 

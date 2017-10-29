@@ -7,6 +7,7 @@
 #include "algo.hpp"
 #include "arith.hpp"
 #include "clustering/cluster.hpp"
+#include "blocked_mm/blocked_mm.hpp"
 #include "parser.hpp"
 #include "utils.hpp"
 
@@ -25,7 +26,12 @@
 
 #ifdef MKL_ILP64
 #include <mkl.h>
+#else
+#include <cblas.h>
 #endif
+
+#define L2_CACHE_SIZE 256000
+#define MAX_MEM_SIZE (257840L * 1024L * 1024L)
 
 namespace opt = boost::program_options;
 
@@ -143,6 +149,10 @@ bool is_power_of_two(unsigned int x) {
 }
 
 int main(int argc, const char* argv[]) {
+  bool simdex_wins = true;
+  double blocked_mm_time = 0.0;
+  double simdex_time = 0.0;
+
   opt::options_description description("SimDex");
   description.add_options()("help,h", "Show help")(
       "weights-dir,w", opt::value<std::string>()->required(),
@@ -296,15 +306,93 @@ int main(int argc, const char* argv[]) {
 #endif
   bench_timer_t algo_start = time_start();
 
-  // TODO: These buffers are reused across multiple calls to
-  // computeTopKForCluster.  For multiple threads, there will be
-  // contention--need to allocate a buffer per thread.
   int* top_K_items = (int*)_malloc(num_users * K * sizeof(int));
   float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
   int* sorted_upper_bounds_indices = (int*)_malloc(num_items * sizeof(int));
   float* sorted_upper_bounds = (float*)_malloc(num_items * sizeof(float));
   double* sorted_item_weights = (double*)_malloc(
       sizeof(double) * num_bins * num_items * num_latent_factors);
+
+#ifdef ONLINE_DECISION_RULE
+  std::random_device rd;  // only used once to initialise (seed) engine
+  std::mt19937 rng(
+      rd());  // random-number engine used (Mersenne-Twister in this case)
+  std::uniform_int_distribution<int> uni(0,
+                                         num_clusters);  // guaranteed unbiased
+  const int rand_cluster_id = uni(rng);
+  unsigned long num_users_per_block =
+      L2_CACHE_SIZE / (sizeof(double) * num_latent_factors);
+  while (num_users_per_block * num_items * sizeof(double) > MAX_MEM_SIZE) {
+    num_users_per_block /= 2;
+  }
+  const int num_users_before = num_users_so_far_arr[rand_cluster_id];
+  double* user_ptr = &user_weights[num_users_before * num_latent_factors];
+  double* item_ptr = item_weights;
+  const int n = num_items;
+  const int k = num_latent_factors;
+  const unsigned long m = num_users_per_block;
+  const float alpha = 1.0;
+  const float beta = 0.0;
+  double* matrix_product = (double*)_malloc(m * n * sizeof(double));
+
+  bench_timer_t blocked_mm_start = time_start();
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, k, alpha, user_ptr,
+              k, item_ptr, k, beta, matrix_product, n);
+
+  if (K == 1) {
+    computeTopRating(matrix_product, &top_K_items[num_users_before * K], m, n);
+  } else {
+    computeTopK(matrix_product, &top_K_items[num_users_before * K], m, n, K);
+  }
+  blocked_mm_time = time_stop(blocked_mm_start);
+
+  bench_timer_t simdex_start = time_start();
+
+  computeTopKForCluster(
+      &top_K_items[num_users_before * K], rand_cluster_id,
+      &centroids[rand_cluster_id * num_latent_factors],
+      cluster_index[rand_cluster_id],
+      &user_weights[num_users_before * num_latent_factors], item_weights,
+      item_norms, &theta_ics[rand_cluster_id * num_items],
+      centroid_norms[rand_cluster_id], num_items, num_latent_factors, K,
+      batch_size, num_users_per_block, upper_bounds,
+      sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
+      user_stats_file);
+
+  simdex_time = time_stop(simdex_start);
+
+  std::cout << "Blocked MM time: " << blocked_mm_time << std::endl;
+  std::cout << "SimDex time: " << simdex_time << std::endl;
+  if (blocked_mm_time < simdex_time) {
+    simdex_wins = false;
+    std::cout << "Blocked MM wins" << std::endl;
+  } else {
+    simdex_wins = true;
+    std::cout << "SimDex wins" << std::endl;
+#ifndef TEST_ONLY
+    for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
+      if (cluster_id == rand_cluster_id ||
+          cluster_index[cluster_id].size() == 0) {
+        continue;
+      }
+#ifdef DEBUG
+      std::cout << "Cluster ID " << cluster_id << std::endl;
+#endif
+      const int num_users_so_far = num_users_so_far_arr[cluster_id];
+      computeTopKForCluster(
+          &top_K_items[num_users_so_far * K], cluster_id,
+          &centroids[cluster_id * num_latent_factors],
+          cluster_index[cluster_id],
+          &user_weights[num_users_so_far * num_latent_factors], item_weights,
+          item_norms, &theta_ics[cluster_id * num_items],
+          centroid_norms[cluster_id], num_items, num_latent_factors, K,
+          batch_size, cluster_index[cluster_id].size(), upper_bounds,
+          sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
+          user_stats_file);
+    }
+#endif
+  }
+#else
 
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
@@ -320,9 +408,11 @@ int main(int argc, const char* argv[]) {
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
         centroid_norms[cluster_id], num_items, num_latent_factors, K,
-        batch_size, upper_bounds, sorted_upper_bounds_indices,
-        sorted_upper_bounds, sorted_item_weights, user_stats_file);
+        batch_size, cluster_index[cluster_id].size(), upper_bounds,
+        sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
+        user_stats_file);
   }
+#endif
 
   const double algo_time = time_stop(algo_start);
   const double compute_time = cluster_time + index_time + algo_time;
@@ -341,13 +431,16 @@ int main(int argc, const char* argv[]) {
          "clusters,sample_"
          "percentage,"
          "num_iters,"
-         "parse_time,cluster_time,index_time,algo_time,comp_time" << std::endl;
+         "parse_time,cluster_time,index_time,algo_time,comp_time,blocked_mm_"
+         "sample_time,simdex_sample_time,simdex_wins" << std::endl;
   const std::string timing_stats =
       (boost::format(
-           "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%") %
+           "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%,%15%,%"
+           "16%,%17%") %
        base_name % K % num_latent_factors % num_threads % num_bins %
        batch_size % num_clusters % sample_percentage % num_iters % parse_time %
-       cluster_time % index_time % algo_time % compute_time).str();
+       cluster_time % index_time % algo_time % compute_time % blocked_mm_time %
+       simdex_time % simdex_wins).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
