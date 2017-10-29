@@ -80,6 +80,12 @@ def main():
     parser.add_argument('--sample', dest='sample', action='store_true')
     parser.add_argument('--no-sample', dest='sample', action='store_false')
     parser.set_defaults(sample=False)
+    parser.add_argument('--decision-rule', dest='decision_rule', action='store_true')
+    parser.add_argument('--no-decision-rule', dest='decision_rule', action='store_false')
+    parser.set_defaults(decision_rule=False)
+    parser.add_argument('--test-only', dest='test_only', action='store_true')
+    parser.add_argument('--no-test-only', dest='test_only', action='store_false')
+    parser.set_defaults(test_only=False)
     parser.add_argument(
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     args = parser.parse_args()
@@ -89,8 +95,16 @@ def main():
     ]
     NUM_THREADS = [1]
 
-    output_suffix = 'lemp-%s-%s' % (('icc' if args.icc else 'no-icc'),
-                                    ('simd' if args.simd else 'no-simd'))
+    output_suffix = 'lemp'
+    if args.icc:
+        output_suffix += '-icc'
+    if args.simd:
+        output_suffix += '-simd'
+    if args.decision_rule:
+        output_suffix += '-decision-rule'
+    if args.test_only:
+        output_suffix += '-test-only'
+
     runner = '../%s/tools/runLemp' % output_suffix
 
     output_dir = args.output_dir
