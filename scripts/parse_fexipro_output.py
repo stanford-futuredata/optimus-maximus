@@ -9,13 +9,13 @@ OUTPUT_CSV_FNAME = 'fexipro-orig-timing.csv'
 HEADERS = [
     'model', 'K', 'num_latent_factors', 'alg', 'scaling_value', 'sigma',
     'preproc_time', 'comp_time', 'num_items_first_check',
-    'num_items_last_check', 'blocked_mm_sample_time', 'fexipro_sample_time',
-    'fexipro_wins'
+    'num_items_last_check', 'user_sample_ratio', 'blocked_mm_sample_time',
+    'fexipro_sample_time', 'fexipro_wins'
 ]
 
 
 def parse(input_dir):
-    if input_dir[-1] != '/': input_dir += '/' 
+    if input_dir[-1] != '/': input_dir += '/'
     rows = []
     for fname in glob.iglob('%s/*txt' % input_dir):
         if 'result' in fname:
@@ -31,11 +31,11 @@ def parse(input_dir):
                 'num_items_last_check': '0.0',
                 'blocked_mm_sample_time': '0.0',
                 'fexipro_sample_time': '0.0',
-                'fexipro_wins': True
+                'fexipro_wins': True,
+                'user_sample_ratio': '0.0',
             }
             for line in f:
                 line = line.rstrip()
-
 
                 parts = line.split(': ')
                 header = parts[0]
@@ -71,6 +71,8 @@ def parse(input_dir):
                     values_dict['blocked_mm_sample_time'] = value
                 elif header == 'FEXIPRO time':
                     values_dict['fexipro_sample_time'] = value
+                elif header == 'User sample ratio':
+                    values_dict['user_sample_ratio'] = value
         if len(values_dict) != len(HEADERS):
             continue
         row = [values_dict[key] for key in HEADERS]
