@@ -11,8 +11,8 @@ import numpy as np
 
 
 def run(run_args):
-    numa_queue, num_factors, num_users, num_items, K, num_threads, sample, \
-            input_dir, base_name, output_dir, runner = run_args
+    numa_queue, num_factors, num_users, num_items, K, num_threads, \
+            sample, user_sample_ratio, input_dir, base_name, output_dir, runner = run_args
 
     if not os.path.isdir(input_dir):
         print("Can't find %s" % input_dir)
@@ -51,6 +51,7 @@ def run(run_args):
         '--m=%d' % num_users,
         '--n=%d' % num_items,
         '--k=%d' % K,
+        '--x=%f' % user_sample_ratio,
         '--t=%d' % num_threads,
     ]
     if sample:
@@ -80,19 +81,29 @@ def main():
     parser.add_argument('--sample', dest='sample', action='store_true')
     parser.add_argument('--no-sample', dest='sample', action='store_false')
     parser.set_defaults(sample=False)
-    parser.add_argument('--decision-rule', dest='decision_rule', action='store_true')
-    parser.add_argument('--no-decision-rule', dest='decision_rule', action='store_false')
+    parser.add_argument(
+        '--decision-rule', dest='decision_rule', action='store_true')
+    parser.add_argument(
+        '--no-decision-rule', dest='decision_rule', action='store_false')
     parser.set_defaults(decision_rule=False)
     parser.add_argument('--test-only', dest='test_only', action='store_true')
-    parser.add_argument('--no-test-only', dest='test_only', action='store_false')
+    parser.add_argument(
+        '--no-test-only', dest='test_only', action='store_false')
     parser.set_defaults(test_only=False)
     parser.add_argument(
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
+    parser.add_argument(
+        '--user-sample-ratios',
+        help=
+        'list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1')
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [
         1, 5, 10, 50
     ]
+    USER_SAMPLE_RATIOS = [
+        float(val) for val in args.user_sample_ratios.split(',')
+    ] if args.user_sample_ratios else [0.001, 0.005, 0.01, 0.05, 0.1]
     NUM_THREADS = [1]
 
     output_suffix = 'lemp'
@@ -117,10 +128,11 @@ def main():
     for (model_dir, (num_factors, num_users, num_items, _, _), _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
-        for K, num_threads in product(TOP_K, NUM_THREADS):
-            run_args.append(
-                (numa_queue, num_factors, num_users, num_items, K, num_threads,
-                 args.sample, input_dir, base_name, output_dir, runner))
+        for K, num_threads, user_sample_ratio in product(
+                TOP_K, NUM_THREADS, USER_SAMPLE_RATIOS):
+            run_args.append((numa_queue, num_factors, num_users, num_items, K,
+                             num_threads, args.sample, user_sample_ratio,
+                             input_dir, base_name, output_dir, runner))
 
     pool = multiprocessing.Pool(
         NUM_NUMA_NODES)  # Only run 4 jobs at once, since we have 4 NUMA nodes

@@ -170,6 +170,8 @@ int main(int argc, const char* argv[]) {
       "num-clusters,c", opt::value<int>()->required(), "Number of clusters")(
       "sample-percentage,s", opt::value<int>()->default_value(10),
       "Ratio of users to sample during clustering, between 0. and 1.")(
+      "user-sample-ratio,x", opt::value<double>()->default_value(0.0),
+      "Ratio of users to sample during clustering, between 0. and 1.")(
       "num-iters,i", opt::value<int>()->default_value(3),
       "Number of iterations to run clustering, default: 10")(
       "num-bins,b", opt::value<int>()->default_value(1),
@@ -207,6 +209,7 @@ int main(int argc, const char* argv[]) {
   const int num_bins = 1;  // args["num-bins"].as<int>();
   const int batch_size = args["batch-size"].as<int>();
   const int num_threads = args["num-threads"].as<int>();
+  const double user_sample_ratio = args["user-sample-ratio"].as<double>();
   const std::string base_name = args["base-name"].as<std::string>();
 
   if (!is_power_of_two(batch_size)) {
@@ -320,10 +323,17 @@ int main(int argc, const char* argv[]) {
   std::uniform_int_distribution<int> uni(0,
                                          num_clusters);  // guaranteed unbiased
   const int rand_cluster_id = uni(rng);
-  unsigned long num_users_per_block =
-      L2_CACHE_SIZE / (sizeof(double) * num_latent_factors);
-  while (num_users_per_block * num_items * sizeof(double) > MAX_MEM_SIZE) {
-    num_users_per_block /= 2;
+
+  unsigned long num_users_per_block = 0;
+  if (user_sample_ratio == 0.0) {
+    // Default
+    num_users_per_block =
+        4 * L2_CACHE_SIZE / (sizeof(double) * num_latent_factors);
+    while (num_users_per_block * num_items * sizeof(double) > MAX_MEM_SIZE) {
+      num_users_per_block /= 2;
+    }
+  } else {
+    num_users_per_block = (long)(user_sample_ratio * num_users);
   }
   const int num_users_before = num_users_so_far_arr[rand_cluster_id];
   double* user_ptr = &user_weights[num_users_before * num_latent_factors];
@@ -344,7 +354,7 @@ int main(int argc, const char* argv[]) {
   } else {
     computeTopK(matrix_product, &top_K_items[num_users_before * K], m, n, K);
   }
-  blocked_mm_time = time_stop(blocked_mm_start);
+  blocked_mm_time = time_stop(blocked_mm_start) / num_users_per_block;
 
   bench_timer_t simdex_start = time_start();
 
@@ -359,7 +369,7 @@ int main(int argc, const char* argv[]) {
       sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
       user_stats_file);
 
-  simdex_time = time_stop(simdex_start);
+  simdex_time = time_stop(simdex_start) / num_users_per_block;
 
   std::cout << "Blocked MM time: " << blocked_mm_time << std::endl;
   std::cout << "SimDex time: " << simdex_time << std::endl;
@@ -426,21 +436,25 @@ int main(int argc, const char* argv[]) {
       base_name + "_timing_" + std::to_string(curr_time) + ".csv";
 #endif
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
+  timing_stats_file << std::boolalpha;
   timing_stats_file
-      << "model,K,num_latent_factors,num_threads,num_bins,batch_size,num_"
+      << "model,K,num_users,num_items,num_latent_factors,num_threads,num_bins,"
+         "batch_size,num_"
          "clusters,sample_"
          "percentage,"
          "num_iters,"
-         "parse_time,cluster_time,index_time,algo_time,comp_time,blocked_mm_"
+         "parse_time,cluster_time,index_time,algo_time,comp_time,user_sample_"
+         "ratio,blocked_mm_"
          "sample_time,simdex_sample_time,simdex_wins" << std::endl;
   const std::string timing_stats =
       (boost::format(
            "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%,%15%,%"
-           "16%,%17%") %
-       base_name % K % num_latent_factors % num_threads % num_bins %
-       batch_size % num_clusters % sample_percentage % num_iters % parse_time %
-       cluster_time % index_time % algo_time % compute_time % blocked_mm_time %
-       simdex_time % simdex_wins).str();
+           "16%,%17%,%18%,%19%,%20%") %
+       base_name % K % num_users % num_items % num_latent_factors %
+       num_threads % num_bins % batch_size % num_clusters % sample_percentage %
+       num_iters % parse_time % cluster_time % index_time % algo_time %
+       compute_time % user_sample_ratio % blocked_mm_time % simdex_time %
+       simdex_wins).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
