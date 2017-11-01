@@ -62,7 +62,6 @@ MODEL_DIR_BASE = '%s/models-simdex' % os.getenv('HOME')
 LEMP_NETFLIX_MODELS = [
     ('lemp-paper/Netflix-noav-10', (10, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
-    ('lemp-paper/Netflix-50', (50, 480189, 17770, (8, ), 1), NETFLIX_DATASET),
     ('lemp-paper/Netflix-noav-50', (50, 480189, 17770, (8, ), 1),
      NETFLIX_DATASET),
     ('lemp-paper/Netflix-noav-100', (100, 480189, 17770, (8, ), 1),
@@ -280,6 +279,7 @@ OTHER_MODELS = [
     ('ramdisk/r2-10', (10, 1823179, 136736), YAHOO_R2_DATASET),
     ('ramdisk/r2-25', (25, 1823179, 136736), YAHOO_R2_DATASET),
     ('ramdisk/r2-50', (50, 1823179, 136736), YAHOO_R2_DATASET),
+    ('lemp-paper/Netflix-50', (50, 480189, 17770, (8, ), 1), NETFLIX_DATASET),
     ('lemp-paper/IE-svd-10', (10, 7716114, 1322094),
      NETFLIX_DATASET),  # Dataset is garbage value for the IE-* models
     ('lemp-paper/IE-svd-50', (50, 7716114, 1322094), NETFLIX_DATASET),

@@ -9,7 +9,7 @@ OUTPUT_CSV_FNAME = 'fexipro-orig-timing.csv'
 HEADERS = [
     'model', 'K', 'num_latent_factors', 'alg', 'scaling_value', 'sigma',
     'preproc_time', 'comp_time', 'num_items_first_check',
-    'num_items_last_check', 'user_sample_ratio', 'blocked_mm_sample_time',
+    'num_items_last_check', 'user_sample_ratio', 'num_sampled_users', 'blocked_mm_sample_time',
     'fexipro_sample_time', 'fexipro_wins'
 ]
 
@@ -33,6 +33,7 @@ def parse(input_dir):
                 'fexipro_sample_time': '0.0',
                 'fexipro_wins': True,
                 'user_sample_ratio': '0.0',
+                'num_sampled_users': '0',
             }
             for line in f:
                 line = line.rstrip()
@@ -73,6 +74,9 @@ def parse(input_dir):
                     values_dict['fexipro_sample_time'] = value
                 elif header == 'User sample ratio':
                     values_dict['user_sample_ratio'] = value
+                elif header == 'Num sampled users':
+                    values_dict['num_sampled_users'] = value
+
         if len(values_dict) != len(HEADERS):
             continue
         row = [values_dict[key] for key in HEADERS]
