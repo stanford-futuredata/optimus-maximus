@@ -150,6 +150,7 @@ bool is_power_of_two(unsigned int x) {
 
 int main(int argc, const char* argv[]) {
   bool simdex_wins = true;
+  unsigned long num_users_per_block = 0;
   double blocked_mm_time = 0.0;
   double simdex_time = 0.0;
 
@@ -324,7 +325,6 @@ int main(int argc, const char* argv[]) {
                                          num_clusters);  // guaranteed unbiased
   const int rand_cluster_id = uni(rng);
 
-  unsigned long num_users_per_block = 0;
   if (user_sample_ratio == 0.0) {
     // Default
     num_users_per_block =
@@ -444,17 +444,17 @@ int main(int argc, const char* argv[]) {
          "percentage,"
          "num_iters,"
          "parse_time,cluster_time,index_time,algo_time,comp_time,user_sample_"
-         "ratio,blocked_mm_"
+         "ratio,num_sampled_users,blocked_mm_"
          "sample_time,simdex_sample_time,simdex_wins" << std::endl;
   const std::string timing_stats =
       (boost::format(
            "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%,%15%,%"
-           "16%,%17%,%18%,%19%,%20%") %
+           "16%,%17%,%18%,%19%,%20%,%21%") %
        base_name % K % num_users % num_items % num_latent_factors %
        num_threads % num_bins % batch_size % num_clusters % sample_percentage %
        num_iters % parse_time % cluster_time % index_time % algo_time %
-       compute_time % user_sample_ratio % blocked_mm_time % simdex_time %
-       simdex_wins).str();
+       compute_time % user_sample_ratio % num_users_per_block %
+       blocked_mm_time % simdex_time % simdex_wins).str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 
