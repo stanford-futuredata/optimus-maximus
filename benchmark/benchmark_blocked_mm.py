@@ -42,10 +42,10 @@ def main():
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     parser.add_argument('--icc', dest='icc', action='store_true')
     parser.add_argument('--no-icc', dest='icc', action='store_false')
-    parser.set_defaults(icc=False)
+    parser.set_defaults(icc=True)
     parser.add_argument('--mkl', dest='mkl', action='store_true')
     parser.add_argument('--no-mkl', dest='mkl', action='store_false')
-    parser.set_defaults(mkl=False)
+    parser.set_defaults(mkl=True)
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [

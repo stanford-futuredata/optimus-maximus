@@ -87,7 +87,7 @@ def main():
     NUM_THREADS = [1]
     USER_SAMPLE_RATIOS = [
         float(val) for val in args.user_sample_ratios.split(',')
-    ] if args.user_sample_ratios else [0.001, 0.005, 0.01, 0.05, 0.1]
+    ] if args.user_sample_ratios else [0.0]
     BATCH_SIZES = [
         int(val) for val in args.batch_sizes.split(',')
     ] if args.batch_sizes else [512, 2048] if args.sweep else [4096]
@@ -126,9 +126,8 @@ def main():
          _) in TO_RUN:
         input_dir = os.path.join(MODEL_DIR_BASE, model_dir)
         base_name = model_dir.replace('/', '-')
-        num_clusters_to_try = NUM_CLUSTERS if NUM_CLUSTERS else best_num_clusters
         for K, num_threads, batch_size, num_clusters, sample_percentage, num_iters, user_sample_ratio in product(
-                TOP_K, NUM_THREADS, BATCH_SIZES, num_clusters_to_try,
+                TOP_K, NUM_THREADS, BATCH_SIZES, NUM_CLUSTERS,
                 SAMPLE_PERCENTAGES, NUM_ITERS, USER_SAMPLE_RATIOS):
             run_args.append(
                 (numa_queue, num_factors, num_users, num_items, K,
