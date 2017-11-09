@@ -3,6 +3,7 @@
 import argparse
 import glob
 import re
+import os
 import pandas as pd
 
 OUTPUT_CSV_FNAME = 'fexipro-orig-timing.csv'
@@ -82,7 +83,8 @@ def parse(input_dir):
         row = [values_dict[key] for key in HEADERS]
         rows.append(row)
     df = pd.DataFrame(rows, columns=HEADERS)
-    df.to_csv(OUTPUT_CSV_FNAME, index=False)
+    output_fname = os.path.join(input_dir, OUTPUT_CSV_FNAME)
+    df.to_csv(output_fname, index=False)
 
 
 def main():
