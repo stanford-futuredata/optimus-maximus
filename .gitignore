@@ -15,10 +15,7 @@ simdex_debug
 # Python binary files
 __pycache__/
 # workspace dirs
-lemp-icc-no-simd/
-lemp-icc-simd/
-lemp-no-icc-no-simd/
-lemp-no-icc-simd/
+lemp-simd/
 lemp-simd-decision-rule-test-only/
 fexipro-orig-build/
 fexipro-orig-build-decision-rule/
