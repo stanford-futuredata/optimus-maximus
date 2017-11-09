@@ -21,11 +21,17 @@ def run(run_args):
     # Fetch corresponding cpu ids for available NUMA node
     cpu_ids = numa_queue.get()
     cmd = [
-        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
-        str(num_users), '-n', str(num_items), '-f', str(num_factors), '-c',
-        str(num_clusters), '-s', str(sample_percentage), '-i', str(num_iters),
-        '-b', '1', '-t', str(num_threads), '--batch-size', str(batch_size),
-        '-x', str(user_sample_ratio), '--base-name', base_name
+        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k',
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
+        str(num_factors), '-c',
+        str(num_clusters), '-s',
+        str(sample_percentage), '-i',
+        str(num_iters), '-b', '1', '-t',
+        str(num_threads), '--batch-size',
+        str(batch_size), '-x',
+        str(user_sample_ratio), '--base-name', base_name
     ]
     if sample:
         cmd += ['--sample']
@@ -77,8 +83,8 @@ def main():
     )
     parser.add_argument(
         '--user-sample-ratios',
-        help=
-        'list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1')
+        help='list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1'
+    )
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [

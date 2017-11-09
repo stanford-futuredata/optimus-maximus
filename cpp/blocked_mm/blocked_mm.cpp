@@ -4,9 +4,9 @@
 //
 //
 
+#include "blocked_mm.hpp"
 #include "../parser.hpp"
 #include "../utils.hpp"
-#include "blocked_mm.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -138,11 +138,13 @@ int main(int argc, const char *argv[]) {
   timing_stats_file.open(timing_stats_fname, std::ios_base::app);
   timing_stats_file
       << "model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_"
-         "queue_time,comp_time" << std::endl;
+         "queue_time,comp_time"
+      << std::endl;
   const std::string timing_stats =
       (boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%") % base_name %
        num_latent_factors % num_threads % K % num_users_per_block % gemm_time %
-       pr_queue_time % compute_time).str();
+       pr_queue_time % compute_time)
+          .str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 

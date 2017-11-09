@@ -94,8 +94,8 @@ def main():
         '--top-K', help='list of comma-separated integers, e.g., 1,5,10,50')
     parser.add_argument(
         '--user-sample-ratios',
-        help=
-        'list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1')
+        help='list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1'
+    )
     args = parser.parse_args()
 
     TOP_K = [int(val) for val in args.top_K.split(',')] if args.top_K else [

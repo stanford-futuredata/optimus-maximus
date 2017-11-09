@@ -39,7 +39,10 @@ def run(run_args):
     cpu_ids = numa_queue.get()
     blocked_mm_cmd = [
         blocked_mm_runner, '-q', user_weights_fname, '-p', item_weights_fname,
-        '-k', str(K), '-m', str(num_users), '-n', str(num_items), '-f',
+        '-k',
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
         str(num_factors), '-t', '1', '--base-name', full_base_name
     ]
     print('Running ' + str(blocked_mm_cmd))

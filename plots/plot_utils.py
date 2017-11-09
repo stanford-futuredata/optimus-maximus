@@ -1,6 +1,7 @@
 from __future__ import division
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.ticker as mtick
 import seaborn as sns
 import numpy as np
 import pandas as pd
@@ -38,6 +39,7 @@ LABEL_DICT = {
     'nomad-R2-25': r'R2-NOMAD, $f=25$',
     'nomad-R2-25-reg-0.001': r'R2-NOMAD, $f=25$',
     'nomad-R2-50': r'R2-NOMAD, $f=50$',
+    'nomad-R2-50-reg-0.001': r'R2-NOMAD-bad, $f=50$',
     'nomad-R2-50-reg-0.000001': r'R2-NOMAD, $f=50$',
     'nomad-R2-100': r'R2-NOMAD, $f=100$',
     'nomad-R2-100-reg-0': r'R2-NOMAD, $f=100$',
@@ -164,6 +166,177 @@ def plot_cdf(values_labels_and_lines,
 ###########
 ## PLOTS ##
 ###########
+def runtime_estimates_plot(models,
+                           lemp_estimates_df,
+                           lemp_truth_df,
+                           fexipro_estimates_df,
+                           fexipro_truth_df,
+                           simdex_estimates_df,
+                           simdex_truth_df,
+                           blocked_mm_estimates_df,
+                           blocked_mm_truth_df,
+                           linestyle='--',
+                           markerstyle='o',
+                           figsize=(15, 8)):
+    def fexipro_truth_query_fn(row):
+        return 'model == "%s" and K == %d and alg == "%s" and scaling_value == %f and sigma == %f' % (
+            row['model'], row['K'], row['alg'], row['scaling_value'],
+            row['sigma'])
+
+    def lemp_truth_query_fn(row):
+        return 'model == "%s" and K == %d' % (row['model'], row['K'])
+
+    def simdex_truth_query_fn(row):
+        return 'model == "%s" and K == %d and num_clusters == %d and batch_size == %d' % (
+            row['model'], row['K'], row['num_clusters'], row['batch_size'])
+
+    def blocked_mm_truth_query_fn(row):
+        return 'model == "%s" and K == %d' % (row['model'], row['K'])
+
+    def runtimes_for_index_type(model, estimates_df, truth_df, sample_time_col,
+                                truth_query_fn):
+        L2_CACHE_SIZE = 256000
+        MAX_MEM_SIZE = 257840 * 1024 * 1024
+
+        ratios, estimate_rts, true_rts, error_rts = [], [], [], []
+        for user_sample_ratio in estimates_df['user_sample_ratio'].unique():
+
+            num_users = 480189 if 'Netflix' in model else 1000990 if 'KDD' in model else 1823179
+            num_items = 17770 if 'Netflix' in model else 624961 if 'KDD' in model else 136736
+
+            estimates_for_ratio = estimates_df.query(
+                'user_sample_ratio == %f' % user_sample_ratio)
+            row = estimates_for_ratio.iloc[0]
+            num_latent_factors = row['num_latent_factors']
+
+            if user_sample_ratio == 0.0:
+                num_users_per_block = 4 * L2_CACHE_SIZE / (
+                    8 * num_latent_factors)
+                while (num_users_per_block * num_items * 8 > MAX_MEM_SIZE):
+                    num_users_per_block /= 2
+                user_sample_ratio = num_users_per_block / num_users
+
+            estimate_rt = estimates_for_ratio[
+                sample_time_col].mean() * num_users
+            error_rt = estimates_for_ratio[sample_time_col].std() * num_users
+            true_rt = truth_df.query(truth_query_fn(row))['comp_time'].min()
+            ratios.append(user_sample_ratio)
+            estimate_rts.append(estimate_rt)
+            true_rts.append(true_rt)
+            error_rts.append(error_rt)
+        ratios = np.array(ratios) * 100
+        x = list(zip(ratios, estimate_rts, true_rts, error_rts))
+        x = sorted(x, key=lambda v: v[0])
+        return zip(*x)
+
+    fig, ax_arr = plt.subplots(nrows=1, ncols=len(models), figsize=figsize)
+    ax_arr = np.ravel(ax_arr)
+    for i, model_to_plot in enumerate(models):
+        ratios, lemp_model_estimates, lemp_model_truth, lemp_model_errors = runtimes_for_index_type(
+            model_to_plot,
+            lemp_estimates_df.query('model == "%s"' % model_to_plot),
+            lemp_truth_df.query('model == "%s"' % model_to_plot),
+            'lemp_sample_time', lemp_truth_query_fn)
+
+        ax_arr[i].errorbar(
+            ratios,
+            lemp_model_estimates,
+            yerr=lemp_model_errors,
+            label='LEMP estimate',
+            linestyle=linestyle,
+            marker=markerstyle)
+        ax_arr[i].plot(ratios, lemp_model_truth, label='LEMP')
+
+        ratios, fexipro_si_model_estimates, fexipro_si_model_truth, fexipro_si_errors = runtimes_for_index_type(
+            model_to_plot,
+            fexipro_estimates_df.query(
+                'model == "%s" and alg == "SI"' % model_to_plot),
+            fexipro_truth_df.query(
+                'model == "%s" and alg == "SI"' % model_to_plot),
+            'fexipro_sample_time', fexipro_truth_query_fn)
+
+        ax_arr[i].errorbar(
+            ratios,
+            fexipro_si_model_estimates,
+            yerr=fexipro_si_errors,
+            label='FEXIPRO-SI estimate',
+            linestyle=linestyle,
+            marker=markerstyle)
+        ax_arr[i].plot(ratios, fexipro_si_model_truth, label='FEXIPRO-SI')
+
+        ratios, fexipro_sir_model_estimates, fexipro_sir_model_truth, fexipro_sir_errors = runtimes_for_index_type(
+            model_to_plot,
+            fexipro_estimates_df.query(
+                'model == "%s" and alg == "SIR"' % model_to_plot),
+            fexipro_truth_df.query(
+                'model == "%s" and alg == "SIR"' % model_to_plot),
+            'fexipro_sample_time', fexipro_truth_query_fn)
+
+        ax_arr[i].errorbar(
+            ratios,
+            fexipro_sir_model_estimates,
+            yerr=fexipro_sir_errors,
+            label='FEXIPRO-SIR estimate',
+            linestyle=linestyle,
+            marker=markerstyle)
+        ax_arr[i].plot(ratios, fexipro_sir_model_truth, label='FEXIPRO-SIR')
+
+        ratios, simdex_model_estimates, simdex_model_truth, simdex_model_errors = runtimes_for_index_type(
+            model_to_plot,
+            simdex_estimates_df.query('model == "%s"' % model_to_plot),
+            simdex_truth_df.query('model == "%s"' % model_to_plot),
+            'simdex_sample_time', simdex_truth_query_fn)
+
+        ax_arr[i].errorbar(
+            ratios,
+            simdex_model_estimates,
+            yerr=simdex_model_errors,
+            label='RECDEX estimate',
+            linestyle=linestyle,
+            marker=markerstyle)
+        ax_arr[i].plot(ratios, simdex_model_truth, label='RECDEX')
+
+        ratios, blocked_mm_model_estimates, blocked_mm_model_truth, blocked_mm_errors = runtimes_for_index_type(
+            model_to_plot,
+            blocked_mm_estimates_df.query('model == "%s"' % model_to_plot),
+            blocked_mm_truth_df.query('model == "%s"' % model_to_plot),
+            'blocked_mm_sample_time', blocked_mm_truth_query_fn)
+
+        ax_arr[i].errorbar(
+            ratios,
+            blocked_mm_model_estimates,
+            yerr=blocked_mm_errors,
+            label='Blocked MM estimate',
+            linestyle=linestyle,
+            marker=markerstyle)
+        ax_arr[i].plot(ratios, blocked_mm_model_truth, label='Blocked MM')
+
+        ax_arr[i].set_yscale('log')
+        handles, labels = ax_arr[i].get_legend_handles_labels()
+        handles = handles[:int(len(handles) / 2)]
+        labels = labels[:int(len(labels) / 2)]
+        legend = ax_arr[i].legend(
+            handles,
+            labels,
+            loc='upper center',
+            bbox_to_anchor=(0.5, 1.30),
+            ncol=int(len(handles) / 2) + 1,
+            columnspacing=1.7,
+            labelspacing=0.2)
+        ax_arr[i].set_ylabel('Time (s), log scale', labelpad=15)
+        ax_arr[i].set_xlabel('User sample percentage', labelpad=15)
+        ax_arr[i].set_xlim([0, 1.02])
+
+        fmt = '%.1f%%'  # Format you want the ticks, e.g. '40%'
+        xticks = mtick.FormatStrFormatter(fmt)
+        ax_arr[i].xaxis.set_major_formatter(xticks)
+        ax_arr[i].tick_params(axis='x', which='major', pad=15)
+
+        ax_arr[i].grid(True)
+        sns.despine()
+        save_figure('runtime-estimate', (legend, ))
+
+
 def blocked_mm_lemp_fexipro_plot(blocked_mm_df,
                                  lemp_df,
                                  fexipro_df,
@@ -257,10 +430,10 @@ def factor_analysis(figsize=(8, 4)):
     fig, ax = plt.subplots(figsize=figsize)
     # Example data
     people = (
-        'Netflix w/o\nWork Sharing',
-        'Netflix with\nWork Sharing',
-        'R2 w/o\nWork Sharing',
-        'R2 with\nWork Sharing', )
+        'Netflix w/o\nBlocking',
+        'Netflix with\nBlocking',
+        'R2 w/o\nBlocking',
+        'R2 with\nBlocking', )
     y_pos = np.array([0, 1.5, 3, 4.5])
 
     H = 0.25
@@ -309,7 +482,7 @@ def factor_analysis(figsize=(8, 4)):
         handles[::-1],
         labels[::-1],
         loc='upper center',
-        bbox_to_anchor=(0, 0, 1, 1.3),
+        bbox_to_anchor=(0, 0, 1, 1.35),
         ncol=2,
         frameon=False,
         columnspacing=None,
@@ -417,6 +590,25 @@ def f_u_plot_single(simdex_df,
     plt.show()
 
 
+def choose_runtimes_from_optimizer(simdex_df, blocked_mm_df, decision_rule_df):
+    df_dict = {'model': [], 'K': [], 'comp_time': []}
+    for _, row in decision_rule_df.iterrows():
+        model, K = row['model'], row['K']
+        df_dict['model'].append(model)
+        df_dict['K'].append(K)
+
+        simdex_rt = simdex_df.query('model == "%s" and K == %d' %
+                                    (model, K))['comp_time'].min()
+        blocked_mm_rt = blocked_mm_df.query('model == "%s" and K == %d' %
+                                            (model, K))['comp_time'].min()
+        overhead = row['blocked_mm_sample_time']
+
+        comp_time = simdex_rt + overhead if row[
+            'simdex_wins'] else blocked_mm_rt
+        df_dict['comp_time'].append(comp_time)
+    return pd.DataFrame.from_dict(df_dict)
+
+
 def f_u_plots(simdex_df,
               lemp_df,
               blocked_mm_df,
@@ -449,54 +641,55 @@ def f_u_plots(simdex_df,
         ['model', 'K'], as_index=False).first()
     #_simdex_df = simdex_df.query('num_clusters == 8 and batch_size == 4096')
 
-    both_df = pd.concat([
-        _simdex_df[['model', 'K', 'comp_time']],
-        blocked_mm_df[['model', 'K', 'comp_time']].query(
-            'model != "nomad-Netflix-25-reg-0.05"'
-        )  # TODO: pass in dictionary of decisions made by decision rule
-    ])
+    both_df = choose_runtimes_from_optimizer(_simdex_df, blocked_mm_df,
+                                             sampling_df)
     both_rt = both_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    both_rt['algo'] = 'SimDex'
+    both_rt['algo'] = 'RECDEX + Blocked MM + Optimizer'
 
     simdex_rt = _simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    simdex_rt['algo'] = 'SimDex-Index Only'
+    simdex_rt['algo'] = 'RECDEX'
 
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
-    blocked_mm_rt['algo'] = 'Blocked MM Only'
+    blocked_mm_rt['algo'] = 'Blocked MM'
 
     lemp_rt = lemp_df[['model', 'K', 'comp_time']]
     lemp_rt['algo'] = 'LEMP'
 
     fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
-    fexipro_rt['algo'] = 'FEXIPRO'
+    fexipro_rt['algo'] = 'FEXIPRO-SIR'
 
     fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
     fexipro_si_rt['algo'] = 'FEXIPRO-SI'
 
     all_speedups = []
+    simdex_vs_lemp = []
+    all_fexipro_speedups = []
+    all_fexipro_si_speedups = []
     all_percent_overheads = []
     all_overheads = []
 
     for i, model in enumerate(models):
-        both_model_rt = both_rt.query('model == "%s"' % model).sort_values(
-            by='K')
-        lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(
-            by='K')
-        fexipro_model_rt = fexipro_rt.query(
-            'model == "%s"' % model).sort_values(by='K')
+        both_model_rt = both_rt.query('model == "%s"' % model).groupby(
+            ['model', 'K'], as_index=False).first().sort_values(by='K')
+        lemp_model_rt = lemp_rt.query('model == "%s"' % model).groupby(
+            ['model', 'K'], as_index=False).first().sort_values(by='K')
+        fexipro_model_rt = fexipro_rt.query('model == "%s"' % model).groupby(
+            ['model', 'K'], as_index=False).first().sort_values(by='K')
         fexipro_si_model_rt = fexipro_si_rt.query(
-            'model == "%s"' % model).sort_values(by='K')
-        simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(
-            by='K')
+            'model == "%s"' % model).groupby(
+                ['model', 'K'], as_index=False).first().sort_values(by='K')
+        simdex_model_rt = simdex_rt.query('model == "%s"' % model).groupby(
+            ['model', 'K'], as_index=False).first().sort_values(by='K')
         blocked_mm_model_rt = blocked_mm_rt.query(
-            'model == "%s"' % model).sort_values(by='K')
-        sampling_model_rt = sampling_df.query(
-            'model == "%s"' % model).sort_values(by='K')
+            'model == "%s"' % model).groupby(
+                ['model', 'K'], as_index=False).first().sort_values(by='K')
+        sampling_model_rt = sampling_df.query('model == "%s"' % model).groupby(
+            ['model', 'K'], as_index=False).first().sort_values(by='K')
 
         # add sampling overhead
-        overheads = sampling_model_rt['comp_time'].min()
+        overheads = sampling_model_rt['blocked_mm_sample_time'].values
         all_overheads.append(overheads)
         percent_overheads = overheads / (
             both_model_rt['comp_time'].min() + overheads)
@@ -507,13 +700,24 @@ def f_u_plots(simdex_df,
             K, batch_size, num_clusters = row[0], row[1], row[2]
             print(K, batch_size, num_clusters)
 
-        both_model_rt['comp_time'] += sampling_model_rt['comp_time'].min()
-        speed_ups = lemp_model_rt['comp_time'].min() / both_model_rt[
-            'comp_time'].min()
+        speed_ups = lemp_model_rt['comp_time'].values / both_model_rt[
+            'comp_time'].values
         all_speedups.append(speed_ups)
-        # print(model)
+
+        simdex_vs_lemp_speed_ups = lemp_model_rt[
+            'comp_time'].values / simdex_model_rt['comp_time'].values
+        simdex_vs_lemp.append(simdex_vs_lemp_speed_ups)
+
+        fexipro_speed_ups = fexipro_model_rt[
+            'comp_time'].values / both_model_rt['comp_time'].values
+        all_fexipro_speedups.append(fexipro_speed_ups)
+
+        fexipro_si_speed_ups = fexipro_si_model_rt[
+            'comp_time'].values / both_model_rt['comp_time'].values
+        all_fexipro_si_speedups.append(fexipro_si_speed_ups)
+
         data = pd.concat([
-            both_model_rt, blocked_mm_model_rt, simdex_model_rt, lemp_model_rt,
+            blocked_mm_model_rt, simdex_model_rt, lemp_model_rt,
             fexipro_model_rt, fexipro_si_model_rt
         ])
         if len(data) == 0:
@@ -557,9 +761,24 @@ def f_u_plots(simdex_df,
         sns.despine()
 
     all_speedups = np.ravel(all_speedups)
-    print('Average speedup: ' + str(np.mean(all_speedups)))
-    print('Min speedup: ' + str(np.min(all_speedups)))
-    print('Max speedup: ' + str(np.max(all_speedups)))
+    print('Average LEMP speedup: ' + str(np.mean(all_speedups)))
+    print('Min LEMP speedup: ' + str(np.min(all_speedups)))
+    print('Max LEMP speedup: ' + str(np.max(all_speedups)))
+
+    simdex_vs_lemp = np.ravel(simdex_vs_lemp)
+    print('Percent of time SimDex is better than LEMP: ' +
+          str(np.mean(simdex_vs_lemp > 1.0)))
+
+    all_fexipro_speedups = np.ravel(all_fexipro_speedups)
+    print('Average FEXIPRO-SIR speedup: ' + str(np.mean(all_fexipro_speedups)))
+    print('Min FEXIPRO-SIR speedup: ' + str(np.min(all_fexipro_speedups)))
+    print('Max FEXIPRO-SIR speedup: ' + str(np.max(all_fexipro_speedups)))
+
+    all_fexipro_si_speedups = np.ravel(all_fexipro_si_speedups)
+    print('Average FEXIPRO-SI speedup: ' +
+          str(np.mean(all_fexipro_si_speedups)))
+    print('Min FEXIPRO-SI speedup: ' + str(np.min(all_fexipro_si_speedups)))
+    print('Max FEXIPRO-SI speedup: ' + str(np.max(all_fexipro_si_speedups)))
 
     all_overheads = np.ravel(all_overheads)
     print('Average overhead: ' + str(np.mean(all_overheads)))
@@ -659,6 +878,7 @@ def rmse_and_reg_plots(blocked_mm_df,
                        annotate=True,
                        xy_text=(15, 150),
                        linestyle='--',
+                       markerstyle='x',
                        include_legend=False):
     blocked_mm_rt = blocked_mm_df.query('K == %d' % K)[['model', 'comp_time']]
     lemp_rt = lemp_df.query('K == %d' % K)[['model', 'comp_time']]
@@ -724,24 +944,37 @@ def rmse_and_reg_plots(blocked_mm_df,
 
     min_rmse = min(rmse_data)
     best_reg_index = rmse_data.index(min_rmse)
+    regs = [float(x) for x in regs]
+    print(regs)
+    if regs[0] == 0:
+        regs = np.asarray(regs) + 1e-8
     best_reg = regs[best_reg_index]
 
-    ax1.plot(regs, rmse_data, color='black', linestyle=linestyle, marker='o')
+    ax1.plot(
+        regs,
+        rmse_data,
+        color='black',
+        linestyle=linestyle,
+        marker=markerstyle)
     ax1.set_xscale('symlog')
-    ax1.set_ylabel('Test RMSE')
+    ax1.set_ylabel('Test RMSE', labelpad=5)
     ax1.grid(True)
     ax1.minorticks_on()
     if annotate:
         ax1.annotate(
             'best model',
-            xy=(float(best_reg) + 1e-7, min_rmse * 1.01),
+            xy=(best_reg, min_rmse
+                ),  # min_rmse * 1.001 for R2-nomad 25, min_rmse otherwise
             xycoords='data',
             xytext=xy_text,
             textcoords='offset points',
-            arrowprops=dict(facecolor='black', shrink=0.03),
-            horizontalalignment='center',
-            verticalalignment='bottom',
-            fontsize=30)
+            arrowprops=dict(
+                facecolor='black', shrink=0.11
+            ),  # 0.03 for R2-nomad 25, 0.06 for R2-nomad 100, 0.11 otherwise,
+            horizontalalignment=
+            'center',  # right for R2-nomad 25, left for R2-nomad 100, center otherwise
+            verticalalignment='right',
+            fontsize=20)
 
     min_rt = min([blocked_mm_data[best_reg_index], lemp_data[best_reg_index]])
 
@@ -751,25 +984,26 @@ def rmse_and_reg_plots(blocked_mm_df,
         blocked_mm_data,
         label='Blocked MM',
         linestyle=linestyle,
-        marker='o')
+        marker=markerstyle)
     if simdex_df is not None:
         num_legend_entries += 1
         ax2.plot(
             regs,
             simdex_data,
-            label='SimDex-Index Only',
+            label='RECDEX',
             linestyle=linestyle,
-            marker='o')
+            marker=markerstyle)
 
-    ax2.plot(regs, lemp_data, label='LEMP', linestyle=linestyle, marker='o')
+    ax2.plot(
+        regs, lemp_data, label='LEMP', linestyle=linestyle, marker=markerstyle)
     if fexipro_df is not None:
         num_legend_entries += 1
         ax2.plot(
             regs,
             fexipro_data,
-            label='FEXIPRO',
+            label='FEXIPRO-SIR',
             linestyle=linestyle,
-            marker='o')
+            marker=markerstyle)
     if fexipro_si_df is not None:
         num_legend_entries += 1
         ax2.plot(
@@ -777,18 +1011,20 @@ def rmse_and_reg_plots(blocked_mm_df,
             fexipro_si_data,
             label='FEXIPRO-SI',
             linestyle=linestyle,
-            marker='o')
+            marker=markerstyle)
     if annotate:
+        # Comment out for the non-appetizer plots
         ax2.annotate(
             'best runtime\non best model',
-            xy=(best_reg, min_rt * 1.07),
+            xy=(best_reg, min_rt),
             xycoords='data',
             xytext=xy_text,
             textcoords='offset points',
-            arrowprops=dict(facecolor='black', shrink=0.03),
+            arrowprops=dict(facecolor='black',
+                            shrink=0.11),  #0.08 for R2-nomad-25
             horizontalalignment='center',
             verticalalignment='bottom',
-            fontsize=30)
+            fontsize=20)
     if include_legend:
         ax2.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
@@ -802,8 +1038,8 @@ def rmse_and_reg_plots(blocked_mm_df,
 
     sns.despine()
     ax2.set_xscale('log')
-    ax2.set_xlabel(r'Regularization')
-    ax2.set_ylabel('Time (s)')
+    ax2.set_xlabel(r'Regularization', labelpad=5)
+    ax2.set_ylabel('Time (s)', labelpad=5)
     start, end = ax2.get_ylim()
     #ax2.set_ylim([start, max_runtime * 1.1])
     ax2.grid(True)
@@ -818,19 +1054,20 @@ def rmse_and_reg_plots(blocked_mm_df,
 
 
 # save legend separately
-def rmse_and_reg_legend(add_simdex=False, linestyle='--'):
+def rmse_and_reg_legend(add_simdex=False, linestyle='--', markerstyle='x'):
     def flip(items, ncol):
         return itertools.chain(* [items[i::ncol] for i in range(ncol)])
 
-    labels = ['Model Error', 'Blocked MM', 'LEMP', 'FEXIPRO', 'FEXIPRO-SI']
+    labels = ['Model Error', 'Blocked MM', 'LEMP', 'FEXIPRO-SIR', 'FEXIPRO-SI']
     ncol = len(labels)
     if add_simdex:
 
-        labels = labels[:2] + ['SimDex-Index Only'] + labels[2:]
-        ncol = int(len(labels) / 2)
+        labels = labels[:2] + ['RECDEX'] + labels[2:]
+        ncol += 1
+        # ncol = int(len(labels) / 2)
 
         fig = pylab.figure()
-        figlegend = pylab.figure(figsize=(14, 1.5))
+        figlegend = pylab.figure(figsize=(22, 1.5))
         ax = fig.add_subplot(111)
         lines = ax.plot(
             range(10),
@@ -847,7 +1084,7 @@ def rmse_and_reg_legend(add_simdex=False, linestyle='--'):
             range(10),
             pylab.randn(10),
             linestyle=linestyle,
-            marker='o')
+            marker=markerstyle)
         figlegend.legend(
             flip(lines, ncol),
             flip(labels, ncol),
@@ -874,7 +1111,7 @@ def rmse_and_reg_legend(add_simdex=False, linestyle='--'):
             range(10),
             pylab.randn(10),
             linestyle=linestyle,
-            marker='o')
+            marker=markerstyle)
         figlegend.legend(
             lines,
             labels,
@@ -1047,13 +1284,24 @@ def batch_size_vs_runtime(simdex_df,
         data = []
         for _, row in best_rt_model.iterrows():
             K, num_clusters = row['K'], row['num_clusters']
-            print(model, K, num_clusters)
+            #print(model, K, num_clusters)
             data_for_K = simdex_df.query(
                 'model == "%s" and num_clusters == %d and K == %d' %
                 (model, num_clusters, K))
-            data_for_K = data_for_K.sort_values(by='batch_size')
+            data_for_K = data_for_K.sort_values(by='comp_time').groupby(
+                ['K', 'batch_size'], as_index=False).first()
+            if len(data_for_K['batch_size']
+                   .unique()) != 5:  # [256, 512, 1024, 2048, 4096]
+                print('Using 8 clusters!')
+                # instead of using the best cluster, use 8 clusters
+                data_for_K = simdex_df.query(
+                    'model == "%s" and num_clusters == %d and K == %d' %
+                    (model, 8, K))
+                data_for_K = data_for_K.sort_values(by='comp_time').groupby(
+                    ['K', 'batch_size'], as_index=False).first()
             data.append(data_for_K)
         data = pd.concat(data)
+        #print(model, data[['K', 'batch_size', 'comp_time']])
         sns.barplot(
             x='K',
             y='comp_time',
@@ -1080,7 +1328,7 @@ def batch_size_vs_runtime(simdex_df,
         bbox_to_anchor=bbox_to_anchor,
         bbox_transform=plt.gcf().transFigure,
         ncol=num_legend_entries)
-    modify_legend(legend, [('BS = ', '')])
+    modify_legend(legend, [('$B=', '$')])
 
     save_figure('batch-size-vs-runtime', (legend, ))
     plt.show()

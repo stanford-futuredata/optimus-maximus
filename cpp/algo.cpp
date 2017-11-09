@@ -249,7 +249,8 @@ void computeTopKForCluster(
 
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
-                        std::greater<std::pair<double, int> > > q;
+                        std::greater<std::pair<double, int> > >
+        q;
 
     double score = 0.0;
 

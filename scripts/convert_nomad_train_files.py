@@ -8,9 +8,11 @@ import struct
 
 random.seed(12345)
 
+
 def main():
     if len(sys.argv) < 3:
-        print "usage: %s [train_filename] [test_filename] [output_path]" % sys.argv[0]
+        print "usage: %s [train_filename] [test_filename] [output_path]" % sys.argv[
+            0]
         exit(1)
 
     train_filename = sys.argv[1]
@@ -57,9 +59,8 @@ def main():
     random.shuffle(user_id_list)
     random.shuffle(item_id_list)
 
-    user_indexer = {key:value for value, key in enumerate(user_id_list)}
-    item_indexer = {key:value for value, key in enumerate(item_id_list)}
-
+    user_indexer = {key: value for value, key in enumerate(user_id_list)}
+    item_indexer = {key: value for value, key in enumerate(item_id_list)}
 
     # now parse the data
     train_user_indices = list()
@@ -86,7 +87,9 @@ def main():
     #print values
 
     print "form training csr matrix"
-    train_mat = csr_matrix( (train_values,(train_user_indices,train_item_indices)), shape=(len(user_indexer),len(item_indexer)) )
+    train_mat = csr_matrix(
+        (train_values, (train_user_indices, train_item_indices)),
+        shape=(len(user_indexer), len(item_indexer)))
 
     print "calculate size of rows"
     train_row_sizes = train_mat.indptr[1:] - train_mat.indptr[:-1]
@@ -101,9 +104,12 @@ def main():
 
     print "write train binary file"
     ofile = open(output_path + "/train.dat", "wb")
-    ofile.write(struct.pack("=iiii", 1211216, len(user_indexer), len(item_indexer), train_mat.getnnz()))
+    ofile.write(
+        struct.pack("=iiii", 1211216,
+                    len(user_indexer), len(item_indexer), train_mat.getnnz()))
     ofile.write(struct.pack("=%si" % len(train_row_sizes), *train_row_sizes))
-    ofile.write(struct.pack("=%si" % len(train_mat.indices), *train_mat.indices))
+    ofile.write(
+        struct.pack("=%si" % len(train_mat.indices), *train_mat.indices))
     ofile.write(struct.pack("=%sd" % len(train_mat.data), *train_mat.data))
     ofile.close()
 
@@ -126,13 +132,14 @@ def main():
         #if index > 200:
         #    break
 
-
     #print user_indices
     #print item_indices
     #print values
 
     print "form test csr matrix"
-    test_mat = csr_matrix( (test_values,(test_user_indices,test_item_indices)), shape=(len(user_indexer),len(item_indexer)) )
+    test_mat = csr_matrix(
+        (test_values, (test_user_indices, test_item_indices)),
+        shape=(len(user_indexer), len(item_indexer)))
 
     print "calculate size of rows"
     test_row_sizes = test_mat.indptr[1:] - test_mat.indptr[:-1]
@@ -143,7 +150,9 @@ def main():
 
     print "write test binary file"
     ofile = open(output_path + "/test.dat", "wb")
-    ofile.write(struct.pack("=iiii", 1211216, len(user_indexer), len(item_indexer), test_mat.getnnz()))
+    ofile.write(
+        struct.pack("=iiii", 1211216,
+                    len(user_indexer), len(item_indexer), test_mat.getnnz()))
     ofile.write(struct.pack("=%si" % len(test_row_sizes), *test_row_sizes))
     ofile.write(struct.pack("=%si" % len(test_mat.indices), *test_mat.indices))
     ofile.write(struct.pack("=%sd" % len(test_mat.data), *test_mat.data))

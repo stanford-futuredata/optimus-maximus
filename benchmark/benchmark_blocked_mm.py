@@ -22,8 +22,11 @@ def run(run_args):
 
     cmd = [
         runner, '-q', user_weights_fname, '-p', item_weights_fname, '-k',
-        str(K), '-m', str(num_users), '-n', str(num_items), '-f',
-        str(num_factors), '-t', str(num_threads), '--base-name', base_name
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
+        str(num_factors), '-t',
+        str(num_threads), '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     process = subprocess.Popen(cmd)

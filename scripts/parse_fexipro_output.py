@@ -9,8 +9,8 @@ OUTPUT_CSV_FNAME = 'fexipro-orig-timing.csv'
 HEADERS = [
     'model', 'K', 'num_latent_factors', 'alg', 'scaling_value', 'sigma',
     'preproc_time', 'comp_time', 'num_items_first_check',
-    'num_items_last_check', 'user_sample_ratio', 'num_sampled_users', 'blocked_mm_sample_time',
-    'fexipro_sample_time', 'fexipro_wins'
+    'num_items_last_check', 'user_sample_ratio', 'num_sampled_users',
+    'blocked_mm_sample_time', 'fexipro_sample_time', 'fexipro_wins'
 ]
 
 

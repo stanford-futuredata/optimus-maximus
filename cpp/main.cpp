@@ -6,8 +6,8 @@
 
 #include "algo.hpp"
 #include "arith.hpp"
-#include "clustering/cluster.hpp"
 #include "blocked_mm/blocked_mm.hpp"
+#include "clustering/cluster.hpp"
 #include "parser.hpp"
 #include "utils.hpp"
 
@@ -15,9 +15,9 @@
 #include <fstream>
 #include <iostream>
 #include <numeric>
-#include <unordered_set>
 #include <random>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 #include <boost/algorithm/string/join.hpp>
@@ -445,7 +445,8 @@ int main(int argc, const char* argv[]) {
          "num_iters,"
          "parse_time,cluster_time,index_time,algo_time,comp_time,user_sample_"
          "ratio,num_sampled_users,blocked_mm_"
-         "sample_time,simdex_sample_time,simdex_wins" << std::endl;
+         "sample_time,simdex_sample_time,simdex_wins"
+      << std::endl;
   const std::string timing_stats =
       (boost::format(
            "%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%,%14%,%15%,%"
@@ -454,7 +455,8 @@ int main(int argc, const char* argv[]) {
        num_threads % num_bins % batch_size % num_clusters % sample_percentage %
        num_iters % parse_time % cluster_time % index_time % algo_time %
        compute_time % user_sample_ratio % num_users_per_block %
-       blocked_mm_time % simdex_time % simdex_wins).str();
+       blocked_mm_time % simdex_time % simdex_wins)
+          .str();
   timing_stats_file << timing_stats << std::endl;
   timing_stats_file.close();
 

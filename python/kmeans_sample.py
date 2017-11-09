@@ -124,7 +124,8 @@ def main():
         outlist = [
             str(cluster_time)[:5],
             str(init_time + centroid_time + cluster_time)[:5],
-            str(sample_size), str(samples)
+            str(sample_size),
+            str(samples)
         ]
         outstring = ','.join(outlist)
         outstring = outstring + '\n'

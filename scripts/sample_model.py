@@ -50,8 +50,7 @@ def main():
             os.makedirs(item_output_dir)
 
         with open('%s/item_weights.csv' % args.model_dir) as infile, open(
-                '%s/item_weights.csv' % item_output_dir,
-                'w') as outfile:
+                '%s/item_weights.csv' % item_output_dir, 'w') as outfile:
             sampled_item_ids = set(
                 np.random.choice(
                     num_items, int(num_items * ratio), replace=False))

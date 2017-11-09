@@ -94,8 +94,8 @@ def main():
         '--no-test-only', dest='test_only', action='store_false')
     parser.add_argument(
         '--user-sample-ratios',
-        help=
-        'list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1')
+        help='list of comma-separated integers, e.g., 0.001,0.005,0.01,0.05,0.1'
+    )
     parser.set_defaults(test_only=False)
     args = parser.parse_args()
 

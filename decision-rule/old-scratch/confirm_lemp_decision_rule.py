@@ -42,6 +42,7 @@ for _, row in lemp_dec_rule.iterrows():
     model, K = row['model'], row['K']
     blocked_mm_sample_time, lemp_sample_time = row[
         'blocked_mm_sample_time'], row['lemp_sample_time']
+    lemp_index_time, lemp_preproc_time = row['preproc_time'], row['index_time']
 
     lemp_true_row = lemp_truth.query('model == "%s" and K == %d' % (model, K))
     lemp_true_rt = lemp_true_row['comp_time'].min()
@@ -53,7 +54,11 @@ for _, row in lemp_dec_rule.iterrows():
     blocked_mm_estimate_rt = blocked_mm_sample_time * num_users
 
     correct = (blocked_mm_true_rt > lemp_true_rt) == row['lemp_wins']
-    optimizer_rt = lemp_true_rt + blocked_mm_sample_time if row['lemp_wins'] else blocked_mm_true_rt
+    optimizer_rt = lemp_true_rt if row['lemp_wins'] else blocked_mm_true_rt
+    overhead_rt = blocked_mm_sample_time if row[
+        'lemp_wins'] else lemp_index_time + lemp_preproc_time + lemp_sample_time
+    optimizer_rt += overhead_rt
+
     optimal_rt = min(lemp_true_rt, blocked_mm_true_rt)
 
     optimizer_vs_lemp.append(lemp_true_rt / optimizer_rt)
@@ -63,8 +68,7 @@ for _, row in lemp_dec_rule.iterrows():
     true_rt_delta = (lemp_true_rt - blocked_mm_true_rt)
     true_rt_delta_percentage = true_rt_delta / max(lemp_true_rt,
                                                    blocked_mm_true_rt)
-    overhead = blocked_mm_sample_time / (
-        blocked_mm_sample_time + min(blocked_mm_true_rt, lemp_true_rt))
+    overhead = overhead_rt / optimizer_rt
     results['model'].append(model)
     results['K'].append(K)
     results['blocked_mm_sample_time'].append(blocked_mm_sample_time)

@@ -37,6 +37,8 @@ for _, row in fexipro_dec_rule.iterrows():
     model, K, alg = row['model'], row['K'], row['alg']
     blocked_mm_sample_time, fexipro_sample_time = row[
         'blocked_mm_sample_time'], row['fexipro_sample_time']
+    fexipro_preproc_time = row['preproc_time']
+
     fexipro_true_rt = fexipro_truth.query(
         'model == "%s" and K == %d and alg == "%s"' %
         (model, K, alg))['comp_time'].min()
@@ -44,8 +46,12 @@ for _, row in fexipro_dec_rule.iterrows():
                                                 (model, K))['comp_time'].min()
 
     correct = (blocked_mm_true_rt > fexipro_true_rt) == row['fexipro_wins']
-    optimizer_rt = fexipro_true_rt + blocked_mm_sample_time if row[
+    optimizer_rt = fexipro_true_rt if row[
         'fexipro_wins'] else blocked_mm_true_rt
+    overhead_rt = blocked_mm_sample_time if row[
+        'fexipro_wins'] else fexipro_preproc_time + fexipro_sample_time
+    optimizer_rt += overhead_rt
+
     optimal_rt = min(fexipro_true_rt, blocked_mm_true_rt)
 
     optimizer_vs_fexipro.append(fexipro_true_rt / optimizer_rt)
@@ -55,8 +61,7 @@ for _, row in fexipro_dec_rule.iterrows():
     true_rt_delta = (fexipro_true_rt - blocked_mm_true_rt)
     true_rt_delta_percentage = true_rt_delta / max(fexipro_true_rt,
                                                    blocked_mm_true_rt)
-    overhead = blocked_mm_sample_time / (
-        blocked_mm_sample_time + min(blocked_mm_true_rt, fexipro_true_rt))
+    overhead = overhead_rt / optimizer_rt
     results['model'].append(model)
     results['K'].append(K)
     results['blocked_mm_sample_time'].append(blocked_mm_sample_time)

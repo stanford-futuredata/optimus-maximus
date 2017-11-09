@@ -20,8 +20,11 @@ def run(run_args):
     # Fetch corresponding cpu ids for available NUMA node
     cpu_ids = numa_queue.get()
     cmd = [
-        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k', str(K), '-m',
-        str(num_users), '-n', str(num_items), '-f', str(num_factors), '-s',
+        'taskset', '-c', cpu_ids, runner, '-w', input_dir, '-k',
+        str(K), '-m',
+        str(num_users), '-n',
+        str(num_items), '-f',
+        str(num_factors), '-s',
         str(scale), '--base-name', base_name
     ]
     print('Running ' + str(cmd))

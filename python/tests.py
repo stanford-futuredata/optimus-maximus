@@ -29,12 +29,14 @@ def check_angular_bounds(user_id, user_weight, item_weights, theta_uc, theta_b,
         theta_ic = theta_ics[item_id]
         if np.cos(theta_ui) > np.cos(theta_ic - theta_uc):
             print(
-                '%d,%d,%f,%f,%f,%d'
-                % (user_id, item_id, theta_ui, theta_ic, theta_uc, theta_ic - theta_uc < 0), file=theta_uc_errors)
+                '%d,%d,%f,%f,%f,%d' % (user_id, item_id, theta_ui, theta_ic,
+                                       theta_uc, theta_ic - theta_uc < 0),
+                file=theta_uc_errors)
         if np.cos(theta_ui) > np.cos(theta_ic - theta_b):
             print(
-                '%d,%d,%f,%f,%f,%d'
-                % (user_id, item_id, theta_ui, theta_ic, theta_b, theta_ic - theta_b < 0), file=theta_b_errors)
+                '%d,%d,%f,%f,%f,%d' % (user_id, item_id, theta_ui, theta_ic,
+                                       theta_b, theta_ic - theta_b < 0),
+                file=theta_b_errors)
 
 
 # Reverse role of theta_ic and theta_uc. Swapping them shouldn't

@@ -1,7 +1,7 @@
 
 #include "../utils.hpp"
-#include <random>
 #include <armadillo>
+#include <random>
 
 using namespace arma;
 

@@ -33,7 +33,8 @@ inline void computeTopK(double *ratings_matrix, int *top_K_items,
     // insertion-and-copy array strategy that Matei suggested
     std::priority_queue<std::pair<double, int>,
                         std::vector<std::pair<double, int> >,
-                        std::greater<std::pair<double, int> > > q;
+                        std::greater<std::pair<double, int> > >
+        q;
 
     unsigned long index = i;
     index *= num_items;
