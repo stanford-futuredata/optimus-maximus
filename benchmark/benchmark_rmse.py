@@ -2,10 +2,8 @@
 
 from consts import MODEL_DIR_BASE, TO_RUN, NUM_NUMA_NODES, get_numa_queue
 from pathos import multiprocessing
-from itertools import product
 import argparse
 import os
-import time
 import subprocess
 
 
@@ -16,15 +14,12 @@ def run(run_args):
         print("Can't find %s" % input_dir)
         return
 
-    user_weights_fname = os.path.join(input_dir, 'user_weights.csv')
-    item_weights_fname = os.path.join(input_dir, 'item_weights.csv')
-
     # Fetch corresponding cpu ids for available NUMA node
     cpu_ids = numa_queue.get()
     cmd = [
-        'taskset', '-c', cpu_ids, runner, '--input_dir', input_dir,
-        '--training_file', training_file, '--test_file', test_file,
-        '--output_dir', output_dir, '--base_name', base_name
+        'taskset', '-c', cpu_ids, runner, '--input-dir', input_dir,
+        '--training-file', training_file, '--test-file', test_file,
+        '--output-dir', output_dir, '--base-name', base_name
     ]
     print('Running ' + str(cmd))
     subprocess.call(cmd)

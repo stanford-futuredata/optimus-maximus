@@ -25,11 +25,11 @@ def calculate_rmse(user_weights, item_weights, user_id_map, item_id_map, df):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dir', required=True)
-    parser.add_argument('--training_file', required=True)
-    parser.add_argument('--test_file', required=True)
-    parser.add_argument('--output_dir', required=True)
-    parser.add_argument('--base_name', required=True)
+    parser.add_argument('--input-dir', required=True)
+    parser.add_argument('--training-file', required=True)
+    parser.add_argument('--test-file', required=True)
+    parser.add_argument('--output-dir', required=True)
+    parser.add_argument('--base-name', required=True)
     args = parser.parse_args()
 
     print('Loading training set...')
