@@ -7,20 +7,26 @@ import csv
 import os
 
 
-def error_single_row_fn(user_weights, item_weights, user_id_map, item_id_map):
-    def fn(row):
-        return np.dot(
-            user_weights[user_id_map[row['user_id']]],
-            item_weights[item_id_map[row['item_id']]]) - row['rating']
-
-    return fn
-
-
 def calculate_rmse(user_weights, item_weights, user_id_map, item_id_map, df):
-    apply_fn = error_single_row_fn(user_weights, item_weights, user_id_map,
-                                   item_id_map)
-    df['error'] = df.apply(apply_fn, axis=1)
-    return np.sqrt(np.sum(np.square(df['error'])) / len(df['error']))
+    total_error = 0
+    for _, row in df.iterrows():
+        user_id, item_id = row['user_id'], row['item_id']
+        user_weight = user_weights[user_id_map[user_id]]
+        item_weight = item_weights[item_id_map[item_id]]
+        predicted_rating = np.dot(user_weight, item_weight)
+        error = predicted_rating - row['rating']
+        total_error += np.square(error)
+    rmse = np.sqrt(total_error / len(df))
+    return rmse
+
+
+def read_id_dict_from_file(fname):
+    id_dict = {}
+    with open(fname) as f:
+        for i, line in enumerate(f):
+            line = line.strip()
+            id_dict[int(line)] = i
+    return id_dict
 
 
 def main():
@@ -30,6 +36,9 @@ def main():
     parser.add_argument('--test-file', required=True)
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--base-name', required=True)
+    # Not required
+    parser.add_argument('--user-ids-file', required=False)
+    parser.add_argument('--item-ids-file', required=False)
     args = parser.parse_args()
 
     print('Loading training set...')
@@ -48,15 +57,22 @@ def main():
         usecols=[0, 1, 2])
 
     print('Creating user id map....')
-    all_user_ids = sorted(
-        np.union1d(training_df['user_id'].unique(), test_df['user_id']
-                   .unique()))
-    user_id_map = dict(zip(all_user_ids, range(len(all_user_ids))))
+    if args.user_ids_file:
+        user_id_map = read_id_dict_from_file(args.user_ids_file)
+    else:
+        all_user_ids = sorted(
+            np.union1d(training_df['user_id'].unique(), test_df['user_id']
+                       .unique()))
+        user_id_map = dict(zip(all_user_ids, range(len(all_user_ids))))
+
     print('Creating item id map....')
-    all_item_ids = sorted(
-        np.union1d(training_df['item_id'].unique(), test_df['item_id']
-                   .unique()))
-    item_id_map = dict(zip(all_item_ids, range(len(all_item_ids))))
+    if args.item_ids_file:
+        item_id_map = read_id_dict_from_file(args.item_ids_file)
+    else:
+        all_item_ids = sorted(
+            np.union1d(training_df['item_id'].unique(), test_df['item_id']
+                       .unique()))
+        item_id_map = dict(zip(all_item_ids, range(len(all_item_ids))))
 
     print('Loading item weights...')
     item_weights = np.loadtxt(
@@ -65,12 +81,12 @@ def main():
     user_weights = np.loadtxt(
         '%s/user_weights.csv' % args.input_dir, delimiter=',')
 
-    training_rmse = calculate_rmse(user_weights, item_weights, user_id_map,
-                                   item_id_map, training_df)
-    print('Training RMSE: %f' % training_rmse)
     test_rmse = calculate_rmse(user_weights, item_weights, user_id_map,
                                item_id_map, test_df)
     print('Test RMSE: %f' % test_rmse)
+    training_rmse = calculate_rmse(user_weights, item_weights, user_id_map,
+                                   item_id_map, training_df)
+    print('Training RMSE: %f' % training_rmse)
 
     csv_df = pd.DataFrame(
         [[args.base_name, training_rmse, test_rmse]],
