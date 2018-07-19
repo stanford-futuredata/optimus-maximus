@@ -79,6 +79,51 @@ FEXIPRO_MODELS = [
      YAHOO_KDD_DATASET),
 ]
 
+DSGDPP_MODELS = [
+    ('dsgdpp/Netflix-10-reg-0.05', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-10-reg-0.5', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-10-reg-1.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-10-reg-5.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-10-reg-10.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-25-reg-0.05', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-25-reg-0.5', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-25-reg-1.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-25-reg-5.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-25-reg-10.0', (10, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-50-reg-0.05', (50, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-50-reg-0.5', (50, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-50-reg-1.0', (50, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-50-reg-5.0', (50, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-100-reg-0.05', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-100-reg-0.5', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-100-reg-1.0', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-100-reg-5.0', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ('dsgdpp/Netflix-100-reg-10.0', (100, 480189, 17770, (256, 512), 1),
+     NETFLIX_DATASET),
+    ]
+
+GLOVE_MODELS = [
+    ('lemp-paper/Glove-200', (200, 100000, 1093514, (256, 512), 1), ''),
+    ]
+
 NOMAD_NETFLIX_MODELS = [
     ('nomad/Netflix-10-reg-0.0005', (10, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
