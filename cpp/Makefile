@@ -25,15 +25,15 @@ endif
 ifeq ($(ICC), 1)
   CXX := icc
   CXX_FLAGS += -std=c++11 -D MKL_ILP64 -mkl -ipp -fp-model precise
-  INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include
-  LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib
+  INCLUDE_DIRS := $(HOME)/packages/include/boost $(HOME)/packages/include
+  LIBRARY_DIRS := $(HOME)/packages/lib
   LIBRARIES := boost_system boost_program_options armadillo
 else
   # Use g++ instead of icc
   CXX := g++-4.8
   CXX_FLAGS += -std=c++11 -march=native
-  INCLUDE_DIRS := /usr/include/boost $(HOME)/packages/include ${IPPROOT}/include
-  LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu $(HOME)/packages/lib ${IPPROOT}/lib/intel64
+  INCLUDE_DIRS := $(HOME)/packages/include/boost $(HOME)/packages/include ${IPPROOT}/include
+  LIBRARY_DIRS := $(HOME)/packages/lib ${IPPROOT}/lib/intel64
   LIBRARIES := boost_system boost_program_options armadillo ipps
   ifeq ($(MKL), 1)
     # if MKL=1 is passed in, still use MKL
