@@ -5,8 +5,8 @@ else
   CXX_FLAGS := -O3
 endif
 
-INCLUDE_DIRS := /usr/include/boost
-LIBRARY_DIRS := /usr/lib/x86_64-linux-gnu
+INCLUDE_DIRS := $(HOME)/packages/include/boost
+LIBRARY_DIRS := $(HOME)/packages/lib
 LIBRARIES := boost_system boost_program_options
 
 ifeq ($(ICC), 1)
