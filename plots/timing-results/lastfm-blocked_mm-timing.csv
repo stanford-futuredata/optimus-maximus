@@ -1,0 +1,17 @@
+model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
+lastfm-lastfm-10-75-iters-reg-0.01,10,1,1,12800,179.469,114.625,294.093
+lastfm-lastfm-10-75-iters-reg-0.01,10,1,10,12800,418.148,152.115,570.262
+lastfm-lastfm-10-75-iters-reg-0.01,10,1,5,12800,180.999,128.557,309.556
+lastfm-lastfm-10-75-iters-reg-0.01,10,1,50,12800,174.202,136.214,310.415
+lastfm-lastfm-100-75-iters-reg-0.01,100,1,1,1280,552.449,112.275,664.724
+lastfm-lastfm-100-75-iters-reg-0.01,100,1,10,1280,553.546,123.981,677.527
+lastfm-lastfm-100-75-iters-reg-0.01,100,1,5,1280,548.732,120.313,669.045
+lastfm-lastfm-100-75-iters-reg-0.01,100,1,50,1280,554.577,134.722,689.299
+lastfm-lastfm-25-75-iters-reg-0.01,25,1,1,5120,166.702,110.909,277.611
+lastfm-lastfm-25-75-iters-reg-0.01,25,1,10,5120,165.075,121.473,286.548
+lastfm-lastfm-25-75-iters-reg-0.01,25,1,5,5120,165.353,120.912,286.265
+lastfm-lastfm-25-75-iters-reg-0.01,25,1,50,5120,167.011,134.013,301.023
+lastfm-lastfm-50-75-iters-reg-0.01,50,1,1,2560,336.201,109.145,445.346
+lastfm-lastfm-50-75-iters-reg-0.01,50,1,10,2560,336.817,122.017,458.834
+lastfm-lastfm-50-75-iters-reg-0.01,50,1,5,2560,337.257,120.836,458.093
+lastfm-lastfm-50-75-iters-reg-0.01,50,1,50,2560,342.109,134.881,476.989
