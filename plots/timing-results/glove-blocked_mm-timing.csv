@@ -1,0 +1,5 @@
+model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
+lemp-paper-Glove-200,200,1,10,640,1084.89,124.727,1209.62
+lemp-paper-Glove-200,200,1,5,640,1095.97,126.988,1222.96
+lemp-paper-Glove-200,200,1,50,640,1101.04,131.141,1232.18
+lemp-paper-Glove-200,200,1,1,640,1091.35,114.85,1206.2
