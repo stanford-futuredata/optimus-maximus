@@ -79,6 +79,17 @@ FEXIPRO_MODELS = [
      YAHOO_KDD_DATASET),
 ]
 
+LASTFM_MODELS = [
+    ('lastfm/lastfm-10-75-iters-reg-0.01', (10, 358868, 292385, (8, ), 1),
+     NETFLIX_DATASET),
+    ('lastfm/lastfm-25-75-iters-reg-0.01', (25, 358868, 292385, (8, ), 1),
+     NETFLIX_DATASET),
+    ('lastfm/lastfm-50-75-iters-reg-0.01', (50, 358868, 292385, (8, ), 1),
+     NETFLIX_DATASET),
+    ('lastfm/lastfm-100-75-iters-reg-0.01', (100, 358868, 292385, (8, ), 1),
+     NETFLIX_DATASET),
+]
+
 DSGDPP_MODELS = [
     ('dsgdpp/Netflix-10-reg-0.05', (10, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
@@ -90,15 +101,15 @@ DSGDPP_MODELS = [
      NETFLIX_DATASET),
     ('dsgdpp/Netflix-10-reg-10.0', (10, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('dsgdpp/Netflix-25-reg-0.05', (10, 480189, 17770, (256, 512), 1),
+    ('dsgdpp/Netflix-25-reg-0.05', (25, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('dsgdpp/Netflix-25-reg-0.5', (10, 480189, 17770, (256, 512), 1),
+    ('dsgdpp/Netflix-25-reg-0.5', (25, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('dsgdpp/Netflix-25-reg-1.0', (10, 480189, 17770, (256, 512), 1),
+    ('dsgdpp/Netflix-25-reg-1.0', (25, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('dsgdpp/Netflix-25-reg-5.0', (10, 480189, 17770, (256, 512), 1),
+    ('dsgdpp/Netflix-25-reg-5.0', (25, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ('dsgdpp/Netflix-25-reg-10.0', (10, 480189, 17770, (256, 512), 1),
+    ('dsgdpp/Netflix-25-reg-10.0', (25, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
     ('dsgdpp/Netflix-50-reg-0.05', (50, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
@@ -118,11 +129,11 @@ DSGDPP_MODELS = [
      NETFLIX_DATASET),
     ('dsgdpp/Netflix-100-reg-10.0', (100, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-    ]
+]
 
 GLOVE_MODELS = [
     ('lemp-paper/Glove-200', (200, 100000, 1093514, (256, 512), 1), ''),
-    ]
+]
 
 NOMAD_NETFLIX_MODELS = [
     ('nomad/Netflix-10-reg-0.0005', (10, 480189, 17770, (256, 512), 1),
