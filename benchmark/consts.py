@@ -99,7 +99,7 @@ BPR_GOLD_STANDARD_MODELS = [
      NETFLIX_DATASET),
     ('bpr/Netflix-100-reg-0.0001', (101, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
-        ]
+]
 
 BPR_MODELS = [
     ('bpr/Netflix-10-reg-0.1', (11, 480189, 17770, (256, 512), 1),

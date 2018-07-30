@@ -98,6 +98,20 @@ R2_100_MODELS = [
 ]
 R2_MODELS = R2_10_MODELS + R2_25_MODELS + R2_50_MODELS + R2_100_MODELS
 
+DSGDPP_MODELS = [
+    'dsgdpp-Netflix-10-reg-10.0',
+    'dsgdpp-Netflix-25-reg-10.0',
+    'dsgdpp-Netflix-50-reg-5.0',
+    'dsgdpp-Netflix-100-reg-5.0',
+]
+
+LASTFM_MODELS = [
+    'lastfm-lastfm-10-75-iters-reg-0.01',
+    'lastfm-lastfm-25-75-iters-reg-0.01',
+    'lastfm-lastfm-50-75-iters-reg-0.01',
+    'lastfm-lastfm-100-75-iters-reg-0.01',
+]
+
 GOLD_STANDARD_MODELS = [
     'lemp-paper-Netflix-noav-10',
     'lemp-paper-Netflix-noav-50',
@@ -115,6 +129,20 @@ GOLD_STANDARD_MODELS = [
     'nomad-KDD-25-reg-0.001',
     'nomad-KDD-50-reg-1',
     'nomad-KDD-100-reg-1',
+]
+
+BPR_GOLD_STANDARD_MODELS = [
+    'bpr-Netflix-10-reg-0.00001',
+    'bpr-Netflix-25-reg-0.0001',
+    'bpr-Netflix-50-reg-0.0001',
+    'bpr-Netflix-100-reg-0.0001',
+]
+
+GLOVE_MODELS = [
+    'lemp-paper-Glove-25',
+    'lemp-paper-Glove-50',
+    'lemp-paper-Glove-100',
+    'lemp-paper-Glove-200',
 ]
 
 BLOG_POST_MODELS = [

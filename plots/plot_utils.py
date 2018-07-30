@@ -506,7 +506,7 @@ def f_u_plot_single(simdex_df,
                     fexipro_si_df,
                     sampling_df,
                     model,
-                    num_clusters=8,
+                    num_clusters=1,
                     batch_size=4096,
                     y_title=-0.35):
 
@@ -575,14 +575,14 @@ def f_u_plot_single(simdex_df,
         edgecolor='black')
 
     start, end = plt.ylim()
-    if not np.isnan(max_runtime):
-        plt.ylim([start, max_runtime * 1.1])
+    # if not np.isnan(max_runtime):
+    #     plt.ylim([start, max_runtime * 1.1])
     plt.minorticks_on()
     plt.ylabel('Time (s)')
     plt.xlabel('K')
 
     plt.grid(True)
-    plt.title(LABEL_DICT[model], y=y_title)
+    plt.title(LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
     sns.despine()
 
     legend = plt.legend(loc='2', bbox_to_anchor=(1, 1.05))
