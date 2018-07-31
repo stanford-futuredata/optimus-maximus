@@ -192,6 +192,11 @@ GLOVE_MODELS = [
     ('lemp-paper/Glove-200', (200, 100000, 1093514, (256, 512), 1), ''),
 ]
 
+FAST_TEXT_MODELS = [
+    ('fast-text/Fast-text-wiki-300', (300, 250000, 749994, (256, 512), 1), ''),
+    ('fast-text/Fast-text-wiki-subword-300', (300, 250000, 749994, (256, 512), 1), ''),
+]
+
 NOMAD_NETFLIX_MODELS = [
     ('nomad/Netflix-10-reg-0.0005', (10, 480189, 17770, (256, 512), 1),
      NETFLIX_DATASET),
