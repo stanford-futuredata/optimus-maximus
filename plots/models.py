@@ -112,25 +112,6 @@ LASTFM_MODELS = [
     'lastfm-lastfm-100-75-iters-reg-0.01',
 ]
 
-GOLD_STANDARD_MODELS = [
-    'lemp-paper-Netflix-noav-10',
-    'lemp-paper-Netflix-noav-50',
-    'lemp-paper-Netflix-noav-100',
-    'lemp-paper-KDD-50',
-    'nomad-Netflix-10-reg-0.05',
-    'nomad-Netflix-25-reg-0.05',
-    'nomad-Netflix-50-reg-0.05',
-    'nomad-Netflix-100-reg-0.05',
-    'nomad-R2-10-reg-0.001',
-    'nomad-R2-25-reg-0.001',
-    'nomad-R2-50-reg-0.000001',
-    'nomad-R2-100-reg-0',
-    'nomad-KDD-10-reg-1',
-    'nomad-KDD-25-reg-0.001',
-    'nomad-KDD-50-reg-1',
-    'nomad-KDD-100-reg-1',
-]
-
 BPR_GOLD_STANDARD_MODELS = [
     'bpr-Netflix-10-reg-0.00001',
     'bpr-Netflix-25-reg-0.0001',
@@ -152,4 +133,30 @@ BLOG_POST_MODELS = [
     'nomad-R2-50-reg-0.001',
     'nomad-KDD-25-reg-0.001',
     'nomad-KDD-50-reg-1',
+]
+
+GOLD_STANDARD_MODELS = [
+    'lemp-paper-Netflix-noav-10',
+    'lemp-paper-Netflix-noav-50',
+    'lemp-paper-Netflix-noav-100',
+    'nomad-Netflix-10-reg-0.05',
+    'nomad-Netflix-25-reg-0.05',
+    'nomad-Netflix-50-reg-0.05',
+    'nomad-Netflix-100-reg-0.05',
+    'bpr-Netflix-10-reg-0.00001',
+    'bpr-Netflix-25-reg-0.0001',
+    'bpr-Netflix-50-reg-0.0001',
+    'bpr-Netflix-100-reg-0.0001',
+    'nomad-R2-10-reg-0.001',
+    'nomad-R2-25-reg-0.001',
+    'nomad-R2-50-reg-0.000001',
+    'nomad-R2-100-reg-0',
+    'nomad-KDD-10-reg-1',
+    'nomad-KDD-25-reg-0.001',
+    'nomad-KDD-50-reg-1',
+    'nomad-KDD-100-reg-1',
+    'lemp-paper-KDD-50',
+    'lemp-paper-Glove-50',
+    'lemp-paper-Glove-100',
+    'lemp-paper-Glove-200',
 ]

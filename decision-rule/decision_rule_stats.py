@@ -364,19 +364,19 @@ def print_stats(results_df, stats_df):
           np.std(stats_df['index_vs_blocked_mm']),
           np.min(stats_df['index_vs_blocked_mm']),
           np.max(stats_df['index_vs_blocked_mm']),
-          np.sum(stats_df['index_vs_blocked_mm'] > 1.0))
-    print('Index vs Lemp, Avg/Std.Dev/Min/Max:',
+          np.mean(stats_df['index_vs_blocked_mm'] > 1.0))
+    print('Index vs Lemp, Avg/Std.Dev/Min/Max, % Faster:',
           np.mean(stats_df['index_vs_lemp']),
           np.std(stats_df['index_vs_lemp']), np.min(stats_df['index_vs_lemp']),
           np.max(stats_df['index_vs_lemp']),
-          np.sum(stats_df['index_vs_lemp'] > 1.0))
+          np.mean(stats_df['index_vs_lemp'] > 1.0))
 
-    print('BlockOpt vs Lemp, Avg/Std.Dev/Min/Max:',
+    print('RecOpt vs Lemp, Avg/Std.Dev/Min/Max, % Faster:',
           np.mean(stats_df['blockopt_vs_lemp']),
           np.std(stats_df['blockopt_vs_lemp']),
           np.min(stats_df['blockopt_vs_lemp']),
           np.max(stats_df['blockopt_vs_lemp']))
-    print('BlockOpt vs Oracle:', np.mean(stats_df['blockopt_vs_oracle']))
+    print('RecOpt vs Oracle:', np.mean(stats_df['blockopt_vs_oracle']))
     print('Oracle vs Lemp:', np.mean(stats_df['oracle_vs_lemp']))
 
 

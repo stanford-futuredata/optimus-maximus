@@ -1,4 +1,5 @@
 from __future__ import division
+from math import ceil
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as mtick
@@ -15,6 +16,10 @@ if not os.path.exists(FIGURES_DIR):
     os.makedirs(FIGURES_DIR)
 
 LABEL_DICT = {
+    'bpr-Netflix-10-reg-0.00001': r'Netflix-BPR, $f=10$',
+    'bpr-Netflix-25-reg-0.0001': r'Netflix-BPR, $f=25$',
+    'bpr-Netflix-50-reg-0.0001': r'Netflix-BPR, $f=50$',
+    'bpr-Netflix-100-reg-0.0001': r'Netflix-BPR, $f=100$',
     'fexipro-paper-Netflix-50': r'''Netflix-libPMF, $f=50$''',
     'fexipro-paper-KDD-50': r'''KDD-libPMF, $f=50$''',
     'lemp-paper-Netflix-noav-10': r'''Netflix-DSGD, $f=10$''',
@@ -22,6 +27,9 @@ LABEL_DICT = {
     'nomad-Netflix-10-reg-0.05': r'Netflix-NOMAD, $f=10$',
     'nomad-Netflix-25': r'Netflix-NOMAD, $f=25$',
     'nomad-Netflix-25-reg-0.05': r'Netflix-NOMAD, $f=25$',
+    'lemp-paper-Glove-50': r'GloVe Twitter, $f=50$',
+    'lemp-paper-Glove-100': r'GloVe Twitter, $f=100$',
+    'lemp-paper-Glove-200': r'GloVe Twitter, $f=200$',
     'lemp-paper-Netflix-50': r'''Netflix-DSGD (avg), $f=50$''',
     'lemp-paper-Netflix-noav-50': r'''Netflix-DSGD, $f=50$''',
     'nomad-Netflix-50': r'Netflix-NOMAD, $f=50$',
@@ -616,6 +624,8 @@ def f_u_plots(simdex_df,
               fexipro_si_df,
               sampling_df,
               models,
+              num_clusters=8,
+              batch_size=4096,
               nrows=4,
               figsize=(28, 28),
               y_title=1.05,
@@ -633,13 +643,25 @@ def f_u_plots(simdex_df,
 
     #     ax_arr = [ax1,ax2,ax3,ax4,ax5]
     # else:
-    ncols = int(len(models) / nrows)
+    ncols = int(ceil(len(models) / nrows))
     fig, ax_arr = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    num_axes = nrows * ncols
+    i = 0
+    # center last row
     ax_arr = np.ravel(ax_arr)
+    while len(models) < num_axes:
+        fig.delaxes(ax_arr[(nrows-1)*ncols + ncols-1-i])
+        fig.delaxes(ax_arr[(nrows-1)*ncols + i])
+        # append deleted axis at the end
+        temp = ax_arr[(nrows-1)*ncols + i]
+        ax_arr = np.delete(ax_arr, (nrows-1)*ncols + i)
+        ax_arr = np.append(ax_arr, temp)
+        i += 1
+        num_axes -= 2
 
-    _simdex_df = simdex_df.sort_values(by='comp_time').groupby(
-        ['model', 'K'], as_index=False).first()
-    #_simdex_df = simdex_df.query('num_clusters == 8 and batch_size == 4096')
+    #_simdex_df = simdex_df.sort_values(by='comp_time').groupby(
+    #    ['model', 'K'], as_index=False).first()
+    _simdex_df = simdex_df.query('num_clusters == %d and batch_size == batch_size' % (num_clusters, batch_size))
 
     both_df = choose_runtimes_from_optimizer(_simdex_df, blocked_mm_df,
                                              sampling_df)
@@ -662,6 +684,7 @@ def f_u_plots(simdex_df,
 
     fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
     fexipro_si_rt['algo'] = 'FEXIPRO-SI'
+
 
     all_speedups = []
     simdex_vs_lemp = []
