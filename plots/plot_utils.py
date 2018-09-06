@@ -24,33 +24,34 @@ LABEL_DICT = {
     'fexipro-paper-KDD-50': r'''KDD-libPMF, $f=50$''',
     'lemp-paper-Netflix-noav-10': r'''Netflix-DSGD, $f=10$''',
     'nomad-Netflix-10': r'Netflix-DSGD, $f=10$',
-    'nomad-Netflix-10-reg-0.05': r'Netflix-NOMAD, $f=10$',
-    'nomad-Netflix-25': r'Netflix-NOMAD, $f=25$',
-    'nomad-Netflix-25-reg-0.05': r'Netflix-NOMAD, $f=25$',
-    'lemp-paper-Glove-50': r'GloVe Twitter, $f=50$',
-    'lemp-paper-Glove-100': r'GloVe Twitter, $f=100$',
-    'lemp-paper-Glove-200': r'GloVe Twitter, $f=200$',
+    'nomad-Netflix-10-reg-0.05': r'Netflix, $f=10$',
+    'nomad-Netflix-25': r'Netflix, $f=25$',
+    'nomad-Netflix-25-reg-0.05': r'Netflix, $f=25$',
+    'lemp-paper-Glove-50': r'GloVe, $f=50$',
+    'lemp-paper-Glove-100': r'GloVe, $f=100$',
+    'lemp-paper-Glove-200': r'GloVe, $f=200$',
     'lemp-paper-Netflix-50': r'''Netflix-DSGD (avg), $f=50$''',
     'lemp-paper-Netflix-noav-50': r'''Netflix-DSGD, $f=50$''',
-    'nomad-Netflix-50': r'Netflix-NOMAD, $f=50$',
-    'nomad-Netflix-50-reg-0.05': r'Netflix-NOMAD, $f=50$',
+    'nomad-Netflix-50': r'Netflix, $f=50$',
+    'nomad-Netflix-50-reg-0.05': r'Netflix, $f=50$',
+    'nomad-Netflix-50-reg-0.0005': r'Netflix, $f=50$',
     'lemp-paper-Netflix-noav-100': r'''Netflix-DSGD, $f=100$''',
-    'nomad-Netflix-100': r'Netflix-NOMAD, $f=100$',
-    'nomad-Netflix-100-reg-0.05': r'Netflix-NOMAD, $f=100$',
-    'nomad-KDD-10-reg-1': r'KDD-NOMAD, $f=10$',
-    'nomad-KDD-25-reg-0.001': r'KDD-NOMAD, $f=25$',
-    'nomad-KDD-50-reg-1': r'KDD-NOMAD, $f=50$',
-    'lemp-paper-KDD-50': r'KDD-REF, $f=51$',
-    'nomad-KDD-100-reg-1': r'KDD-NOMAD, $f=100$',
-    'nomad-R2-10': r'R2-NOMAD, $f=10$',
-    'nomad-R2-10-reg-0.001': r'R2-NOMAD, $f=10$',
-    'nomad-R2-25': r'R2-NOMAD, $f=25$',
-    'nomad-R2-25-reg-0.001': r'R2-NOMAD, $f=25$',
-    'nomad-R2-50': r'R2-NOMAD, $f=50$',
-    'nomad-R2-50-reg-0.001': r'R2-NOMAD-bad, $f=50$',
-    'nomad-R2-50-reg-0.000001': r'R2-NOMAD, $f=50$',
-    'nomad-R2-100': r'R2-NOMAD, $f=100$',
-    'nomad-R2-100-reg-0': r'R2-NOMAD, $f=100$',
+    'nomad-Netflix-100': r'Netflix, $f=100$',
+    'nomad-Netflix-100-reg-0.05': r'Netflix, $f=100$',
+    'nomad-KDD-10-reg-1': r'Yahoo KDD, $f=10$',
+    'nomad-KDD-25-reg-0.001': r'Yahoo KDD, $f=25$',
+    'nomad-KDD-50-reg-1': r'Yahoo KDD, $f=50$',
+    'lemp-paper-KDD-50': r'Yahoo KDD-REF, $f=51$',
+    'nomad-KDD-100-reg-1': r'Yahoo KDD, $f=100$',
+    'nomad-R2-10': r'Yahoo R2, $f=10$',
+    'nomad-R2-10-reg-0.001': r'Yahoo R2, $f=10$',
+    'nomad-R2-25': r'Yahoo R2, $f=25$',
+    'nomad-R2-25-reg-0.001': r'Yahoo R2, $f=25$',
+    'nomad-R2-50': r'Yahoo R2, $f=50$',
+    'nomad-R2-50-reg-0.001': r'Yahoo R2-bad, $f=50$',
+    'nomad-R2-50-reg-0.000001': r'Yahoo R2, $f=50$',
+    'nomad-R2-100': r'Yahoo R2, $f=100$',
+    'nomad-R2-100-reg-0': r'Yahoo R2, $f=100$',
 }
 
 BLOG_POST_LABEL_DICT = {
@@ -90,7 +91,7 @@ def reverse_palette(palette_str, num_colors):
 def save_figure(filename, extra_artists=None, tight=True):
     filename = filename.replace('.', '-')
     filename += '.pdf'
-    if extra_artists:
+    if extra_artists and len(extra_artists) > 0:
         plt.savefig(
             FIGURES_DIR + filename,
             bbox_extra_artists=extra_artists,
@@ -528,11 +529,11 @@ def f_u_plot_single(simdex_df,
     ])
     both_rt = both_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    both_rt['algo'] = 'SimDex'
+    both_rt['algo'] = 'RecOpt: Blocked MM + RecDex'
 
     simdex_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    simdex_rt['algo'] = 'SimDex-Index Only'
+    simdex_rt['algo'] = 'RecDex Only'
 
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
     blocked_mm_rt['algo'] = 'Blocked MM Only'
@@ -580,6 +581,7 @@ def f_u_plot_single(simdex_df,
         hue='algo',
         data=data,
         linewidth=1.25,
+        ci=None,
         edgecolor='black')
 
     start, end = plt.ylim()
@@ -594,7 +596,7 @@ def f_u_plot_single(simdex_df,
     sns.despine()
 
     legend = plt.legend(loc='2', bbox_to_anchor=(1, 1.05))
-    save_figure('f-u-plot-single', (legend, ))
+    save_figure('f-u-plot-single-%s' % model, (legend, ))
     plt.show()
 
 
@@ -1051,13 +1053,15 @@ def rmse_and_reg_plots(blocked_mm_df,
     if include_legend:
         ax2.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
+    extra_artists = None
     if title:
         if title_text is None:
             title_text = LABEL_DICT[model_prefix]
         if y_title < 0.0:
             ax2.set_title(title_text, y=y_title)
         else:
-            fig.suptitle(title_text, x=0.6, y=y_title)
+            suptitle = fig.suptitle(title_text, x=0.57, y=y_title)
+            extra_artists = [suptitle]
 
     sns.despine()
     ax2.set_xscale('log')
@@ -1070,9 +1074,9 @@ def rmse_and_reg_plots(blocked_mm_df,
 
     fig.tight_layout()
     if fname:
-        save_figure(fname)
+        save_figure(fname, extra_artists)
     else:
-        save_figure('rmse-reg-' + model_prefix)
+        save_figure('rmse-reg-' + model_prefix, extra_artists)
     plt.show()
 
 
@@ -1081,7 +1085,7 @@ def rmse_and_reg_legend(add_simdex=False, linestyle='--', markerstyle='x'):
     def flip(items, ncol):
         return itertools.chain(* [items[i::ncol] for i in range(ncol)])
 
-    labels = ['Model Error', 'Blocked MM', 'LEMP', 'FEXIPRO-SIR', 'FEXIPRO-SI']
+    labels = ['Model Error', 'Blocked MM', 'LEMP', 'FEXIPRO', 'FEXIPRO-SI']
     ncol = len(labels)
     if add_simdex:
 
