@@ -88,18 +88,22 @@ def reverse_palette(palette_str, num_colors):
     return palette
 
 
-def save_figure(filename, extra_artists=None, tight=True):
+def save_figure(filename, extra_artists=None, tight=True, png=False):
     filename = filename.replace('.', '-')
-    filename += '.pdf'
+    if png:
+        filename += '.png'
+    else:
+        filename += '.pdf'
     if extra_artists and len(extra_artists) > 0:
         plt.savefig(
             FIGURES_DIR + filename,
             bbox_extra_artists=extra_artists,
-            bbox_inches='tight')
+            bbox_inches='tight',
+            transparent=png)
     else:
         if tight:
             plt.tight_layout()
-        plt.savefig(FIGURES_DIR + filename)
+        plt.savefig(FIGURES_DIR + filename, transparent=png)
 
 
 def replace_legend_labels(legend):
@@ -431,58 +435,67 @@ def factor_analysis(figsize=(8, 4)):
     # w/o blocking
     times3 = [1.12, .45, 1.509, 192.379]
 
-    y0 = times0
-    y1 = times1
-    y2 = times2
-    y3 = times3
+    y0 = times2
+    y1 = times3
+    #y2 = times2
+    #y3 = times3
 
     fig, ax = plt.subplots(figsize=figsize)
     # Example data
     people = (
-        'Netflix w/o\nBlocking',
-        'Netflix with\nBlocking',
-        'R2 w/o\nBlocking',
-        'R2 with\nBlocking', )
-    y_pos = np.array([0, 1.5, 3, 4.5])
+        r'no Blocking',
+        r'Blocking',)
+        #'R2 w/o\nBlocking',
+        #'R2 with\nBlocking', )
+    y_pos = np.array([1.15, 1.5])
+    #y_pos = np.array([0, 1.5, 3, 4.5])
 
-    H = 0.25
+    H = 0.20
 
-    y_pos_mid = [1.5 * H + y for y in y_pos]
+    #y_pos_mid = [1.5 * H + y for y in y_pos]
 
-    ax.barh(
-        y_pos, [y0[0], y1[0], y2[0], y3[0]],
+    ax.bar(
+        #y_pos, [y0[0], y1[0], y2[0], y3[0]],
+        y_pos, [y0[-1], y1[-1],],
         linewidth=0.50,
         edgecolor='black',
-        height=H,
-        align='center',
-        label='Clustering')
-    y_pos = [H + y for y in y_pos]
-
-    ax.barh(
-        y_pos, [y0[1], y1[1], y2[1], y3[1]],
-        linewidth=0.50,
-        edgecolor='black',
-        height=H,
-        align='center',
-        label='Index Construction')
-    y_pos = [H + y for y in y_pos]
-
-    ax.barh(
-        y_pos, [y0[2], y1[2], y2[2], y3[2]],
-        linewidth=0.50,
-        edgecolor='black',
-        height=H,
-        align='center',
-        label='Cost Estimation')
-    y_pos = [H + y for y in y_pos]
-
-    ax.barh(
-        y_pos, [y0[3], y1[3], y2[3], y3[3]],
-        linewidth=0.50,
-        edgecolor='black',
-        height=H,
+        width=H,
+        #height=H,
         align='center',
         label='Index Traversal')
+    #y_pos = [H + y for y in y_pos]
+
+    # ax.bar(
+    #     y_pos, [y0[1], y1[1],],
+    #     #y_pos, [y0[1], y1[1], y2[1], y3[1]],
+    #     linewidth=0.50,
+    #     edgecolor='black',
+    #     width=H,
+    #     #height=H,
+    #     align='center',
+    #     label='Index Construction')
+    # y_pos = [H + y for y in y_pos]
+
+    # ax.bar(
+    #     #y_pos, [y0[2], y1[2], y2[2], y3[2]],
+    #     y_pos, [y0[2], y1[2],],
+    #     linewidth=0.50,
+    #     edgecolor='black',
+    #     width=H,
+    #     #height=H,
+    #     align='center',
+    #     label='Cost Estimation')
+    # y_pos = [H + y for y in y_pos]
+
+    # ax.bar(
+    #     #y_pos, [y0[3], y1[3], y2[3], y3[3]],
+    #     y_pos, [y0[3], y1[3],],
+    #     linewidth=0.50,
+    #     edgecolor='black',
+    #     width=H,
+    #     #height=H,
+    #     align='center',
+    #     label='Index Traversal')
 
     handles, labels = ax.get_legend_handles_labels()
     handles.reverse()
@@ -490,34 +503,37 @@ def factor_analysis(figsize=(8, 4)):
     lgd = ax.legend(
         handles[::-1],
         labels[::-1],
-        loc='upper center',
-        bbox_to_anchor=(0, 0, 1, 1.35),
+        loc='center',
+        bbox_to_anchor=(0.5, 1.35),
         ncol=2,
         frameon=False,
         columnspacing=None,
         labelspacing=None)
 
-    ax.set_yticks(y_pos_mid)
-    ax.set_yticklabels(people)
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time (seconds, log scale)')
-    ax.set_xscale('log')
+    ax.set_xticks(y_pos)
+    ax.set_xticklabels(people)
+    #ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_title(r'Yahoo R2, $f=50$')
+    ax.set_ylabel('Time (s)')
+    #ax.set_yscale('log')
     ax.grid(True)
 
     sns.despine()
-    save_figure('factor-analysis', (lgd, ))
+    save_figure('factor-analysis', (lgd, ), png=True)
 
 
 def f_u_plot_single(simdex_df,
                     lemp_df,
                     blocked_mm_df,
                     fexipro_df,
-                    fexipro_si_df,
                     sampling_df,
                     model,
+                    K=[1, 5, 10, 50],
                     num_clusters=1,
                     batch_size=4096,
                     y_title=-0.35):
+    def generate_K_condition(K):
+        return '(' + ' | '.join(['K == %d' % k for k in K]) + ')'
 
     simdex_df = simdex_df.query('num_clusters == %d and batch_size == %d' %
                                 (num_clusters, batch_size))
@@ -544,36 +560,35 @@ def f_u_plot_single(simdex_df,
     fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
     fexipro_rt['algo'] = 'FEXIPRO'
 
-    fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
-    fexipro_si_rt['algo'] = 'FEXIPRO-SI'
+    K_cond = generate_K_condition(K)
 
-    both_model_rt = both_rt.query('model == "%s"' % model).sort_values(by='K')
-    lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(by='K')
-    fexipro_model_rt = fexipro_rt.query('model == "%s"' % model).sort_values(
-        by='K')
-    fexipro_si_model_rt = fexipro_si_rt.query(
-        'model == "%s"' % model).sort_values(by='K')
-    simdex_model_rt = simdex_rt.query('model == "%s"' % model).sort_values(
-        by='K')
+    both_model_rt = both_rt.query('model == "%s" & %s ' %
+                                  (model, K_cond)).sort_values(by='K')
+    lemp_model_rt = lemp_rt.query('model == "%s" & %s ' %
+                                  (model, K_cond)).sort_values(by='K')
+    fexipro_model_rt = fexipro_rt.query('model == "%s" & %s ' %
+                                        (model, K_cond)).sort_values(by='K')
+    simdex_model_rt = simdex_rt.query('model == "%s" & %s ' %
+                                      (model, K_cond)).sort_values(by='K')
     blocked_mm_model_rt = blocked_mm_rt.query(
-        'model == "%s"' % model).sort_values(by='K')
-    sampling_model_rt = sampling_df.query('model == "%s"' % model).sort_values(
-        by='K')
+        'model == "%s" & %s ' % (model, K_cond)).sort_values(by='K')
+    sampling_model_rt = sampling_df.query('model == "%s" & %s ' %
+                                          (model, K_cond)).sort_values(by='K')
 
     if len(sampling_model_rt) > 0:
         both_model_rt['comp_time'] += sampling_model_rt['comp_time'].values
 
     data = pd.concat([
-        both_model_rt, blocked_mm_model_rt, simdex_model_rt, lemp_model_rt,
-        fexipro_model_rt, fexipro_si_model_rt
+        blocked_mm_model_rt, simdex_model_rt, both_model_rt, lemp_model_rt,
+        fexipro_model_rt
     ])
     if len(data) == 0: return
-    max_runtime = sorted([
-        lemp_model_rt['comp_time'].max(), simdex_model_rt['comp_time'].max(),
-        blocked_mm_model_rt['comp_time'].max(),
-        fexipro_model_rt['comp_time'].max(),
-        fexipro_si_model_rt['comp_time'].max()
-    ])[1]
+    # max_runtime = sorted([
+    #     lemp_model_rt['comp_time'].max(),
+    #     simdex_model_rt['comp_time'].max(),
+    #     blocked_mm_model_rt['comp_time'].max(),
+    #     fexipro_model_rt['comp_time'].max(),
+    # ])[1]
 
     sns.barplot(
         x='K',
@@ -595,8 +610,8 @@ def f_u_plot_single(simdex_df,
     plt.title(LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
     sns.despine()
 
-    legend = plt.legend(loc='2', bbox_to_anchor=(1, 1.05))
-    save_figure('f-u-plot-single-%s' % model, (legend, ))
+    legend = plt.legend(loc='center', bbox_to_anchor=(0.5, 1.35), ncol=2)
+    save_figure('f-u-plot-single-%s' % model, (legend, ), png=True)
     plt.show()
 
 
@@ -652,18 +667,20 @@ def f_u_plots(simdex_df,
     # center last row
     ax_arr = np.ravel(ax_arr)
     while len(models) < num_axes:
-        fig.delaxes(ax_arr[(nrows-1)*ncols + ncols-1-i])
-        fig.delaxes(ax_arr[(nrows-1)*ncols + i])
+        fig.delaxes(ax_arr[(nrows - 1) * ncols + ncols - 1 - i])
+        fig.delaxes(ax_arr[(nrows - 1) * ncols + i])
         # append deleted axis at the end
-        temp = ax_arr[(nrows-1)*ncols + i]
-        ax_arr = np.delete(ax_arr, (nrows-1)*ncols + i)
+        temp = ax_arr[(nrows - 1) * ncols + i]
+        ax_arr = np.delete(ax_arr, (nrows - 1) * ncols + i)
         ax_arr = np.append(ax_arr, temp)
         i += 1
         num_axes -= 2
 
     #_simdex_df = simdex_df.sort_values(by='comp_time').groupby(
     #    ['model', 'K'], as_index=False).first()
-    _simdex_df = simdex_df.query('num_clusters == %d and batch_size == batch_size' % (num_clusters, batch_size))
+    _simdex_df = simdex_df.query(
+        'num_clusters == %d and batch_size == batch_size' % (num_clusters,
+                                                             batch_size))
 
     both_df = choose_runtimes_from_optimizer(_simdex_df, blocked_mm_df,
                                              sampling_df)
@@ -686,7 +703,6 @@ def f_u_plots(simdex_df,
 
     fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
     fexipro_si_rt['algo'] = 'FEXIPRO-SI'
-
 
     all_speedups = []
     simdex_vs_lemp = []
