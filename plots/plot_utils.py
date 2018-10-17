@@ -299,10 +299,10 @@ def runtime_estimates_plot(models,
             ratios,
             simdex_model_estimates,
             yerr=simdex_model_errors,
-            label='RECDEX estimate',
+            label='Maximus estimate',
             linestyle=linestyle,
             marker=markerstyle)
-        ax_arr[i].plot(ratios, simdex_model_truth, label='RECDEX')
+        ax_arr[i].plot(ratios, simdex_model_truth, label='Maximus')
 
         ratios, blocked_mm_model_estimates, blocked_mm_model_truth, blocked_mm_errors = runtimes_for_index_type(
             model_to_plot,
@@ -343,6 +343,81 @@ def runtime_estimates_plot(models,
         ax_arr[i].grid(True)
         sns.despine()
         save_figure('runtime-estimate', (legend, ))
+
+
+def benchmark_against_blocked_mm_multi(lemp_df,
+                                       blocked_mm_df,
+                                       fexipro_df,
+                                       models,
+                                       num_clusters=1,
+                                       batch_size=4096,
+                                       bbox_to_anchor=(0, 0, 1, 1),
+                                       y_title=-0.35,
+                                       figsize=(10, 5)):
+
+    fig, ax_arr = plt.subplots(1, len(models), figsize=figsize)
+    fig.tight_layout()
+    plt.subplots_adjust(wspace=0.3)
+
+    for i, model in enumerate(models):
+
+        blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
+        blocked_mm_rt['algo'] = 'Blocked MM (Brute Force)'
+
+        lemp_rt = lemp_df[['model', 'K', 'comp_time']]
+        lemp_rt['algo'] = 'LEMP'
+
+        fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
+        fexipro_rt['algo'] = 'FEXIPRO'
+
+        #% naive_rt = naive_df[['model', 'K', 'comp_time']]
+        #% naive_rt['algo'] = 'Naive'
+
+        lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(
+            by='K')
+        fexipro_model_rt = fexipro_rt.query(
+            'model == "%s"' % model).sort_values(by='K')
+        # naive_model_rt = naive_rt.query('model == "%s"' % model).sort_values(
+        #     by='K')
+        blocked_mm_model_rt = blocked_mm_rt.query(
+            'model == "%s"' % model).sort_values(by='K')
+
+        data = pd.concat([
+            blocked_mm_model_rt,
+            lemp_model_rt,
+            fexipro_model_rt,  # naive_model_rt
+        ])
+        if len(data) == 0: return
+        max_runtime = sorted([
+            lemp_model_rt['comp_time'].max(),
+            blocked_mm_model_rt['comp_time'].max(),
+            fexipro_model_rt['comp_time'].max()
+        ])[1]
+
+        sns.barplot(
+            x='K',
+            y='comp_time',
+            hue='algo',
+            data=data,
+            ci=None,
+            ax=ax_arr[i],
+            linewidth=1.25,
+            edgecolor='black')
+        ax_arr[i].legend_.remove()
+        ax_arr[i].grid(True)
+        ax_arr[i].set_ylabel('Time (s)')
+        ax_arr[i].set_xlabel('K')
+        ax_arr[i].set_title(
+            LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
+
+    sns.despine()
+    legend = ax_arr[0].legend(
+        loc='upper center',
+        bbox_to_anchor=bbox_to_anchor,
+        bbox_transform=plt.gcf().transFigure,
+        ncol=3)
+
+    save_figure('benchmark-against-blocked-mm-appetizer', (legend, ))
 
 
 def blocked_mm_lemp_fexipro_plot(blocked_mm_df,
@@ -650,28 +725,29 @@ def f_u_plots(simdex_df,
     # center last row
     ax_arr = np.ravel(ax_arr)
     while len(models) < num_axes:
-        fig.delaxes(ax_arr[(nrows-1)*ncols + ncols-1-i])
-        fig.delaxes(ax_arr[(nrows-1)*ncols + i])
+        fig.delaxes(ax_arr[(nrows - 1) * ncols + ncols - 1 - i])
+        fig.delaxes(ax_arr[(nrows - 1) * ncols + i])
         # append deleted axis at the end
-        temp = ax_arr[(nrows-1)*ncols + i]
-        ax_arr = np.delete(ax_arr, (nrows-1)*ncols + i)
+        temp = ax_arr[(nrows - 1) * ncols + i]
+        ax_arr = np.delete(ax_arr, (nrows - 1) * ncols + i)
         ax_arr = np.append(ax_arr, temp)
         i += 1
         num_axes -= 2
 
     #_simdex_df = simdex_df.sort_values(by='comp_time').groupby(
     #    ['model', 'K'], as_index=False).first()
-    _simdex_df = simdex_df.query('num_clusters == %d and batch_size == batch_size' % (num_clusters, batch_size))
+    _simdex_df = simdex_df.query('num_clusters == %d and batch_size == %d' %
+                                 (num_clusters, batch_size))
 
     both_df = choose_runtimes_from_optimizer(_simdex_df, blocked_mm_df,
                                              sampling_df)
     both_rt = both_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    both_rt['algo'] = 'RECDEX + Blocked MM + Optimizer'
+    both_rt['algo'] = 'Maximus + Blocked MM + Optimizer'
 
     simdex_rt = _simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    simdex_rt['algo'] = 'RECDEX'
+    simdex_rt['algo'] = 'Maximus'
 
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
     blocked_mm_rt['algo'] = 'Blocked MM'
@@ -684,7 +760,6 @@ def f_u_plots(simdex_df,
 
     fexipro_si_rt = fexipro_si_df[['model', 'K', 'comp_time']]
     fexipro_si_rt['algo'] = 'FEXIPRO-SI'
-
 
     all_speedups = []
     simdex_vs_lemp = []
@@ -774,7 +849,8 @@ def f_u_plots(simdex_df,
             ax_arr[i].set_ylabel('Time (s)')
         else:
             ax_arr[i].set_ylabel('')
-        if int(i / ncols) == nrows - 1:
+        if int(i / ncols) == nrows - 1 or int(i / ncols) == nrows - 2 and (
+                i % ncols == 0 or i % ncols == ncols - 1):
             ax_arr[i].set_xlabel('K')
         else:
             ax_arr[i].set_xlabel('')
@@ -1013,7 +1089,7 @@ def rmse_and_reg_plots(blocked_mm_df,
         ax2.plot(
             regs,
             simdex_data,
-            label='RECDEX',
+            label='Maximus',
             linestyle=linestyle,
             marker=markerstyle)
 
@@ -1085,7 +1161,7 @@ def rmse_and_reg_legend(add_simdex=False, linestyle='--', markerstyle='x'):
     ncol = len(labels)
     if add_simdex:
 
-        labels = labels[:2] + ['RECDEX'] + labels[2:]
+        labels = labels[:2] + ['Maximus'] + labels[2:]
         ncol += 1
         # ncol = int(len(labels) / 2)
 

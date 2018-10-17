@@ -359,7 +359,7 @@ def print_stats(results_df, stats_df):
           np.min(results_df['overhead_perc']),
           np.max(results_df['overhead_perc']))
 
-    print('Index vs Blocked MM: Avg/Std.Dev/Min/Max:',
+    print('Index vs Blocked MM: Avg/Std.Dev/Min/Max/% better:',
           np.mean(stats_df['index_vs_blocked_mm']),
           np.std(stats_df['index_vs_blocked_mm']),
           np.min(stats_df['index_vs_blocked_mm']),
