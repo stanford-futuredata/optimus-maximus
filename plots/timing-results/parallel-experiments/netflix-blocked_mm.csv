@@ -1,0 +1,8 @@
+model,num_latent_factors,num_threads,K,block_size,gemm_time,pr_queue_time,comp_time
+netflix-blocked_mm-parallelized-num-threads-1,100,1,1,1280,59.3225,9.9128,69.2353
+netflix-blocked_mm-parallelized-num-threads-2,100,2,1,1280,33.4783,8.19684,41.6752
+netflix-blocked_mm-parallelized-num-threads-4,100,4,1,1280,18.754,4.68328,23.4373
+netflix-blocked_mm-parallelized-num-threads-8,100,8,1,1280,10.9813,3.07857,14.0599
+netflix-blocked_mm-parallelized-num-threads-16,100,16,1,1280,6.53483,2.14084,8.67567
+netflix-blocked_mm-parallelized-num-threads-32,100,32,1,1280,6.4168,3.24977,9.66657
+netflix-blocked_mm-parallelized-num-threads-64,100,64,1,1280,4.82105,4.13152,8.95256

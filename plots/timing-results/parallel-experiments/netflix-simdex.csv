@@ -1,0 +1,8 @@
+model,K,num_users,num_items,num_latent_factors,num_threads,num_bins,batch_size,num_clusters,sample_percentage,num_iters,parse_time,cluster_time,index_time,algo_time,comp_time,user_sample_ratio,num_sampled_users,blocked_mm_sample_time,simdex_sample_time,simdex_wins
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,1,1,4096,64,10,3,29.5559,3.65503,0.330949,159.105,163.091,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,2,1,4096,64,10,3,29.5853,3.50194,0.331881,82.0752,85.909,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,4,1,4096,64,10,3,29.9122,3.39385,0.332265,42.6395,46.3656,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,8,1,4096,64,10,3,29.5411,3.08696,0.333879,23.8345,27.2554,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,16,1,4096,64,10,3,29.8231,3.17604,0.327109,15.496,18.9991,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,32,1,4096,64,10,3,29.7276,3.13238,0.328331,15.9631,19.4238,0,0,0,0,1
+simdex-parallelized-lemp-paper-Netflix-noav-100,1,480189,17770,100,64,1,4096,64,10,3,29.7442,3.2555,0.332923,17.3531,20.9415,0,0,0,0,1
