@@ -36,8 +36,12 @@ set -x
 
 cd ../cpp && make clean && make -j5 $FLAGS && cd -
 
-$RUNNER \
-  -w $HOME/models-simdex/lemp-paper/Netflix-noav-10 \
-  -k 1 -m 480189 -n 17770 -f 10 -c 8 -s 10 -i 3 -b 3 -t 1 \
-  --batch-size 4096 \
-  --base-name lemp-paper-Netflix-noav-10
+export OPENBLAS_NUM_THREADS=1
+
+for thread in 2 4 16 32 64; do
+  $RUNNER \
+    -w $HOME/models-simdex/lemp-paper/Netflix-noav-100 \
+    -k 1 -m 480189 -n 17770 -f 100 -c 64 -s 10 -i 3 -b 3 -t $thread \
+    --batch-size 4096 \
+    --base-name simdex-parallelized-lemp-paper-Netflix-noav-100
+done

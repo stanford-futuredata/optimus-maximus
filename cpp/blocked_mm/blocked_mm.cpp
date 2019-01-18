@@ -22,6 +22,8 @@
 #include <cblas.h>
 #endif
 
+#include <omp.h>
+
 #define L2_CACHE_SIZE 256000
 
 namespace opt = boost::program_options;
@@ -69,9 +71,13 @@ int main(int argc, const char *argv[]) {
   const std::string base_name = args["base-name"].as<std::string>();
 
 #ifdef MKL_ILP64
-  MKL_Set_Num_Threads(1);
+  mkl_set_dynamic(0);
+  MKL_Set_Num_Threads(num_threads);
   printf("Num threads: %d\n", mkl_get_max_threads());
+#else
 #endif
+  omp_set_dynamic(0);
+  omp_set_num_threads(num_threads);
 
   double gemm_time = 0, pr_queue_time = 0, compute_time = 0;
 

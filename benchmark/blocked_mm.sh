@@ -22,8 +22,11 @@ set -x
 
 cd ../cpp/blocked_mm && make clean && make $FLAGS -j2 && cd -
 
-../cpp/blocked_mm/blocked_mm \
-  -q $HOME/models-simdex/lemp-paper/Netflix-noav-10/user_weights.csv \
-  -p $HOME/models-simdex/lemp-paper/Netflix-noav-10/item_weights.csv \
-  -k 1 -m 480189 -n 17770 -f 10 -t 1 \
-  --base-name lemp-paper-Netflix-noav-10
+for thread in 1 2 4 8 16 32 64; do
+  export OPENBLAS_NUM_THREADS=$thread
+  ../cpp/blocked_mm/blocked_mm \
+    -q $HOME/models-simdex/lemp-paper/Netflix-noav-100/user_weights.csv \
+    -p $HOME/models-simdex/lemp-paper/Netflix-noav-100/item_weights.csv \
+    -k 1 -m 480189 -n 17770 -f 100 -t $thread \
+    --base-name netflix-blocked_mm-parallelized-num-threads-${thread}
+done

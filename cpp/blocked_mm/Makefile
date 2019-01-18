@@ -51,14 +51,14 @@ MAIN = blocked_mm
 all: $(MAIN)
 
 $(MAIN): $(OBJS)
-	$(CXX) $(CXX_FLAGS) $(OBJS) $(L_FLAGS) -o $(MAIN)
+	$(CXX) $(CXX_FLAGS) $(OBJS) $(L_FLAGS) -fopenmp -o $(MAIN)
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file)
 # (see the gnu make manual section about automatic variables)
 .cpp.o:
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) -c $<  -o $@
+	$(CXX) $(CXX_FLAGS) -fopenmp $(INCLUDES) -c $<  -o $@
 
 clean:
 	$(RM) *.o ../parser.o *~ $(MAIN)

@@ -94,9 +94,18 @@ void computeTopKForCluster(
     const double *item_weights, const float *item_norms, const float *theta_ics,
     const float &centroid_norm, const int num_items,
     const int num_latent_factors, const int K, const int item_batch_size,
-    int num_users_to_compute, float *upper_bounds,
+    int num_users_to_compute, std::ofstream &user_stats_file) {
+  /*, float *upper_bounds,
     int *sorted_upper_bounds_indices, float *sorted_upper_bounds,
-    double *sorted_item_weights, std::ofstream &user_stats_file) {
+    double *sorted_item_weights, std::ofstream &user_stats_file) {*/
+
+    const int num_bins = 1;
+
+    float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
+    int* sorted_upper_bounds_indices = (int*)_malloc(num_items * sizeof(int));
+    float* sorted_upper_bounds = (float*)_malloc(num_items * sizeof(float));
+    double* sorted_item_weights = (double*)_malloc(
+        sizeof(double) * num_bins * num_items * num_latent_factors);
 
 #ifdef STATS
   bench_timer_t upper_bounds_start = time_start();

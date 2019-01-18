@@ -6,17 +6,20 @@
 #ifndef blocked_mm_hpp
 #define blocked_mm_hpp
 
+#include <iostream>
 #include <queue>
 #ifdef MKL_ILP64
 #include <mkl.h>
 #else
 #include <cblas.h>
+#include <omp.h>
 #endif
 
 inline void computeTopRating(double *ratings_matrix, int *top_K_items,
                              const int num_users, const int num_items) {
+  #pragma omp parallel
+  #pragma omp for
   for (int user_id = 0; user_id < num_users; user_id++) {
-
     unsigned long index = user_id;
     index *= num_items;
     int best_item_id = cblas_idamax(num_items, &ratings_matrix[index], 1);
@@ -27,6 +30,8 @@ inline void computeTopRating(double *ratings_matrix, int *top_K_items,
 inline void computeTopK(double *ratings_matrix, int *top_K_items,
                         const int num_users, const int num_items, const int K) {
 
+  #pragma omp parallel
+  #pragma omp for
   for (int i = 0; i < num_users; i++) {
 
     // TODO: allocate vector on the stack, reserve the size we need or use the

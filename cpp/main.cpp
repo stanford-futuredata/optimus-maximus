@@ -27,6 +27,7 @@
 #ifdef MKL_ILP64
 #include <mkl.h>
 #else
+#include <omp.h>
 #include <cblas.h>
 #endif
 
@@ -240,7 +241,10 @@ int main(int argc, const char* argv[]) {
 #else
   MKL_Set_Num_Threads(num_threads);
 #endif
+#else
 #endif
+  omp_set_dynamic(0);
+  omp_set_num_threads(num_threads);
 
   bench_timer_t parse_time_start = time_start();
 
@@ -311,11 +315,11 @@ int main(int argc, const char* argv[]) {
   bench_timer_t algo_start = time_start();
 
   int* top_K_items = (int*)_malloc(num_users * K * sizeof(int));
-  float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
-  int* sorted_upper_bounds_indices = (int*)_malloc(num_items * sizeof(int));
-  float* sorted_upper_bounds = (float*)_malloc(num_items * sizeof(float));
-  double* sorted_item_weights = (double*)_malloc(
-      sizeof(double) * num_bins * num_items * num_latent_factors);
+  // float* upper_bounds = (float*)_malloc(num_bins * num_items * sizeof(float));
+  // int* sorted_upper_bounds_indices = (int*)_malloc(num_items * sizeof(int));
+  // float* sorted_upper_bounds = (float*)_malloc(num_items * sizeof(float));
+  // double* sorted_item_weights = (double*)_malloc(
+  //     sizeof(double) * num_bins * num_items * num_latent_factors);
 
 #ifdef ONLINE_DECISION_RULE
   std::random_device rd;  // only used once to initialise (seed) engine
@@ -365,9 +369,7 @@ int main(int argc, const char* argv[]) {
       &user_weights[num_users_before * num_latent_factors], item_weights,
       item_norms, &theta_ics[rand_cluster_id * num_items],
       centroid_norms[rand_cluster_id], num_items, num_latent_factors, K,
-      batch_size, num_users_per_block, upper_bounds,
-      sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
-      user_stats_file);
+      batch_size, num_users_per_block, user_stats_file);
 
   simdex_time = time_stop(simdex_start) / num_users_per_block;
 
@@ -396,14 +398,16 @@ int main(int argc, const char* argv[]) {
           &user_weights[num_users_so_far * num_latent_factors], item_weights,
           item_norms, &theta_ics[cluster_id * num_items],
           centroid_norms[cluster_id], num_items, num_latent_factors, K,
-          batch_size, cluster_index[cluster_id].size(), upper_bounds,
-          sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
-          user_stats_file);
+          batch_size, cluster_index[cluster_id].size(), user_stats_file);
     }
 #endif
   }
 #else
 
+
+  std::cout << "Starting now" << std::endl;
+  #pragma omp parallel
+  #pragma omp for
   for (int cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
     if (cluster_index[cluster_id].size() == 0) {
       continue;
@@ -411,6 +415,7 @@ int main(int argc, const char* argv[]) {
 #ifdef DEBUG
     std::cout << "Cluster ID " << cluster_id << std::endl;
 #endif
+    // const int threadnum = omp_get_thread_num();
     const int num_users_so_far = num_users_so_far_arr[cluster_id];
     computeTopKForCluster(
         &top_K_items[num_users_so_far * K], cluster_id,
@@ -418,9 +423,7 @@ int main(int argc, const char* argv[]) {
         &user_weights[num_users_so_far * num_latent_factors], item_weights,
         item_norms, &theta_ics[cluster_id * num_items],
         centroid_norms[cluster_id], num_items, num_latent_factors, K,
-        batch_size, cluster_index[cluster_id].size(), upper_bounds,
-        sorted_upper_bounds_indices, sorted_upper_bounds, sorted_item_weights,
-        user_stats_file);
+        batch_size, cluster_index[cluster_id].size(), user_stats_file);
   }
 #endif
 
@@ -469,10 +472,10 @@ int main(int argc, const char* argv[]) {
   _free(centroids);
   _free(user_id_cluster_ids);
   _free(top_K_items);
-  _free(upper_bounds);
-  _free(sorted_upper_bounds_indices);
-  _free(sorted_upper_bounds);
-  _free(sorted_item_weights);
+  // _free(upper_bounds);
+  // _free(sorted_upper_bounds_indices);
+  // _free(sorted_upper_bounds);
+  // _free(sorted_item_weights);
   delete[] cluster_index;
 #ifdef STATS
   user_stats_file.close();
