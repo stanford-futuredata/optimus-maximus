@@ -38,7 +38,7 @@ cd ../cpp && make clean && make -j5 $FLAGS && cd -
 
 export OPENBLAS_NUM_THREADS=1
 
-for thread in 2 4 16 32 64; do
+for thread in 1 2 4 8 16; do
   $RUNNER \
     -w $HOME/models-simdex/lemp-paper/Netflix-noav-100 \
     -k 1 -m 480189 -n 17770 -f 100 -c 64 -s 10 -i 3 -b 3 -t $thread \
