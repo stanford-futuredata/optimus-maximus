@@ -14,6 +14,10 @@ import itertools
 FIGURES_DIR = 'figures/'
 if not os.path.exists(FIGURES_DIR):
     os.makedirs(FIGURES_DIR)
+APPETIZER_LABEL_DICT = {
+    'nomad-Netflix-50-reg-0.05': r'Netflix, $f=50$',
+    'nomad-R2-50-reg-0.000001': r'Yahoo R2, $f=50$',
+        }
 
 LABEL_DICT = {
     'bpr-Netflix-10-reg-0.00001': r'Netflix-BPR, $f=10$',
@@ -327,7 +331,7 @@ def runtime_estimates_plot(models,
             handles,
             labels,
             loc='upper center',
-            bbox_to_anchor=(0.5, 1.30),
+            bbox_to_anchor=(0.5, 1.37),
             ncol=int(len(handles) / 2) + 1,
             columnspacing=1.7,
             labelspacing=0.2)
@@ -408,7 +412,7 @@ def benchmark_against_blocked_mm_multi(lemp_df,
         ax_arr[i].set_ylabel('Time (s)')
         ax_arr[i].set_xlabel('K')
         ax_arr[i].set_title(
-            LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
+            APPETIZER_LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
 
     sns.despine()
     legend = ax_arr[0].legend(
@@ -894,7 +898,7 @@ def f_u_plots(simdex_df,
         bbox_to_anchor=bbox_to_anchor,
         bbox_transform=plt.gcf().transFigure,
         ncol=6)
-    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+    plt.tight_layout(pad=0.2, w_pad=0.3, h_pad=0.8)
     save_figure('f-u-plot', (legend, ))
     plt.show()
 
