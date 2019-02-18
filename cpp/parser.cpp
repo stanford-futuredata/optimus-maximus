@@ -25,6 +25,10 @@ T *parse_weights_csv(const std::string filename, const int num_rows,
                      const int num_cols) {
   std::cout << "Loading " << filename << "...." << std::endl;
   std::ifstream weight_file(filename.c_str(), std::ios_base::in);
+  if (!weight_file.is_open()) {
+    std::cout << "Unable to find " << filename << std::endl;
+    exit(1);
+  }
   T *weights = (T *)_malloc(sizeof(T) * num_rows * num_cols);
 
   std::string buffer;
