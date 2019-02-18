@@ -1,5 +1,6 @@
 
 #include "../utils.hpp"
+#include "../arith.hpp"
 #include <armadillo>
 #include <random>
 
@@ -49,6 +50,20 @@ double kmeans_clustering(double* all_user_weights, const int num_rows,
   bench_timer_t random_start = time_start();
   double* sampled_user_weights = get_random_samples(
       all_user_weights, num_rows, num_cols, sample_percentage, &num_samples);
+#ifdef NORMALIZE
+  bench_timer_t normalize_start = time_start();
+  std::cout << "NORMALIZING!" << std::endl;
+  float *inv_user_norms =
+      compute_norms_vector(sampled_user_weights, num_samples, num_cols);
+  for (int i = 0; i < num_samples; ++i) {
+    for (int j = 0; j < num_cols; ++j) {
+      sampled_user_weights[i*num_cols + j] *= inv_user_norms[i];
+    }
+  }
+  const double normalize_s = time_stop(normalize_start);
+  std::cout << "Normalize time: " << normalize_s << std::endl;
+#endif
+
   mat input_mat(sampled_user_weights, num_samples, num_cols, false, true);
   const double random_s = time_stop(random_start);
 #ifdef DEBUG

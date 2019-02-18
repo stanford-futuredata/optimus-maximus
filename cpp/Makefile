@@ -5,6 +5,10 @@ else
   CXX_FLAGS := -O3
 endif
 
+ifeq ($(NORMALIZE), 1)
+  CXX_FLAGS += -D NORMALIZE
+endif
+
 ifeq ($(STATS), 1)
   CXX_FLAGS += -D STATS
 endif

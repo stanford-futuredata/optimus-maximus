@@ -6,6 +6,9 @@ FLAGS="" # No MKL or ICC by default
 for arg in "$@"
 do
   case "$arg" in
+    '--normalize')
+      FLAGS+=" NORMALIZE=1"
+      ;;
     '--stats')
       RUNNER=../cpp/simdex_stats
       FLAGS+=" STATS=1"
