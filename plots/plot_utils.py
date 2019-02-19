@@ -517,10 +517,10 @@ def factor_analysis(figsize=(8, 4)):
     fig, ax = plt.subplots(figsize=figsize)
     # Example data
     people = (
-        'Netflix w/o\nBlocking',
-        'Netflix with\nBlocking',
-        'R2 w/o\nBlocking',
-        'R2 with\nBlocking', )
+        'Netflix w/o\nItem Blocking',
+        'Netflix with\nItem Blocking',
+        'R2 w/o\nItem Blocking',
+        'R2 with\nItem Blocking', )
     y_pos = np.array([0, 1.5, 3, 4.5])
 
     H = 0.25
