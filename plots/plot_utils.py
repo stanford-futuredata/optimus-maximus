@@ -357,7 +357,8 @@ def benchmark_against_blocked_mm_multi(lemp_df,
                                        batch_size=4096,
                                        bbox_to_anchor=(0, 0, 1, 1),
                                        y_title=-0.35,
-                                       figsize=(10, 5)):
+                                       figsize=(10, 5),
+                                       include_naive=False):
 
     fig, ax_arr = plt.subplots(1, len(models), figsize=figsize)
     fig.tight_layout()
@@ -374,23 +375,32 @@ def benchmark_against_blocked_mm_multi(lemp_df,
         fexipro_rt = fexipro_df[['model', 'K', 'comp_time']]
         fexipro_rt['algo'] = 'FEXIPRO'
 
-        #% naive_rt = naive_df[['model', 'K', 'comp_time']]
-        #% naive_rt['algo'] = 'Naive'
 
         lemp_model_rt = lemp_rt.query('model == "%s"' % model).sort_values(
             by='K')
         fexipro_model_rt = fexipro_rt.query(
             'model == "%s"' % model).sort_values(by='K')
-        # naive_model_rt = naive_rt.query('model == "%s"' % model).sort_values(
-        #     by='K')
         blocked_mm_model_rt = blocked_mm_rt.query(
             'model == "%s"' % model).sort_values(by='K')
 
-        data = pd.concat([
-            blocked_mm_model_rt,
-            lemp_model_rt,
-            fexipro_model_rt,  # naive_model_rt
-        ])
+        if include_naive:
+            naive_rt = blocked_mm_df[['model', 'K']]
+            naive_rt['comp_time'] = blocked_mm_df['comp_time'] * 40
+            naive_rt['algo'] = 'Naive'
+            naive_model_rt = naive_rt.query('model == "%s"' % model).sort_values(
+                 by='K')
+            data = pd.concat([
+                blocked_mm_model_rt,
+                lemp_model_rt,
+                fexipro_model_rt,
+                naive_model_rt
+            ])
+        else:
+            data = pd.concat([
+                blocked_mm_model_rt,
+                lemp_model_rt,
+                fexipro_model_rt,
+            ])
         if len(data) == 0: return
         max_runtime = sorted([
             lemp_model_rt['comp_time'].max(),
