@@ -54,12 +54,12 @@ class IndexDecisionRuleStats:
         return row[self.BLOCKED_MM_COL] * row[self.SAMPLED_USERS_COL]
 
     def blocked_mm_true_runtime(self, model, K):
-        return self.blocked_mm_truth_df.query(
-            'model == "%s" and K == %d' % (model, K))['comp_time'].min()
+        return self.blocked_mm_truth_df.query('model == "%s" and K == %d' %
+                                              (model, K))['comp_time'].min()
 
     def lemp_true_runtime(self, model, K):
-        return self.lemp_truth_df.query(
-            'model == "%s" and K == %d' % (model, K))['comp_time'].min()
+        return self.lemp_truth_df.query('model == "%s" and K == %d' %
+                                        (model, K))['comp_time'].min()
 
     def optimizer_runtime(self, row):
         overhead_rt = self.overhead_runtime(row)
@@ -202,9 +202,9 @@ class SimpleBaselineDecisionRuleStats(IndexDecisionRuleStats):
         return row[self.sample_time_col] * self.num_users(row['model'])
 
     def index_true_runtime(self, row):
-        return self.index_truth_df.query(
-            'model == "%s" and K == %d' % (row['model'],
-                                           row['K']))['comp_time'].min()
+        return self.index_truth_df.query('model == "%s" and K == %d' %
+                                         (row['model'],
+                                          row['K']))['comp_time'].min()
 
     def optimizer_runtime_no_overhead(self, row):
         return self.index_true_runtime(row) if row[
@@ -263,8 +263,8 @@ class LempSimpleBaselineDecisionRuleStats(IndexDecisionRuleStats):
         self.lemp_dec_rule_df = lemp_dec_rule_df
 
     def lemp_dec_rule_row(self, model, K):
-        single_row = self.lemp_dec_rule_df.query(
-            'model == "%s" and K == %d' % (model, K))
+        single_row = self.lemp_dec_rule_df.query('model == "%s" and K == %d' %
+                                                 (model, K))
         assert (len(single_row) == 1)
         return single_row.iloc[0]
 
@@ -307,12 +307,12 @@ class LempSimpleBaselineDecisionRuleStats(IndexDecisionRuleStats):
 
         simdex_preproc_rt = self.preproc_runtime(row)
         lemp_preproc_rt = lemp_dec_row['preproc_time'] + lemp_dec_row['index_time']
-        blocked_mm_overhead = row[self.BLOCKED_MM_COL] * row[self.
-                                                             SAMPLED_USERS_COL]
-        simdex_overhead = row[self.sample_time_col] * row[self.
-                                                          SAMPLED_USERS_COL]
-        lemp_overhead = lemp_dec_row[self.
-                                     lemp_sample_time_col] * lemp_dec_row['num_users']
+        blocked_mm_overhead = row[self.BLOCKED_MM_COL] * row[
+            self.SAMPLED_USERS_COL]
+        simdex_overhead = row[self.sample_time_col] * row[
+            self.SAMPLED_USERS_COL]
+        lemp_overhead = lemp_dec_row[self.lemp_sample_time_col] * lemp_dec_row[
+            'num_users']
 
         if self.decision_rule_winner(row) == self.LEMP:
             return simdex_preproc_rt + blocked_mm_overhead + simdex_overhead
@@ -328,9 +328,9 @@ class LempSimpleBaselineDecisionRuleStats(IndexDecisionRuleStats):
         return row[self.sample_time_col] * self.num_users(row['model'])
 
     def index_true_runtime(self, row):
-        return self.index_truth_df.query(
-            'model == "%s" and K == %d' % (row['model'],
-                                           row['K']))['comp_time'].min()
+        return self.index_truth_df.query('model == "%s" and K == %d' %
+                                         (row['model'],
+                                          row['K']))['comp_time'].min()
 
     def optimizer_runtime_no_overhead(self, row):
         winner = self.decision_rule_winner(row)
@@ -367,7 +367,8 @@ def print_stats(results_df, stats_df):
           np.mean(stats_df['index_vs_blocked_mm'] > 1.0))
     print('Index vs Lemp, Avg/Std.Dev/Min/Max, % Faster:',
           np.mean(stats_df['index_vs_lemp']),
-          np.std(stats_df['index_vs_lemp']), np.min(stats_df['index_vs_lemp']),
+          np.std(stats_df['index_vs_lemp']),
+          np.min(stats_df['index_vs_lemp']),
           np.max(stats_df['index_vs_lemp']),
           np.mean(stats_df['index_vs_lemp'] > 1.0))
 
@@ -376,7 +377,10 @@ def print_stats(results_df, stats_df):
           np.std(stats_df['blockopt_vs_lemp']),
           np.min(stats_df['blockopt_vs_lemp']),
           np.max(stats_df['blockopt_vs_lemp']))
-    print('RecOpt vs Oracle:', np.mean(stats_df['blockopt_vs_oracle']))
+    print('RecOpt vs Oracle, Avg/Min/Max:',
+          np.mean(stats_df['blockopt_vs_oracle']),
+          np.min(stats_df['blockopt_vs_oracle']),
+          np.max(stats_df['blockopt_vs_oracle']))
     print('Oracle vs Lemp:', np.mean(stats_df['oracle_vs_lemp']))
 
 

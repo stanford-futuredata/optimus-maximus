@@ -99,11 +99,11 @@ def save_figure(filename, extra_artists=None, tight=True, png=False):
             FIGURES_DIR + filename,
             bbox_extra_artists=extra_artists,
             bbox_inches='tight',
-            transparent=png)
+            transparent=True)
     else:
         if tight:
             plt.tight_layout()
-        plt.savefig(FIGURES_DIR + filename, transparent=png)
+        plt.savefig(FIGURES_DIR + filename, transparent=True)
 
 
 def replace_legend_labels(legend):
@@ -268,14 +268,14 @@ def runtime_estimates_plot(models,
                 'model == "%s" and alg == "SI"' % model_to_plot),
             'fexipro_sample_time', fexipro_truth_query_fn)
 
-        ax_arr[i].errorbar(
-            ratios,
-            fexipro_si_model_estimates,
-            yerr=fexipro_si_errors,
-            label='FEXIPRO-SI estimate',
-            linestyle=linestyle,
-            marker=markerstyle)
-        ax_arr[i].plot(ratios, fexipro_si_model_truth, label='FEXIPRO-SI')
+        # ax_arr[i].errorbar(
+        #     ratios,
+        #     fexipro_si_model_estimates,
+        #     yerr=fexipro_si_errors,
+        #     label='FEXIPRO-SI estimate',
+        #     linestyle=linestyle,
+        #     marker=markerstyle)
+        # ax_arr[i].plot(ratios, fexipro_si_model_truth, label='FEXIPRO-SI')
 
         ratios, fexipro_sir_model_estimates, fexipro_sir_model_truth, fexipro_sir_errors = runtimes_for_index_type(
             model_to_plot,
@@ -289,10 +289,10 @@ def runtime_estimates_plot(models,
             ratios,
             fexipro_sir_model_estimates,
             yerr=fexipro_sir_errors,
-            label='FEXIPRO-SIR estimate',
+            label='FEXIPRO estimate',
             linestyle=linestyle,
             marker=markerstyle)
-        ax_arr[i].plot(ratios, fexipro_sir_model_truth, label='FEXIPRO-SIR')
+        ax_arr[i].plot(ratios, fexipro_sir_model_truth, label='FEXIPRO')
 
         ratios, simdex_model_estimates, simdex_model_truth, simdex_model_errors = runtimes_for_index_type(
             model_to_plot,
@@ -304,10 +304,10 @@ def runtime_estimates_plot(models,
             ratios,
             simdex_model_estimates,
             yerr=simdex_model_errors,
-            label='RECDEX estimate',
+            label='Maximus estimate',
             linestyle=linestyle,
             marker=markerstyle)
-        ax_arr[i].plot(ratios, simdex_model_truth, label='RECDEX')
+        ax_arr[i].plot(ratios, simdex_model_truth, label='Maximus')
 
         ratios, blocked_mm_model_estimates, blocked_mm_model_truth, blocked_mm_errors = runtimes_for_index_type(
             model_to_plot,
@@ -333,7 +333,7 @@ def runtime_estimates_plot(models,
             labels,
             loc='upper center',
             bbox_to_anchor=(0.5, 1.30),
-            ncol=int(len(handles) / 2) + 1,
+            ncol=int(len(handles) / 2),
             columnspacing=1.7,
             labelspacing=0.2)
         ax_arr[i].set_ylabel('Time (s), log scale', labelpad=15)
@@ -417,7 +417,7 @@ def blocked_mm_lemp_fexipro_plot(blocked_mm_df,
     plt.show()
 
 
-def factor_analysis(figsize=(8, 4)):
+def factor_analysis(figsize=(8, 4), model='netflix-50'):
     labels = 'Cluster', 'Index Construction', 'Cost Estimation', 'Index Traversal'
 
     # NOMAD Netflix 50 k = 1
@@ -435,34 +435,42 @@ def factor_analysis(figsize=(8, 4)):
     # w/o blocking
     times3 = [1.12, .45, 1.509, 192.379]
 
-    y0 = times2
-    y1 = times3
+    if model == 'netflix-50':
+        title = r'Netflix, $f=50$'
+        y0 = times0
+        y1 = times1
+    else:
+        title = r'Yahoo R2, $f=50$'
+        y0 = times2
+        y1 = times3
     #y2 = times2
     #y3 = times3
 
     fig, ax = plt.subplots(figsize=figsize)
     # Example data
     people = (
-        r'no Blocking',
-        r'Blocking',)
+        r'No Blocking',
+        r'Block Users',)
         #'R2 w/o\nBlocking',
         #'R2 with\nBlocking', )
-    y_pos = np.array([1.15, 1.5])
+    y_pos = np.array([1.15, 1.55])
     #y_pos = np.array([0, 1.5, 3, 4.5])
 
     H = 0.20
 
     #y_pos_mid = [1.5 * H + y for y in y_pos]
 
+    current_palette = sns.color_palette()
     ax.bar(
         #y_pos, [y0[0], y1[0], y2[0], y3[0]],
         y_pos, [y0[-1], y1[-1],],
         linewidth=0.50,
-        edgecolor='black',
+        #edgecolor='black',
         width=H,
         #height=H,
         align='center',
-        label='Index Traversal')
+        color=[current_palette[0], current_palette[1]])
+        
     #y_pos = [H + y for y in y_pos]
 
     # ax.bar(
@@ -513,13 +521,13 @@ def factor_analysis(figsize=(8, 4)):
     ax.set_xticks(y_pos)
     ax.set_xticklabels(people)
     #ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_title(r'Yahoo R2, $f=50$')
+    ax.set_title(title)
     ax.set_ylabel('Time (s)')
     #ax.set_yscale('log')
     ax.grid(True)
 
     sns.despine()
-    save_figure('factor-analysis', (lgd, ), png=True)
+    save_figure('factor-analysis-%s' % title, (lgd, ), png=False)
 
 
 def f_u_plot_single(simdex_df,
@@ -529,7 +537,8 @@ def f_u_plot_single(simdex_df,
                     sampling_df,
                     model,
                     K=[1, 5, 10, 50],
-                    num_clusters=1,
+                    num_clusters=8,
+                    ncol=2,
                     batch_size=4096,
                     y_title=-0.35):
     def generate_K_condition(K):
@@ -545,11 +554,11 @@ def f_u_plot_single(simdex_df,
     ])
     both_rt = both_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    both_rt['algo'] = 'RecOpt: Blocked MM + RecDex'
+    both_rt['algo'] = 'Optimus: Blocked MM + Maximus'
 
     simdex_rt = simdex_df.sort_values(by='comp_time').groupby(
         ['model', 'K'], as_index=False).first()
-    simdex_rt['algo'] = 'RecDex Only'
+    simdex_rt['algo'] = 'Maximus Only'
 
     blocked_mm_rt = blocked_mm_df[['model', 'K', 'comp_time']]
     blocked_mm_rt['algo'] = 'Blocked MM Only'
@@ -575,12 +584,18 @@ def f_u_plot_single(simdex_df,
     sampling_model_rt = sampling_df.query('model == "%s" & %s ' %
                                           (model, K_cond)).sort_values(by='K')
 
+    print('LEMP')
+    print(lemp_model_rt)
+
     if len(sampling_model_rt) > 0:
         both_model_rt['comp_time'] += sampling_model_rt['comp_time'].values
 
+    print('Optimus')
+    print(both_model_rt)
+
     data = pd.concat([
-        blocked_mm_model_rt, simdex_model_rt, both_model_rt, lemp_model_rt,
-        fexipro_model_rt
+        fexipro_model_rt, lemp_model_rt, blocked_mm_model_rt, simdex_model_rt,
+        both_model_rt
     ])
     if len(data) == 0: return
     # max_runtime = sorted([
@@ -603,15 +618,15 @@ def f_u_plot_single(simdex_df,
     # if not np.isnan(max_runtime):
     #     plt.ylim([start, max_runtime * 1.1])
     plt.minorticks_on()
-    plt.ylabel('Time (s)')
+    plt.ylabel('Time for all users (s)')
     plt.xlabel('K')
 
     plt.grid(True)
     plt.title(LABEL_DICT[model] if model in LABEL_DICT else model, y=y_title)
     sns.despine()
 
-    legend = plt.legend(loc='center', bbox_to_anchor=(0.5, 1.35), ncol=2)
-    save_figure('f-u-plot-single-%s' % model, (legend, ), png=True)
+    legend = plt.legend(loc='center', bbox_to_anchor=(0.5, 1.35), ncol=ncol)
+    save_figure('f-u-plot-single-%s' % model, (legend, ), png=False)
     plt.show()
 
 
